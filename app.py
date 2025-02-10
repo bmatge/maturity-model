@@ -1,5 +1,7 @@
 import streamlit as st
 import json
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Charger les questions depuis data.json
 with open("data.json", "r", encoding="utf-8") as file:
@@ -11,7 +13,6 @@ user_answers = {}
 # Interface principale
 st.title("Score de Maturité Numérique")
 
-# Explication du modèle
 st.markdown("""
 Inspiré du Digital Maturity Model (DMM), ce modèle de maturité numérique évalue la maturité de votre organisation à travers plusieurs axes.
 """)
@@ -37,13 +38,8 @@ if st.button("Voir les résultats"):
     st.write("Voici votre score moyen par axe :")
     st.json(final_scores)
 
-    # Visualisation des scores avec un graphique
-    import pandas as pd
-    import matplotlib.pyplot as plt
-
+    # 📊 Visualisation avec Streamlit
     df = pd.DataFrame.from_dict(final_scores, orient="index", columns=["Score"])
-    df.plot(kind="bar", legend=False, color="royalblue")
-    plt.xticks(rotation=45)
-    plt.title("Score de Maturité par Axe")
-    plt.ylabel("Score")
-    st.pyplot(plt)
+
+    # Utiliser Streamlit pour l'affichage du graphique
+    st.bar_chart(df)
