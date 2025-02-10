@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Score de maturité numérique</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="./style.css">
+
+
+<!-- Bootstrap JavaScript et Popper.js (nécessaire pour certaines fonctionnalités de Bootstrap) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+</head>
+<body>
+    <div class="container">
+    <h1>Score de maturité numérique</h1>
+
+    <p>Inspiré du Digital Maturity Model (DMM), ce modèle de maturité numérique se concentre sur la gestion des espaces numériques et évalue la maturité se l’organisation à travers 4 axes principaux (stratégie, processus, contenus et technique) et 4 niveaux de maturité :</p>
+    <ul>
+        <li>Basique : Les processus et pratiques de communication sont élémentaires, avec peu de structure ou de planification</li>
+        <li>Rationnel : Les processus de communication sont organisés et suivent une approche réfléchie, permettant une meilleure compréhension des besoins de l'organisation</li>
+        <li>Standard : Les pratiques de communication sont harmonisées et conformes aux normes établies, assurant ainsi une cohérence et une efficacité accrues.</li>
+        <li>Optimisé : Les processus de communication sont continuellement améliorés et adaptés aux besoins changeants de l'organisation, permettant d'atteindre un niveau de performance supérieur.</li>
+    </ul>        
+   
+        <p>L’objectif de ce modèle est de :<p>
+        <ul>
+        <li>Fournir un diagnostic à partir de la situation actuelle, permettant de prendre des décisions éclairées sur les priorités et les investissements.
+        </li>
+        <li>Guider l’alignement stratégique en identifiant les écarts entre la vision et sa réalisation, favorisant une meilleure cohérence entre les objectifs et les résultats
+        </li>
+        <li>Tendre vers de l’amélioration continue en se concentrant sur les domaines clés pour une évolution et une amélioration constante du service rendu
+        </li>
+        <li>Satisfaire nos usagers en identifiant mieux leurs attentes, augmentant ainsi la satisfaction et la fidélité des publics
+        </li>
+    </ul>
+
+
+
+
+
+
+
+    </p>
+    <button class="btn btn-primary mx-2" id="startBtn">Commencer</button>
+    <div class="about">
+        <p>L'application commence par charger les données du questionnaire depuis un fichier JSON externe en utilisant la fonction loadData, qui utilise fetch pour récupérer les données et les convertir en objet JavaScript.</p>
+    
+        <p>Lorsque la page d'accueil est chargée, un gestionnaire d'événements "DOMContentLoaded" est attaché au document. Lorsque l'utilisateur clique sur le bouton "Démarrer", il est redirigé vers la page de questions.</p>
+        
+        <p>Sur la page de questions, un autre gestionnaire d'événements "DOMContentLoaded" est attaché, qui appelle la fonction displayQuestion pour afficher la première question.
+        </p>
+    
+        <p>La fonction displayQuestion crée dynamiquement les éléments HTML nécessaires pour afficher la question, les choix de réponses et la barre de progression. Elle vérifie également si l'utilisateur a déjà répondu à cette question et sélectionne la réponse précédemment choisie si c'est le cas.</p>
+    
+        <p>L'utilisateur peut naviguer entre les questions en utilisant les boutons "Suivant" et "Précédent". Les fonctions handleNextQuestion et handlePreviousQuestion sont attachées à ces boutons pour gérer la navigation entre les questions et sauvegarder les réponses de l'utilisateur.</p>
+    
+        <p>Les réponses de l'utilisateur sont stockées dans l'objet userAnswers, qui utilise une clé basée sur l'axe et le thème de la question pour stocker les réponses.</p>
+    
+        <p>Lorsque l'utilisateur atteint la fin du questionnaire, les résultats sont calculés en utilisant la fonction calculateResults, qui calcule les scores moyens pour chaque thème et chaque axe. Les résultats sont ensuite stockés dans le sessionStorage pour être utilisés ultérieurement.</p>
+    
+        <p>L'utilisateur est ensuite redirigé vers la page de résultats, où un autre gestionnaire d'événements "DOMContentLoaded" est attaché. La fonction displayResults est appelée pour afficher les résultats sous forme de graphique en barres, avec la possibilité de consulter les résultats détaillés par thème.</p>
+    
+        <p>La bibliothèque Chart.js est utilisée pour créer et mettre à jour le graphique en barres en fonction des résultats de l'utilisateur.</p>
+    
+    <p>En résumé, cette application est un questionnaire interactif qui permet aux utilisateurs de répondre à des questions organisées par thèmes et axes, et d'afficher les résultats sous forme de graphiques pour faciliter l'analyse des scores obtenus. Techniquement, l'application utilise JavaScript pour gérer la logique, le stockage des réponses et la génération dynamique des éléments HTML, ainsi que Chart.js pour la visualisation des résultats.</p>
+
+    </div>
+
+
+    </div>
+
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+body {background-color : #6E6E6E}
+.container {margin:auto ; 
+    background-color: white;
+    margin-top: 3em; 
+    margin-bottom : 3em;
+    padding: 2em;
+    border-radius : 1em;
+    width : 80%; 
+    height : 100%;
+    font-family:  Verdana, Geneva, Tahoma, sans-serif;
+}
+h1 {font-size:3em}
+.badge {background : #6E6E6E}
+.badge-primary {background : green}
+.badge-secondary {background : #6E6E6E; margin-left : 2em}
+
+.bullet {margin : 1em}
+
+.about {display : none}
+
+.progress-bar {width : 80%}
+
+.list-unstyled  {list-style: none; padding-left: 0em}
+.list-unstyled li {padding : 0.2em 0.2em 0.2em 0em; display: flex}
+.list-unstyled li input, .list-unstyled li label {display : inline-flex}
+
+/*
+.darkBackground {background : red}
+*/
+
+.progress-container {
+  width: 80%;
+  height: 30px;
+  background-color: #f3f3f3;
+  position: relative;
+}
+
+.progress-bar {
+  height: 1.2em;
+  width: 0%;
+  background-color: #4caf50;
+  position: absolute;
+}
+
+.progress-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  top: 50%;
+  transform: translateY(-50%);
+}
