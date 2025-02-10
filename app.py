@@ -1,52 +1,49 @@
-from flask import Flask, render_template, request, jsonify, session
+import streamlit as st
 import json
-import os
 
-app = Flask(__name__)
-app.secret_key = 'secret_key_for_session'
-
-# Charger les questions
-with open('data.json', 'r', encoding='utf-8') as file:
+# Charger les questions depuis data.json
+with open("data.json", "r", encoding="utf-8") as file:
     questions = json.load(file)["questions"]
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Stockage des réponses de l'utilisateur
+user_answers = {}
 
-@app.route('/questions')
-def questions_page():
-    return render_template('questions.html', questions=questions)
+# Interface principale
+st.title("Score de Maturité Numérique")
 
-@app.route('/get_questions', methods=['GET'])
-def get_questions():
-    return jsonify(questions)
+# Explication du modèle
+st.markdown("""
+Inspiré du Digital Maturity Model (DMM), ce modèle de maturité numérique évalue la maturité de votre organisation à travers plusieurs axes.
+""")
 
-@app.route('/submit_answers', methods=['POST'])
-def submit_answers():
-    user_answers = request.json.get('answers', {})
-    session['user_answers'] = user_answers
-    return jsonify({'message': 'Réponses enregistrées'})
+# Questionnaire interactif
+for question in questions:
+    st.subheader(question["text"])
+    options = list(question["choices"].keys())
+    response = st.radio("", options, key=question["text"])
+    user_answers[question["text"]] = question["choices"][response]
 
-@app.route('/results')
-def results():
-    user_answers = session.get('user_answers', {})
-    scores = calculate_results(user_answers)
-    return render_template('results.html', scores=scores)
-
-
-def calculate_results(user_answers):
+# Bouton pour soumettre
+if st.button("Voir les résultats"):
     scores = {}
     for question in questions:
-        axis = question['axis']
-        if axis not in scores:
-            scores[axis] = []
-        scores[axis].append(user_answers.get(question['text'], 0))
-    
-    # Calculer la moyenne des scores pour chaque axe
-    for axis in scores:
-        scores[axis] = sum(scores[axis]) / len(scores[axis])
-    
-    return scores
+        axis = question["axis"]
+        scores.setdefault(axis, []).append(user_answers[question["text"]])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Calcul de la moyenne pour chaque axe
+    final_scores = {axis: sum(values) / len(values) for axis, values in scores.items()}
+
+    st.subheader("Résultats")
+    st.write("Voici votre score moyen par axe :")
+    st.json(final_scores)
+
+    # Visualisation des scores avec un graphique
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    df = pd.DataFrame.from_dict(final_scores, orient="index", columns=["Score"])
+    df.plot(kind="bar", legend=False, color="royalblue")
+    plt.xticks(rotation=45)
+    plt.title("Score de Maturité par Axe")
+    plt.ylabel("Score")
+    st.pyplot(plt)
