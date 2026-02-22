@@ -110,7 +110,53 @@ def compute_global_stats(campagne):
 def index():
     campagnes = Campagne.query.order_by(Campagne.date_debut.desc()).all()
     entites = Entite.query.order_by(Entite.nom).all()
-    return render_template("index.html", campagnes=campagnes, entites=entites)
+
+    # Données graphiques dashboard
+    ref = get_active_referentiel()
+    dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
+    dim_labels = [f"{d.numero}. {d.nom}" for d in dimensions]
+
+    # Radar global : moyenne par dimension (toutes évaluations validées)
+    all_validated = Evaluation.query.filter_by(statut="validee").all()
+    dim_totals = {}
+    for ev in all_validated:
+        dim_scores = compute_scores_by_dimension(ev)
+        for d in dim_scores.values():
+            dim_totals.setdefault(d["numero"], []).append(d["moyenne"])
+
+    has_charts = bool(dim_totals)
+    if has_charts:
+        radar_y_vals = [
+            round(sum(dim_totals.get(d.numero, [0])) / max(len(dim_totals.get(d.numero, [0])), 1), 2)
+            for d in dimensions
+        ]
+        radar_x = json.dumps([dim_labels])
+        radar_y = json.dumps([radar_y_vals])
+    else:
+        radar_x = json.dumps([])
+        radar_y = json.dumps([])
+
+    # Bar chart : score moyen par entité (dernière évaluation validée)
+    bar_labels = []
+    bar_values = []
+    for e in entites:
+        last_ev = Evaluation.query.filter_by(entite_id=e.id, statut="validee") \
+            .order_by(Evaluation.date_evaluation.desc()).first()
+        if last_ev:
+            dim_scores = compute_scores_by_dimension(last_ev)
+            moyennes = [d["moyenne"] for d in dim_scores.values()]
+            bar_labels.append(e.nom)
+            bar_values.append(round(sum(moyennes) / len(moyennes), 2) if moyennes else 0)
+
+    bar_x = json.dumps([bar_labels])
+    bar_y = json.dumps([bar_values])
+
+    return render_template("index.html",
+        campagnes=campagnes, entites=entites,
+        radar_x=radar_x, radar_y=radar_y,
+        bar_x=bar_x, bar_y=bar_y,
+        has_charts=has_charts,
+    )
 
 
 # ──────────────────────────────────────────────
