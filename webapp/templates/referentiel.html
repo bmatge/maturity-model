@@ -2,6 +2,7 @@
 {% block title %}Référentiel — Maturité ComNum{% endblock %}
 
 {% block content %}
+<!-- Header -->
 <div class="fr-grid-row fr-grid-row--middle fr-mb-4w">
     <div class="fr-col">
         <h1 class="fr-h3">Référentiel {{ referentiel.label }}</h1>
@@ -9,72 +10,160 @@
     </div>
     <div class="fr-col-auto">
         <ul class="fr-tags-group">
-            <li><p class="fr-tag">{{ dimensions | length }} dimensions</p></li>
-            <li><p class="fr-tag">{{ evaluations | length }} évaluations</p></li>
+            <li><p class="fr-tag">{{ dimensions|length }} dimensions</p></li>
+            <li><p class="fr-tag">{{ nb_capacites }} capacités</p></li>
+            <li><p class="fr-tag">{{ nb_evaluations }} évaluations</p></li>
         </ul>
     </div>
 </div>
 
-<div class="fr-table" style="overflow-x: auto;">
-    <div class="fr-table__wrapper">
-        <div class="fr-table__container">
-            <div class="fr-table__content">
-                <table>
-                    <caption class="fr-sr-only">Référentiel de maturité complet avec scores</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col">N°</th>
-                            <th scope="col">Capacité</th>
-                            <th scope="col">Portée</th>
-                            {% for ev in evaluations %}
-                            <th scope="col" style="white-space: nowrap; font-size: .8rem;">
-                                {{ ev.entite.nom }}<br>
-                                <span class="fr-text--xs">{{ ev.campagne.label }}</span>
-                            </th>
-                            {% endfor %}
-                            {% if evaluations %}
-                            <th scope="col">Moy.</th>
-                            {% endif %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for dim in dimensions %}
-                        <tr class="dimension-header">
-                            <td colspan="{{ 3 + evaluations|length + (1 if evaluations else 0) }}">
-                                {{ dim.numero }}. {{ dim.nom }}
-                            </td>
-                        </tr>
-                        {% for cap in dim.capacites %}
-                        <tr>
-                            <td>{{ cap.numero }}</td>
-                            <td>{{ cap.nom }}</td>
-                            <td><span class="fr-badge fr-badge--sm fr-badge--no-icon badge-portee-{{ cap.portee }}">{{ cap.portee }}</span></td>
-                            {% for ev in evaluations %}
-                            <td style="text-align: center;">
-                                {% set score = score_map.get((ev.id, cap.id)) %}
-                                {% if score %}
-                                <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ score }}">{{ score }}</span>
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                            {% if evaluations %}
-                            <td style="text-align: center; font-weight: bold;">
-                                {% if cap_averages[cap.id] is not none %}
-                                {{ cap_averages[cap.id] }}
-                                {% else %}
-                                —
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                        </tr>
-                        {% endfor %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+<!-- Recherche + Filtres -->
+<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-6">
+        <div class="fr-search-bar" role="search">
+            <label class="fr-label" for="ref-search">Rechercher une capacité</label>
+            <input class="fr-input" type="search" id="ref-search"
+                   placeholder="Ex: stratégie, veille, accessibilité...">
+            <button class="fr-btn" title="Rechercher">Rechercher</button>
         </div>
     </div>
+    <div class="fr-col-12 fr-col-md-6">
+        <fieldset class="fr-fieldset">
+            <legend class="fr-fieldset__legend fr-text--sm">Filtrer par portée :</legend>
+            <div class="fr-fieldset__content">
+                <ul class="fr-tags-group">
+                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter" data-portee="all" aria-pressed="true">Toutes</button></li>
+                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter badge-portee-C" data-portee="C" aria-pressed="false">C — Cabinet</button></li>
+                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter badge-portee-D" data-portee="D" aria-pressed="false">D — Direction</button></li>
+                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter badge-portee-P" data-portee="P" aria-pressed="false">P — Publique</button></li>
+                </ul>
+            </div>
+        </fieldset>
+    </div>
 </div>
+
+<!-- Compteur résultats -->
+<p class="fr-text--sm fr-mb-2w" id="ref-count">{{ nb_capacites }} capacités</p>
+
+<!-- Accordéons dimensions -->
+{% for dim in dimensions %}
+<section class="fr-accordion fr-mb-2w" data-dimension="{{ dim.numero }}">
+    <h2 class="fr-accordion__title">
+        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="dim-{{ dim.numero }}">
+            {{ dim.numero }}. {{ dim.nom }}
+            <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w">{{ dim.capacites|length }} capacités</span>
+        </button>
+    </h2>
+    <div class="fr-collapse" id="dim-{{ dim.numero }}">
+        {% if dim.description %}
+        <p class="fr-text--alt fr-mb-2w">{{ dim.description }}</p>
+        {% endif %}
+
+        {% for cap in dim.capacites %}
+        <div class="fr-card fr-mb-2w capacite-item" data-portee="{{ cap.portee }}"
+             data-search="{{ cap.numero }} {{ cap.nom }} {{ cap.description or '' }}">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <div class="fr-grid-row fr-grid-row--middle fr-mb-1w">
+                        <div class="fr-col">
+                            <h3 class="fr-card__title fr-text--md fr-mb-0">
+                                {{ cap.numero }} — {{ cap.nom }}
+                            </h3>
+                        </div>
+                        <div class="fr-col-auto">
+                            <span class="fr-badge fr-badge--sm fr-badge--no-icon badge-portee-{{ cap.portee }} fr-mr-1w">{{ cap.portee }}</span>
+                            {% if cap.id in cap_averages %}
+                            <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ cap_averages[cap.id]|round|int }}">
+                                Moy. {{ cap_averages[cap.id] }}/4
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if cap.description %}
+                    <p class="fr-text--sm fr-mb-1w">{{ cap.description }}</p>
+                    {% endif %}
+
+                    <!-- Niveaux de maturité (sous-accordéon) -->
+                    <section class="fr-accordion">
+                        <h4 class="fr-accordion__title">
+                            <button class="fr-accordion__btn fr-text--sm" aria-expanded="false"
+                                    aria-controls="niveaux-{{ cap.id }}">
+                                Niveaux de maturité
+                            </button>
+                        </h4>
+                        <div class="fr-collapse" id="niveaux-{{ cap.id }}">
+                            <div class="fr-grid-row fr-grid-row--gutters">
+                                {% for niv in cap.niveaux %}
+                                <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
+                                    <div style="border-left: 3px solid; padding: .75rem;" class="niveau-{{ niv.niveau }}">
+                                        <p class="fr-text--bold fr-mb-1v">
+                                            <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ niv.niveau }}">{{ niv.niveau }}</span>
+                                            {{ niv.nom }}
+                                        </p>
+                                        <p class="fr-text--xs fr-mb-0">{{ niv.description }}</p>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var search = document.getElementById('ref-search');
+    var filters = document.querySelectorAll('.portee-filter');
+    var items = document.querySelectorAll('.capacite-item');
+    var counter = document.getElementById('ref-count');
+    var activePortee = 'all';
+
+    function applyFilters() {
+        var query = search.value.toLowerCase().trim();
+        var visible = 0;
+        items.forEach(function(item) {
+            var matchSearch = !query || item.dataset.search.toLowerCase().indexOf(query) !== -1;
+            var matchPortee = activePortee === 'all' || item.dataset.portee === activePortee;
+            var show = matchSearch && matchPortee;
+            item.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        counter.textContent = visible + ' capacité' + (visible > 1 ? 's' : '') +
+            (query || activePortee !== 'all' ? ' (filtrées)' : '');
+
+        // Ouvrir/fermer les dimensions selon les résultats visibles
+        document.querySelectorAll('[data-dimension]').forEach(function(section) {
+            var hasVisible = section.querySelector('.capacite-item:not([style*="display: none"])');
+            var collapse = section.querySelector('.fr-collapse');
+            var btn = section.querySelector('.fr-accordion__btn');
+            if (query || activePortee !== 'all') {
+                if (hasVisible && !collapse.classList.contains('fr-collapse--expanded')) {
+                    btn.click();
+                } else if (!hasVisible && collapse.classList.contains('fr-collapse--expanded')) {
+                    btn.click();
+                }
+            }
+        });
+    }
+
+    search.addEventListener('input', applyFilters);
+
+    filters.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            activePortee = btn.dataset.portee;
+            filters.forEach(function(b) {
+                b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+            });
+            applyFilters();
+        });
+    });
+})();
+</script>
 {% endblock %}

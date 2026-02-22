@@ -165,33 +165,32 @@ def index():
 
 @app.route("/referentiel")
 def referentiel_view():
-    """Affiche le référentiel complet avec les scores de chaque évaluation."""
+    """Affiche le référentiel complet avec accordéons, recherche et filtres."""
     ref = get_active_referentiel()
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
-    # Évaluations validées, triées par date
-    evaluations = Evaluation.query.filter_by(statut="validee") \
-        .order_by(Evaluation.date_evaluation).all()
-
-    # Index des scores : {(evaluation_id, capacite_id): niveau}
-    score_map = {}
-    for ev in evaluations:
+    # Score moyen par capacité (toutes évaluations validées)
+    all_validated = Evaluation.query.filter_by(statut="validee").all()
+    cap_avg = {}
+    cap_counts = {}
+    for ev in all_validated:
         for s in ev.scores:
-            score_map[(ev.id, s.capacite_id)] = s.niveau
+            cap_avg[s.capacite_id] = cap_avg.get(s.capacite_id, 0) + s.niveau
+            cap_counts[s.capacite_id] = cap_counts.get(s.capacite_id, 0) + 1
 
-    # Moyenne par capacité (toutes évaluations)
-    cap_averages = {}
-    for dim in dimensions:
-        for cap in dim.capacites:
-            scores = [score_map[(ev.id, cap.id)] for ev in evaluations if (ev.id, cap.id) in score_map]
-            cap_averages[cap.id] = round(sum(scores) / len(scores), 2) if scores else None
+    cap_averages = {
+        cid: round(total / cap_counts[cid], 1)
+        for cid, total in cap_avg.items()
+    }
+
+    nb_capacites = sum(len(d.capacites) for d in dimensions)
 
     return render_template("referentiel.html",
         referentiel=ref,
         dimensions=dimensions,
-        evaluations=evaluations,
-        score_map=score_map,
         cap_averages=cap_averages,
+        nb_evaluations=len(all_validated),
+        nb_capacites=nb_capacites,
     )
 
 
