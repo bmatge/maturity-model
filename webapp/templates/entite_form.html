@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle entité — Maturité ComNum{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Nouvelle entité</h1>
+
+<div class="card p-4" style="max-width: 600px;">
+    <form method="POST">
+        <div class="mb-3">
+            <label for="nom" class="form-label">Nom de l'entité</label>
+            <input type="text" class="form-control" id="nom" name="nom" required
+                   placeholder="Ex: Bureau com — Affaires sociales">
+        </div>
+        <div class="mb-3">
+            <label for="type" class="form-label">Type</label>
+            <select class="form-select" id="type" name="type" required>
+                <option value="SIRCOM">SIRCOM</option>
+                <option value="Bureau">Bureau de communication</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="direction" class="form-label">Direction de rattachement</label>
+            <input type="text" class="form-control" id="direction" name="direction"
+                   placeholder="Ex: DGCS, DGT, DGS...">
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description (optionnel)</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Créer</button>
+            <a href="{{ url_for('entites_list') }}" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

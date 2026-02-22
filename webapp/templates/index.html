@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Accueil — Maturité ComNum{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3">Tableau de bord</h1>
+        <p class="text-muted">Suivi de la maturité de la communication numérique ministérielle</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="display-4 text-primary mb-2">{{ entites | length }}</div>
+            <div class="text-muted">Entités</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="display-4 text-primary mb-2">{{ campagnes | length }}</div>
+            <div class="text-muted">Campagnes</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="display-4 text-primary mb-2">44</div>
+            <div class="text-muted">Capacités évaluées</div>
+        </div>
+    </div>
+</div>
+
+<!-- Campagnes -->
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Campagnes d'évaluation</h5>
+                <a href="{{ url_for('campagne_new') }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus"></i> Nouvelle campagne
+                </a>
+            </div>
+            <div class="card-body">
+                {% if campagnes %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Campagne</th>
+                            <th>Début</th>
+                            <th>Statut</th>
+                            <th>Évaluations</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in campagnes %}
+                        <tr>
+                            <td class="fw-semibold">{{ c.label }}</td>
+                            <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% if c.statut == 'en_cours' %}
+                                <span class="badge bg-warning text-dark">En cours</span>
+                                {% else %}
+                                <span class="badge bg-success">Terminée</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.evaluations | length }}</td>
+                            <td>
+                                <a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-graph-up"></i> Dashboard
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première.</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Entités</h5>
+                <a href="{{ url_for('entite_new') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus"></i>
+                </a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for e in entites %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <span class="badge bg-secondary me-1">{{ e.type }}</span>
+                        {{ e.nom }}
+                    </span>
+                    <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="btn btn-sm btn-link" title="Évolution">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body text-center">
+                <a href="{{ url_for('evaluation_new') }}" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-clipboard-check"></i> Lancer une évaluation
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

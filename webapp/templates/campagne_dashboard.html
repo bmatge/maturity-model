@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ campagne.label }} — Maturité ComNum{% endblock %}
+
+{% block extra_css %}
+<style>
+    .heatmap-table { font-size: .75rem; }
+    .heatmap-table th { white-space: nowrap; max-width: 40px; overflow: hidden; text-overflow: ellipsis; }
+    .heatmap-table td { padding: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3">Dashboard — {{ campagne.label }}</h1>
+    <p class="text-muted">
+        Référentiel {{ campagne.referentiel.label }} —
+        {{ evaluations | selectattr('statut', 'equalto', 'validee') | list | length }} évaluation(s) validée(s)
+        sur {{ evaluations | length }} total
+    </p>
+</div>
+
+{% if not stats %}
+<div class="alert alert-info">
+    Aucune évaluation validée pour cette campagne. Les statistiques apparaîtront une fois les premières évaluations terminées.
+</div>
+{% else %}
+
+<!-- Stats globales par dimension -->
+<div class="row g-4 mb-5">
+    {% for dim_id, s in stats.items() %}
+    <div class="col-md-3 col-lg">
+        <div class="card p-3 text-center h-100">
+            <div class="small text-muted mb-1">{{ s.numero }}. {{ s.nom }}</div>
+            <div class="display-6 mb-1">{{ s.moyenne }}</div>
+            <div class="small">
+                <span class="text-muted">min</span> {{ s.min }}
+                &nbsp;·&nbsp;
+                <span class="text-muted">max</span> {{ s.max }}
+                &nbsp;·&nbsp;
+                <span class="text-muted">&sigma;</span> {{ s.ecart_type }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row g-4 mb-5">
+    <!-- Radar comparatif -->
+    <div class="col-md-7">
+        <div class="card p-4">
+            <h5 class="mb-3">Radar comparatif</h5>
+            <canvas id="radarCompare" height="400"></canvas>
+        </div>
+    </div>
+
+    <!-- Écarts -->
+    <div class="col-md-5">
+        <div class="card p-4">
+            <h5 class="mb-3">Écarts par dimension</h5>
+            <canvas id="barEcarts" height="400"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Heatmap -->
+<div class="card mb-5">
+    <div class="card-header">
+        <h5 class="mb-0">Heatmap entités × capacités</h5>
+    </div>
+    <div class="card-body p-0" style="overflow-x: auto;">
+        <table class="table table-sm heatmap-table mb-0">
+            <thead>
+                <tr>
+                    <th class="bg-white" style="position: sticky; left: 0; z-index: 10;">Entité</th>
+                    {% for cap in all_capacites %}
+                    <th class="text-center" title="{{ cap.dim_nom }} — {{ cap.nom }}">{{ cap.numero }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in heatmap %}
+                <tr>
+                    <td class="fw-semibold bg-white" style="position: sticky; left: 0; z-index: 5;">{{ row.entite }}</td>
+                    {% for cap in all_capacites %}
+                    {% set score = row.scores.get(cap.numero) %}
+                    <td class="heatmap-cell text-center {{ 'niveau-' ~ score if score }}">
+                        {{ score if score else '—' }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Liste des évaluations -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Évaluations</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Entité</th>
+                    <th>Évaluateur</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in evaluations %}
+                <tr>
+                    <td class="fw-semibold">{{ ev.entite.nom }}</td>
+                    <td>{{ ev.evaluateur or '—' }}</td>
+                    <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        {% if ev.statut == 'brouillon' %}
+                        <span class="badge bg-warning text-dark">Brouillon</span>
+                        {% else %}
+                        <span class="badge bg-success">Validée</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ev.statut == 'brouillon' %}
+                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="btn btn-sm btn-outline-primary">Continuer</a>
+                        {% else %}
+                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="btn btn-sm btn-outline-primary">Résultats</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if stats %}
+<script>
+const entitesData = {{ entites_data | safe }};
+const stats = {{ stats | tojson }};
+
+// — Radar comparatif —
+const dimLabels = Object.values(stats).map(s => s.numero + '. ' + s.nom);
+const dimNums = Object.values(stats).map(s => s.numero);
+
+const colors = [
+    '#000091', '#e1000f', '#009081', '#6a6af4',
+    '#a558a0', '#417dc4', '#18753c', '#b34000'
+];
+
+const radarDatasets = entitesData.map((ent, i) => ({
+    label: ent.nom,
+    data: dimNums.map(n => ent.scores[n] || 0),
+    borderColor: colors[i % colors.length],
+    backgroundColor: colors[i % colors.length] + '15',
+    borderWidth: 2,
+    pointRadius: 3,
+}));
+
+// Moyenne
+radarDatasets.push({
+    label: 'Moyenne',
+    data: Object.values(stats).map(s => s.moyenne),
+    borderColor: '#161616',
+    borderDash: [5, 5],
+    borderWidth: 2,
+    pointRadius: 0,
+    backgroundColor: 'transparent',
+});
+
+new Chart(document.getElementById('radarCompare'), {
+    type: 'radar',
+    data: { labels: dimLabels, datasets: radarDatasets },
+    options: {
+        scales: { r: { min: 0, max: 4, ticks: { stepSize: 1 } } },
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+    }
+});
+
+// — Bar chart écarts —
+new Chart(document.getElementById('barEcarts'), {
+    type: 'bar',
+    data: {
+        labels: dimLabels,
+        datasets: [
+            {
+                label: 'Moyenne',
+                data: Object.values(stats).map(s => s.moyenne),
+                backgroundColor: '#000091',
+            },
+            {
+                label: 'Écart-type',
+                data: Object.values(stats).map(s => s.ecart_type),
+                backgroundColor: '#e1000f44',
+            }
+        ]
+    },
+    options: {
+        indexAxis: 'y',
+        scales: { x: { min: 0, max: 4 } },
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

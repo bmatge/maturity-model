@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Résultats — {{ evaluation.entite.nom }} — Maturité ComNum{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Résultats : {{ evaluation.entite.nom }}</h1>
+        <p class="text-muted mb-0">Campagne : {{ evaluation.campagne.label }} — {{ evaluation.date_evaluation.strftime('%d/%m/%Y') }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('entite_evolution', entite_id=evaluation.entite.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-graph-up-arrow"></i> Évolution
+        </a>
+        <a href="{{ url_for('campagne_dashboard', campagne_id=evaluation.campagne.id) }}" class="btn btn-outline-primary">
+            <i class="bi bi-speedometer2"></i> Dashboard campagne
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Radar -->
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5 class="mb-3">Radar de maturité</h5>
+            <canvas id="radarChart" height="350"></canvas>
+        </div>
+    </div>
+
+    <!-- Moyennes par dimension -->
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h5 class="mb-3">Moyenne par dimension</h5>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Dimension</th>
+                        <th class="text-center">Moyenne</th>
+                        <th>Niveau</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dim_id, data in dim_scores.items() %}
+                    <tr>
+                        <td>{{ data.numero }}. {{ data.nom }}</td>
+                        <td class="text-center">
+                            <strong>{{ data.moyenne }}</strong> / 4
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 24px;">
+                                <div class="progress-bar niveau-badge-{{ data.moyenne | round | int }}"
+                                     style="width: {{ data.moyenne / 4 * 100 }}%">
+                                    {{ data.moyenne }}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% set all_scores = [] %}
+            {% for d in dim_scores.values() %}
+                {% for s in d.scores %}
+                    {% if all_scores.append(s) %}{% endif %}
+                {% endfor %}
+            {% endfor %}
+            {% if all_scores %}
+            <div class="alert alert-light mt-3 text-center">
+                <strong>Score global moyen :</strong>
+                {{ (all_scores | sum / all_scores | length) | round(2) }} / 4
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Détail par capacité -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Détail par capacité</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Capacité</th>
+                    <th>Dimension</th>
+                    <th class="text-center">Portée</th>
+                    <th class="text-center">Niveau</th>
+                    <th>Justification</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in detail %}
+                <tr>
+                    <td class="fw-semibold">{{ d.cap_numero }} {{ d.capacite }}</td>
+                    <td class="text-muted small">{{ d.dimension }}</td>
+                    <td class="text-center"><span class="badge badge-portee-{{ d.portee }}">{{ d.portee }}</span></td>
+                    <td class="text-center"><span class="badge niveau-badge-{{ d.niveau }}">{{ d.niveau }}</span></td>
+                    <td class="small text-muted">{{ d.justification }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const dimScores = {{ dim_scores | tojson }};
+const labels = [];
+const data = [];
+
+Object.values(dimScores).forEach(d => {
+    labels.push(d.numero + '. ' + d.nom);
+    data.push(d.moyenne);
+});
+
+new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: '{{ evaluation.entite.nom }}',
+            data: data,
+            backgroundColor: 'rgba(0, 0, 145, 0.15)',
+            borderColor: '#000091',
+            borderWidth: 2,
+            pointBackgroundColor: '#000091',
+        }]
+    },
+    options: {
+        scales: {
+            r: {
+                min: 0,
+                max: 4,
+                ticks: { stepSize: 1 },
+            }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+</script>
+{% endblock %}

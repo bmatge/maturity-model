@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Évolution — {{ entite.nom }} — Maturité ComNum{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h3">Évolution : {{ entite.nom }}</h1>
+    <p class="text-muted">Progression à travers les campagnes d'évaluation</p>
+</div>
+
+<div class="row g-4">
+    <!-- Graphe d'évolution -->
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h5 class="mb-3">Score moyen par dimension au fil du temps</h5>
+            <canvas id="evolutionChart" height="350"></canvas>
+        </div>
+    </div>
+
+    <!-- Dernière évaluation -->
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h5 class="mb-3">Dernière évaluation</h5>
+            <canvas id="lastRadar" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+{% if not entite.evaluations %}
+<div class="alert alert-info mt-4">
+    Aucune évaluation pour cette entité.
+    <a href="{{ url_for('evaluation_new') }}">Lancez la première évaluation.</a>
+</div>
+{% endif %}
+
+<!-- Historique -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Historique des évaluations</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Campagne</th>
+                    <th>Date</th>
+                    <th>Évaluateur</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in entite.evaluations %}
+                <tr>
+                    <td class="fw-semibold">{{ ev.campagne.label }}</td>
+                    <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ ev.evaluateur or '—' }}</td>
+                    <td>
+                        {% if ev.statut == 'brouillon' %}
+                        <span class="badge bg-warning text-dark">Brouillon</span>
+                        {% else %}
+                        <span class="badge bg-success">Validée</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ev.statut == 'brouillon' %}
+                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="btn btn-sm btn-outline-primary">Continuer</a>
+                        {% else %}
+                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="btn btn-sm btn-outline-primary">Résultats</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const timeline = {{ timeline | safe }};
+const dimensions = [
+    {% for dim in dimensions %}
+    { numero: {{ dim.numero }}, nom: "{{ dim.nom }}" },
+    {% endfor %}
+];
+
+const colors = [
+    '#000091', '#e1000f', '#009081', '#6a6af4',
+    '#a558a0', '#417dc4', '#18753c'
+];
+
+if (timeline.length > 0) {
+    // — Graphe d'évolution (line chart) —
+    const labels = timeline.map(t => t.campagne);
+    const datasets = dimensions.map((dim, i) => ({
+        label: dim.numero + '. ' + dim.nom,
+        data: timeline.map(t => t.scores[dim.numero] || null),
+        borderColor: colors[i % colors.length],
+        backgroundColor: colors[i % colors.length] + '20',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: false,
+    }));
+
+    new Chart(document.getElementById('evolutionChart'), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            scales: { y: { min: 0, max: 4, ticks: { stepSize: 1 } } },
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+        }
+    });
+
+    // — Radar dernière évaluation —
+    const last = timeline[timeline.length - 1];
+    new Chart(document.getElementById('lastRadar'), {
+        type: 'radar',
+        data: {
+            labels: dimensions.map(d => d.numero + '. ' + d.nom),
+            datasets: [{
+                data: dimensions.map(d => last.scores[d.numero] || 0),
+                backgroundColor: 'rgba(0, 0, 145, 0.15)',
+                borderColor: '#000091',
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            scales: { r: { min: 0, max: 4, ticks: { stepSize: 1 } } },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+</script>
+{% endblock %}
