@@ -10,35 +10,43 @@
 <div class="fr-grid-row fr-grid-row--gutters">
     <!-- Graphe d'évolution -->
     <div class="fr-col-12 fr-col-md-8">
-        <div class="content-card">
-            <h2 class="fr-h5 fr-mb-2w">Score moyen par dimension au fil du temps</h2>
-            {% if line_x != '[]' %}
-            <line-chart
-                x='{{ line_x | safe }}'
-                y='{{ line_y | safe }}'
-                name='{{ line_names | safe }}'
-                y-min="0" y-max="4"
-                selected-palette="categorical">
-            </line-chart>
-            {% else %}
-            <p class="fr-text--alt">Aucune donnée à afficher.</p>
-            {% endif %}
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title fr-mb-2w">Score moyen par dimension au fil du temps</h2>
+                    {% if line_x != '[]' %}
+                    <line-chart
+                        x='{{ line_x | safe }}'
+                        y='{{ line_y | safe }}'
+                        name='{{ line_names | safe }}'
+                        y-min="0" y-max="4"
+                        selected-palette="categorical">
+                    </line-chart>
+                    {% else %}
+                    <p class="fr-text--alt">Aucune donnée à afficher.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Dernière évaluation -->
     <div class="fr-col-12 fr-col-md-4">
-        <div class="content-card">
-            <h2 class="fr-h5 fr-mb-2w">Dernière évaluation</h2>
-            {% if last_radar_x != '[]' %}
-            <radar-chart
-                x='{{ last_radar_x | safe }}'
-                y='{{ last_radar_y | safe }}'
-                selected-palette="default">
-            </radar-chart>
-            {% else %}
-            <p class="fr-text--alt">Aucune évaluation validée.</p>
-            {% endif %}
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title fr-mb-2w">Dernière évaluation</h2>
+                    {% if last_radar_x != '[]' %}
+                    <radar-chart
+                        x='{{ last_radar_x | safe }}'
+                        y='{{ last_radar_y | safe }}'
+                        selected-palette="default">
+                    </radar-chart>
+                    {% else %}
+                    <p class="fr-text--alt">Aucune évaluation validée.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -51,43 +59,54 @@
 {% endif %}
 
 <!-- Historique -->
-<div class="content-card fr-mt-3w">
-    <h2 class="fr-h5 fr-mb-2w">Historique des évaluations</h2>
-    <div class="fr-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Campagne</th>
-                    <th>Date</th>
-                    <th>Évaluateur</th>
-                    <th>Statut</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ev in entite.evaluations %}
-                <tr>
-                    <td style="font-weight: 600;">{{ ev.campagne.label }}</td>
-                    <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ ev.evaluateur or '—' }}</td>
-                    <td>
-                        {% if ev.statut == 'brouillon' %}
-                        <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
-                        {% else %}
-                        <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if ev.statut == 'brouillon' %}
-                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
-                        {% else %}
-                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="fr-card fr-mt-3w">
+    <div class="fr-card__body">
+        <div class="fr-card__content">
+            <h2 class="fr-card__title fr-mb-2w">Historique des évaluations</h2>
+            <div class="fr-table">
+                <div class="fr-table__wrapper">
+                    <div class="fr-table__container">
+                        <div class="fr-table__content">
+                            <table>
+                                <caption class="fr-sr-only">Historique des évaluations de {{ entite.nom }}</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Campagne</th>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Évaluateur</th>
+                                        <th scope="col">Statut</th>
+                                        <th scope="col"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ev in entite.evaluations %}
+                                    <tr>
+                                        <td class="fr-text--bold">{{ ev.campagne.label }}</td>
+                                        <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
+                                        <td>{{ ev.evaluateur or '—' }}</td>
+                                        <td>
+                                            {% if ev.statut == 'brouillon' %}
+                                            <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
+                                            {% else %}
+                                            <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if ev.statut == 'brouillon' %}
+                                            <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
+                                            {% else %}
+                                            <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -29,16 +29,20 @@
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
     {% for dim_id, s in stats.items() %}
     <div class="fr-col-12 fr-col-md-3 fr-col-lg">
-        <div class="content-card" style="text-align: center; height: 100%;">
-            <p class="fr-text--sm fr-text--alt" style="margin-bottom: 0.25rem;">{{ s.numero }}. {{ s.nom }}</p>
-            <p class="fr-display--xs" style="margin-bottom: 0.25rem;">{{ s.moyenne }}</p>
-            <p class="fr-text--sm">
-                <span class="fr-text--alt">min</span> {{ s.min }}
-                &nbsp;&middot;&nbsp;
-                <span class="fr-text--alt">max</span> {{ s.max }}
-                &nbsp;&middot;&nbsp;
-                <span class="fr-text--alt">&sigma;</span> {{ s.ecart_type }}
-            </p>
+        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
+            <div class="fr-tile__body">
+                <div class="fr-tile__content">
+                    <h3 class="fr-tile__title">{{ s.moyenne }}</h3>
+                    <p class="fr-tile__desc">{{ s.numero }}. {{ s.nom }}</p>
+                    <p class="fr-text--sm fr-mt-1v">
+                        <span class="fr-text--alt">min</span> {{ s.min }}
+                        &nbsp;&middot;&nbsp;
+                        <span class="fr-text--alt">max</span> {{ s.max }}
+                        &nbsp;&middot;&nbsp;
+                        <span class="fr-text--alt">&sigma;</span> {{ s.ecart_type }}
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -47,99 +51,122 @@
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
     <!-- Radar comparatif -->
     <div class="fr-col-12 fr-col-md-7">
-        <div class="content-card">
-            <h2 class="fr-h5 fr-mb-2w">Radar comparatif</h2>
-            <radar-chart
-                x='{{ chart_radar_x | safe }}'
-                y='{{ chart_radar_y | safe }}'
-                name='{{ chart_radar_names | safe }}'
-                selected-palette="categorical">
-            </radar-chart>
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title fr-mb-2w">Radar comparatif</h2>
+                    <radar-chart
+                        x='{{ chart_radar_x | safe }}'
+                        y='{{ chart_radar_y | safe }}'
+                        name='{{ chart_radar_names | safe }}'
+                        selected-palette="categorical">
+                    </radar-chart>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Écarts -->
     <div class="fr-col-12 fr-col-md-5">
-        <div class="content-card">
-            <h2 class="fr-h5 fr-mb-2w">Écarts par dimension</h2>
-            <bar-chart horizontal
-                x='{{ chart_bar_x | safe }}'
-                y='{{ chart_bar_y | safe }}'
-                name='{{ chart_bar_names | safe }}'
-                selected-palette="categorical">
-            </bar-chart>
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title fr-mb-2w">Écarts par dimension</h2>
+                    <bar-chart horizontal
+                        x='{{ chart_bar_x | safe }}'
+                        y='{{ chart_bar_y | safe }}'
+                        name='{{ chart_bar_names | safe }}'
+                        selected-palette="categorical">
+                    </bar-chart>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Heatmap -->
-<div class="content-card fr-mb-5w">
-    <h2 class="fr-h5 fr-mb-2w">Heatmap entités &times; capacités</h2>
-    <div style="overflow-x: auto;">
-        <table class="heatmap-table" style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr>
-                    <th style="position: sticky; left: 0; z-index: 10; background: #fff; padding: 4px 8px;">Entité</th>
-                    {% for cap in all_capacites %}
-                    <th style="text-align: center; padding: 4px;" title="{{ cap.dim_nom }} — {{ cap.nom }}">{{ cap.numero }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in heatmap %}
-                <tr>
-                    <td style="font-weight: 600; position: sticky; left: 0; z-index: 5; background: #fff; padding: 4px 8px; white-space: nowrap;">{{ row.entite }}</td>
-                    {% for cap in all_capacites %}
-                    {% set score = row.scores.get(cap.numero) %}
-                    <td class="heatmap-cell {{ 'niveau-' ~ score if score }}" style="text-align: center;">
-                        {{ score if score else '—' }}
-                    </td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- Heatmap (custom — pas d'équivalent DSFR pour sticky columns + scroll horizontal) -->
+<div class="fr-card fr-mb-5w">
+    <div class="fr-card__body">
+        <div class="fr-card__content">
+            <h2 class="fr-card__title fr-mb-2w">Heatmap entités &times; capacités</h2>
+            <div style="overflow-x: auto;">
+                <table class="heatmap-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="position: sticky; left: 0; z-index: 10; background: #fff; padding: 4px 8px;">Entité</th>
+                            {% for cap in all_capacites %}
+                            <th style="text-align: center; padding: 4px;" title="{{ cap.dim_nom }} — {{ cap.nom }}">{{ cap.numero }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in heatmap %}
+                        <tr>
+                            <td class="fr-text--bold" style="position: sticky; left: 0; z-index: 5; background: #fff; padding: 4px 8px; white-space: nowrap;">{{ row.entite }}</td>
+                            {% for cap in all_capacites %}
+                            {% set score = row.scores.get(cap.numero) %}
+                            <td class="heatmap-cell {{ 'niveau-' ~ score if score }}">
+                                {{ score if score else '—' }}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- Liste des évaluations -->
-<div class="content-card">
-    <h2 class="fr-h5 fr-mb-2w">Évaluations</h2>
-    <div class="fr-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Entité</th>
-                    <th>Évaluateur</th>
-                    <th>Date</th>
-                    <th>Statut</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ev in evaluations %}
-                <tr>
-                    <td style="font-weight: 600;">{{ ev.entite.nom }}</td>
-                    <td>{{ ev.evaluateur or '—' }}</td>
-                    <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
-                    <td>
-                        {% if ev.statut == 'brouillon' %}
-                        <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
-                        {% else %}
-                        <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if ev.statut == 'brouillon' %}
-                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
-                        {% else %}
-                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="fr-card">
+    <div class="fr-card__body">
+        <div class="fr-card__content">
+            <h2 class="fr-card__title fr-mb-2w">Évaluations</h2>
+            <div class="fr-table">
+                <div class="fr-table__wrapper">
+                    <div class="fr-table__container">
+                        <div class="fr-table__content">
+                            <table>
+                                <caption class="fr-sr-only">Liste des évaluations de la campagne</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Entité</th>
+                                        <th scope="col">Évaluateur</th>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Statut</th>
+                                        <th scope="col"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ev in evaluations %}
+                                    <tr>
+                                        <td class="fr-text--bold">{{ ev.entite.nom }}</td>
+                                        <td>{{ ev.evaluateur or '—' }}</td>
+                                        <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
+                                        <td>
+                                            {% if ev.statut == 'brouillon' %}
+                                            <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
+                                            {% else %}
+                                            <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if ev.statut == 'brouillon' %}
+                                            <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
+                                            {% else %}
+                                            <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endif %}

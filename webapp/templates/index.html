@@ -10,21 +10,33 @@
 <!-- KPI -->
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
     <div class="fr-col-12 fr-col-md-4">
-        <div class="content-card" style="text-align: center;">
-            <p class="fr-display--xs" style="color: var(--text-action-high-blue-france); margin-bottom: 0.5rem;">{{ entites | length }}</p>
-            <p class="fr-text--alt">Entités</p>
+        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
+            <div class="fr-tile__body">
+                <div class="fr-tile__content">
+                    <h3 class="fr-tile__title">{{ entites | length }}</h3>
+                    <p class="fr-tile__desc">Entités</p>
+                </div>
+            </div>
         </div>
     </div>
     <div class="fr-col-12 fr-col-md-4">
-        <div class="content-card" style="text-align: center;">
-            <p class="fr-display--xs" style="color: var(--text-action-high-blue-france); margin-bottom: 0.5rem;">{{ campagnes | length }}</p>
-            <p class="fr-text--alt">Campagnes</p>
+        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
+            <div class="fr-tile__body">
+                <div class="fr-tile__content">
+                    <h3 class="fr-tile__title">{{ campagnes | length }}</h3>
+                    <p class="fr-tile__desc">Campagnes</p>
+                </div>
+            </div>
         </div>
     </div>
     <div class="fr-col-12 fr-col-md-4">
-        <div class="content-card" style="text-align: center;">
-            <p class="fr-display--xs" style="color: var(--text-action-high-blue-france); margin-bottom: 0.5rem;">44</p>
-            <p class="fr-text--alt">Capacités évaluées</p>
+        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
+            <div class="fr-tile__body">
+                <div class="fr-tile__content">
+                    <h3 class="fr-tile__title">44</h3>
+                    <p class="fr-tile__desc">Capacités évaluées</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -32,71 +44,94 @@
 <!-- Campagnes + Entites -->
 <div class="fr-grid-row fr-grid-row--gutters">
     <div class="fr-col-12 fr-col-md-8">
-        <div class="content-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2 class="fr-h5" style="margin: 0;">Campagnes d'évaluation</h2>
-                <a href="{{ url_for('campagne_new') }}" class="fr-btn fr-btn--sm fr-btn--icon-left fr-icon-add-line">Nouvelle campagne</a>
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title">Campagnes d'évaluation</h2>
+                </div>
+                <div class="fr-card__footer">
+                    <a href="{{ url_for('campagne_new') }}" class="fr-btn fr-btn--sm fr-btn--icon-left fr-icon-add-line">Nouvelle campagne</a>
+                </div>
             </div>
-            {% if campagnes %}
-            <div class="fr-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Campagne</th>
-                            <th>Début</th>
-                            <th>Statut</th>
-                            <th>Évaluations</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in campagnes %}
-                        <tr>
-                            <td style="font-weight: 600;">{{ c.label }}</td>
-                            <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
-                            <td>
-                                {% if c.statut == 'en_cours' %}
-                                <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">En cours</p>
-                                {% else %}
-                                <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Terminée</p>
-                                {% endif %}
-                            </td>
-                            <td>{{ c.evaluations | length }}</td>
-                            <td>
-                                <a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-line-chart-line">Dashboard</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="fr-text--alt">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première.</a></p>
-            {% endif %}
         </div>
+        {% if campagnes %}
+        <div class="fr-table fr-mt-2w">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption>Liste des campagnes d'évaluation</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Campagne</th>
+                                    <th scope="col">Début</th>
+                                    <th scope="col">Statut</th>
+                                    <th scope="col">Évaluations</th>
+                                    <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in campagnes %}
+                                <tr>
+                                    <td class="fr-text--bold">{{ c.label }}</td>
+                                    <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        {% if c.statut == 'en_cours' %}
+                                        <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">En cours</p>
+                                        {% else %}
+                                        <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Terminée</p>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ c.evaluations | length }}</td>
+                                    <td>
+                                        <a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-line-chart-line">Dashboard</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="fr-text--alt fr-mt-2w">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première.</a></p>
+        {% endif %}
     </div>
 
     <div class="fr-col-12 fr-col-md-4">
-        <div class="content-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2 class="fr-h5" style="margin: 0;">Entités</h2>
-                <a href="{{ url_for('entite_new') }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-add-line" title="Ajouter"></a>
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title">Entités</h2>
+                    <ul class="fr-raw-list">
+                        {% for e in entites %}
+                        <li class="fr-py-1w" style="border-bottom: 1px solid var(--border-default-grey);">
+                            <div class="fr-grid-row fr-grid-row--middle">
+                                <div class="fr-col">
+                                    <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mr-1w">{{ e.type }}</p>
+                                    {{ e.nom }}
+                                </div>
+                                <div class="fr-col-auto">
+                                    <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-up-line" title="Évolution"></a>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="fr-card__footer">
+                    <a href="{{ url_for('entite_new') }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-add-line">Ajouter</a>
+                </div>
             </div>
-            <ul class="fr-raw-list">
-                {% for e in entites %}
-                <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-default-grey);">
-                    <span>
-                        <p class="fr-badge fr-badge--sm fr-badge--no-icon" style="display: inline-block;">{{ e.type }}</p>
-                        {{ e.nom }}
-                    </span>
-                    <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-up-line" title="Évolution"></a>
-                </li>
-                {% endfor %}
-            </ul>
         </div>
 
-        <div class="content-card fr-mt-3w" style="text-align: center;">
-            <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--lg fr-btn--icon-left fr-icon-clipboard-line" style="width: 100%;">Lancer une évaluation</a>
+        <div class="fr-card fr-mt-3w">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--lg fr-btn--icon-left fr-icon-clipboard-line">Lancer une évaluation</a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

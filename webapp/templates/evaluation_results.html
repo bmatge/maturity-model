@@ -4,7 +4,7 @@
 {% block content %}
 <div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-4w">
     <div class="fr-col">
-        <h1 class="fr-h3" style="margin-bottom: 0.25rem;">Résultats : {{ evaluation.entite.nom }}</h1>
+        <h1 class="fr-h3 fr-mb-1v">Résultats : {{ evaluation.entite.nom }}</h1>
         <p class="fr-text--alt">Campagne : {{ evaluation.campagne.label }} — {{ evaluation.date_evaluation.strftime('%d/%m/%Y') }}</p>
     </div>
     <div class="fr-col-auto">
@@ -18,93 +18,119 @@
 <div class="fr-grid-row fr-grid-row--gutters">
     <!-- Radar -->
     <div class="fr-col-12 fr-col-md-6">
-        <div class="content-card">
-            <h2 class="fr-h5 fr-mb-2w">Radar de maturité</h2>
-            <radar-chart
-                x='{{ radar_x | safe }}'
-                y='{{ radar_y | safe }}'
-                name='["{{ evaluation.entite.nom }}"]'
-                selected-palette="default">
-            </radar-chart>
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title">Radar de maturité</h2>
+                    <radar-chart
+                        x='{{ radar_x | safe }}'
+                        y='{{ radar_y | safe }}'
+                        name='["{{ evaluation.entite.nom }}"]'
+                        selected-palette="default">
+                    </radar-chart>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Moyennes par dimension -->
     <div class="fr-col-12 fr-col-md-6">
-        <div class="content-card">
-            <h2 class="fr-h5 fr-mb-2w">Moyenne par dimension</h2>
-            <div class="fr-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Dimension</th>
-                            <th style="text-align: center;">Moyenne</th>
-                            <th>Niveau</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for dim_id, data in dim_scores.items() %}
-                        <tr>
-                            <td>{{ data.numero }}. {{ data.nom }}</td>
-                            <td style="text-align: center;">
-                                <strong>{{ data.moyenne }}</strong> / 4
-                            </td>
-                            <td>
-                                <div class="fr-progress" style="height: 24px; border-radius: 4px;">
-                                    <div class="fr-progress__bar niveau-badge-{{ data.moyenne | round | int }}"
-                                         style="width: {{ data.moyenne / 4 * 100 }}%; line-height: 24px; text-align: center; color: #fff; font-size: 0.85rem; border-radius: 4px;">
-                                        {{ data.moyenne }}
-                                    </div>
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title fr-mb-2w">Moyenne par dimension</h2>
+                    <div class="fr-table">
+                        <div class="fr-table__wrapper">
+                            <div class="fr-table__container">
+                                <div class="fr-table__content">
+                                    <table>
+                                        <caption class="fr-sr-only">Scores moyens par dimension</caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Dimension</th>
+                                                <th scope="col">Moyenne</th>
+                                                <th scope="col">Niveau</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for dim_id, data in dim_scores.items() %}
+                                            <tr>
+                                                <td>{{ data.numero }}. {{ data.nom }}</td>
+                                                <td>
+                                                    <strong>{{ data.moyenne }}</strong> / 4
+                                                </td>
+                                                <td>
+                                                    <div class="fr-progress" style="height: 24px; border-radius: 4px;">
+                                                        <div class="fr-progress__bar niveau-badge-{{ data.moyenne | round | int }}"
+                                                             style="width: {{ data.moyenne / 4 * 100 }}%; line-height: 24px; text-align: center; color: #fff; font-size: 0.85rem; border-radius: 4px;">
+                                                            {{ data.moyenne }}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                        </div>
+                    </div>
 
-            {% set all_scores = [] %}
-            {% for d in dim_scores.values() %}
-                {% for s in d.scores %}
-                    {% if all_scores.append(s) %}{% endif %}
-                {% endfor %}
-            {% endfor %}
-            {% if all_scores %}
-            <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w" style="text-align: center;">
-                <p><strong>Score global moyen :</strong>
-                {{ (all_scores | sum / all_scores | length) | round(2) }} / 4</p>
+                    {% set all_scores = [] %}
+                    {% for d in dim_scores.values() %}
+                        {% for s in d.scores %}
+                            {% if all_scores.append(s) %}{% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% if all_scores %}
+                    <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w">
+                        <p><strong>Score global moyen :</strong>
+                        {{ (all_scores | sum / all_scores | length) | round(2) }} / 4</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- Détail par capacité -->
-<div class="content-card fr-mt-3w">
-    <h2 class="fr-h5 fr-mb-2w">Détail par capacité</h2>
-    <div class="fr-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Capacité</th>
-                    <th>Dimension</th>
-                    <th style="text-align: center;">Portée</th>
-                    <th style="text-align: center;">Niveau</th>
-                    <th>Justification</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for d in detail %}
-                <tr>
-                    <td style="font-weight: 600;">{{ d.cap_numero }} {{ d.capacite }}</td>
-                    <td class="fr-text--sm fr-text--alt">{{ d.dimension }}</td>
-                    <td style="text-align: center;"><span class="fr-badge fr-badge--sm badge-portee-{{ d.portee }}">{{ d.portee }}</span></td>
-                    <td style="text-align: center;"><span class="fr-badge fr-badge--sm niveau-badge-{{ d.niveau }}">{{ d.niveau }}</span></td>
-                    <td class="fr-text--sm fr-text--alt">{{ d.justification }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="fr-card fr-mt-3w">
+    <div class="fr-card__body">
+        <div class="fr-card__content">
+            <h2 class="fr-card__title fr-mb-2w">Détail par capacité</h2>
+            <div class="fr-table">
+                <div class="fr-table__wrapper">
+                    <div class="fr-table__container">
+                        <div class="fr-table__content">
+                            <table>
+                                <caption class="fr-sr-only">Scores détaillés par capacité</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Capacité</th>
+                                        <th scope="col">Dimension</th>
+                                        <th scope="col">Portée</th>
+                                        <th scope="col">Niveau</th>
+                                        <th scope="col">Justification</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in detail %}
+                                    <tr>
+                                        <td class="fr-text--bold">{{ d.cap_numero }} {{ d.capacite }}</td>
+                                        <td class="fr-text--sm fr-text--alt">{{ d.dimension }}</td>
+                                        <td><span class="fr-badge fr-badge--sm badge-portee-{{ d.portee }}">{{ d.portee }}</span></td>
+                                        <td><span class="fr-badge fr-badge--sm niveau-badge-{{ d.niveau }}">{{ d.niveau }}</span></td>
+                                        <td class="fr-text--sm fr-text--alt">{{ d.justification }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

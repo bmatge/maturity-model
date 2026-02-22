@@ -138,6 +138,19 @@ def entite_new():
     return render_template("entite_form.html", entite=None)
 
 
+@app.route("/entites/<int:entite_id>/delete", methods=["POST"])
+def entite_delete(entite_id):
+    entite = Entite.query.get_or_404(entite_id)
+    nom = entite.nom
+    for evaluation in entite.evaluations:
+        Score.query.filter_by(evaluation_id=evaluation.id).delete()
+        db.session.delete(evaluation)
+    db.session.delete(entite)
+    db.session.commit()
+    flash(f"Entité « {nom} » supprimée.", "success")
+    return redirect(url_for("entites_list"))
+
+
 # ──────────────────────────────────────────────
 # Routes — Campagnes
 # ──────────────────────────────────────────────

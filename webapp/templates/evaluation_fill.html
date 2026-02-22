@@ -14,8 +14,8 @@
 {% block content %}
 <div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-2w">
     <div class="fr-col">
-        <h1 class="fr-h4" style="margin-bottom: 0.25rem;">
-            <p class="fr-badge fr-badge--sm fr-badge--no-icon" style="display: inline-block; vertical-align: middle;">{{ evaluation.entite.type }}</p>
+        <h1 class="fr-h4 fr-mb-1v">
+            <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ evaluation.entite.type }}</p>
             {{ evaluation.entite.nom }}
         </h1>
         <p class="fr-text--alt">Campagne : {{ evaluation.campagne.label }}</p>
@@ -36,56 +36,64 @@
 
 <!-- Navigation dimensions -->
 <div class="dim-nav fr-mb-2w">
-    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+    <ul class="fr-btns-group fr-btns-group--inline">
         {% for dim in dimensions %}
-        <a href="#dim-{{ dim.numero }}" class="fr-btn fr-btn--sm fr-btn--secondary">
-            {{ dim.numero }}. {{ dim.nom }}
-        </a>
+        <li>
+            <a href="#dim-{{ dim.numero }}" class="fr-btn fr-btn--sm fr-btn--secondary">
+                {{ dim.numero }}. {{ dim.nom }}
+            </a>
+        </li>
         {% endfor %}
-    </div>
+    </ul>
 </div>
 
 <form method="POST" id="evalForm">
     {% for dim in dimensions %}
     <div id="dim-{{ dim.numero }}" class="fr-mb-5w">
         <div class="dimension-header">
-            <h2 class="fr-h5" style="margin: 0; color: #fff;">{{ dim.numero }}. {{ dim.nom }}</h2>
+            <h2 class="fr-h5 fr-mb-0" style="color: #fff;">{{ dim.numero }}. {{ dim.nom }}</h2>
             <small>{{ dim.description }}</small>
         </div>
 
         {% for cap in dim.capacites %}
-        <div class="content-card capacite-card">
-            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                <h3 class="fr-h6" style="margin: 0;">
-                    {{ cap.numero }} {{ cap.nom }}
-                    <span class="fr-badge fr-badge--sm badge-portee-{{ cap.portee }}" style="vertical-align: middle;">{{ cap.portee }}</span>
-                </h3>
-            </div>
-            <p class="fr-text--sm fr-text--alt fr-mb-2w">{{ cap.description }}</p>
-
-            <div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
-                {% for niv in cap.niveaux %}
-                {% set is_selected = existing_scores.get(cap.id) and existing_scores[cap.id].niveau == niv.niveau %}
-                <div class="fr-col-12 fr-col-md-3">
-                    <label class="niveau-option niveau-{{ niv.niveau }} {{ 'selected' if is_selected }}" style="display: block; height: 100%;">
-                        <input type="radio" name="cap_{{ cap.id }}" value="{{ niv.niveau }}"
-                               class="score-radio" data-cap="{{ cap.id }}"
-                               {{ 'checked' if is_selected }}>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                            <span class="fr-badge fr-badge--sm niveau-badge-{{ niv.niveau }}">{{ niv.niveau }}</span>
-                            <strong class="fr-text--sm">{{ niv.nom }}</strong>
+        <div class="fr-card capacite-card fr-mb-2w">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <div class="fr-grid-row fr-grid-row--middle fr-mb-1w">
+                        <div class="fr-col">
+                            <h3 class="fr-h6 fr-mb-0">
+                                {{ cap.numero }} {{ cap.nom }}
+                                <span class="fr-badge fr-badge--sm badge-portee-{{ cap.portee }}">{{ cap.portee }}</span>
+                            </h3>
                         </div>
-                        <small class="fr-text--alt" style="display: block;">{{ niv.description }}</small>
-                    </label>
-                </div>
-                {% endfor %}
-            </div>
+                    </div>
+                    <p class="fr-text--sm fr-text--alt fr-mb-2w">{{ cap.description }}</p>
 
-            <!-- Justification -->
-            <div class="fr-input-group" style="margin-bottom: 0;">
-                <input class="fr-input fr-input--sm" type="text" name="just_{{ cap.id }}"
-                       placeholder="Justification / signaux observés (optionnel)"
-                       value="{{ existing_scores.get(cap.id).justification if existing_scores.get(cap.id) and existing_scores[cap.id].justification else '' }}">
+                    <div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
+                        {% for niv in cap.niveaux %}
+                        {% set is_selected = existing_scores.get(cap.id) and existing_scores[cap.id].niveau == niv.niveau %}
+                        <div class="fr-col-12 fr-col-md-3">
+                            <label class="niveau-option niveau-{{ niv.niveau }} {{ 'selected' if is_selected }}" style="display: block; height: 100%;">
+                                <input type="radio" name="cap_{{ cap.id }}" value="{{ niv.niveau }}"
+                                       class="score-radio" data-cap="{{ cap.id }}"
+                                       {{ 'checked' if is_selected }}>
+                                <div class="fr-grid-row fr-grid-row--middle fr-mb-1v">
+                                    <span class="fr-badge fr-badge--sm niveau-badge-{{ niv.niveau }} fr-mr-1w">{{ niv.niveau }}</span>
+                                    <strong class="fr-text--sm">{{ niv.nom }}</strong>
+                                </div>
+                                <small class="fr-text--alt" style="display: block;">{{ niv.description }}</small>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Justification -->
+                    <div class="fr-input-group fr-mb-0">
+                        <input class="fr-input fr-input--sm" type="text" name="just_{{ cap.id }}"
+                               placeholder="Justification / signaux observés (optionnel)"
+                               value="{{ existing_scores.get(cap.id).justification if existing_scores.get(cap.id) and existing_scores[cap.id].justification else '' }}">
+                    </div>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -93,24 +101,30 @@
     {% endfor %}
 
     <!-- Actions -->
-    <div class="content-card" style="position: sticky; bottom: 0; z-index: 100; border-top: 2px solid var(--border-default-grey);">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <span id="scoreCount" class="fr-text--alt">0</span> / 44 capacités évaluées
+    <div class="fr-card" style="position: sticky; bottom: 0; z-index: 100; border-top: 2px solid var(--border-default-grey);">
+        <div class="fr-card__body">
+            <div class="fr-card__content">
+                <div class="fr-grid-row fr-grid-row--middle">
+                    <div class="fr-col">
+                        <span id="scoreCount" class="fr-text--alt">0</span> / 44 capacités évaluées
+                    </div>
+                    <div class="fr-col-auto">
+                        <ul class="fr-btns-group fr-btns-group--inline fr-mb-0">
+                            <li>
+                                <button type="submit" name="action" value="save" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-save-line">
+                                    Sauvegarder le brouillon
+                                </button>
+                            </li>
+                            <li>
+                                <button type="submit" name="action" value="validate" class="fr-btn fr-btn--icon-left fr-icon-checkbox-circle-line"
+                                        id="validateBtn" disabled>
+                                    Valider l'évaluation
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <ul class="fr-btns-group fr-btns-group--inline" style="margin: 0;">
-                <li>
-                    <button type="submit" name="action" value="save" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-save-line">
-                        Sauvegarder le brouillon
-                    </button>
-                </li>
-                <li>
-                    <button type="submit" name="action" value="validate" class="fr-btn fr-btn--icon-left fr-icon-checkbox-circle-line"
-                            id="validateBtn" disabled>
-                        Valider l'évaluation
-                    </button>
-                </li>
-            </ul>
         </div>
     </div>
 </form>
