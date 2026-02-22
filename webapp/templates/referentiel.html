@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Référentiel — Maturité ComNum{% endblock %}
+
+{% block content %}
+<div class="fr-grid-row fr-grid-row--middle fr-mb-4w">
+    <div class="fr-col">
+        <h1 class="fr-h3">Référentiel {{ referentiel.label }}</h1>
+        <p class="fr-text--alt">{{ referentiel.description }}</p>
+    </div>
+    <div class="fr-col-auto">
+        <ul class="fr-tags-group">
+            <li><p class="fr-tag">{{ dimensions | length }} dimensions</p></li>
+            <li><p class="fr-tag">{{ evaluations | length }} évaluations</p></li>
+        </ul>
+    </div>
+</div>
+
+<div class="fr-table" style="overflow-x: auto;">
+    <div class="fr-table__wrapper">
+        <div class="fr-table__container">
+            <div class="fr-table__content">
+                <table>
+                    <caption class="fr-sr-only">Référentiel de maturité complet avec scores</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">N°</th>
+                            <th scope="col">Capacité</th>
+                            <th scope="col">Portée</th>
+                            {% for ev in evaluations %}
+                            <th scope="col" style="white-space: nowrap; font-size: .8rem;">
+                                {{ ev.entite.nom }}<br>
+                                <span class="fr-text--xs">{{ ev.campagne.label }}</span>
+                            </th>
+                            {% endfor %}
+                            {% if evaluations %}
+                            <th scope="col">Moy.</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dim in dimensions %}
+                        <tr class="dimension-header">
+                            <td colspan="{{ 3 + evaluations|length + (1 if evaluations else 0) }}">
+                                {{ dim.numero }}. {{ dim.nom }}
+                            </td>
+                        </tr>
+                        {% for cap in dim.capacites %}
+                        <tr>
+                            <td>{{ cap.numero }}</td>
+                            <td>{{ cap.nom }}</td>
+                            <td><span class="fr-badge fr-badge--sm fr-badge--no-icon badge-portee-{{ cap.portee }}">{{ cap.portee }}</span></td>
+                            {% for ev in evaluations %}
+                            <td style="text-align: center;">
+                                {% set score = score_map.get((ev.id, cap.id)) %}
+                                {% if score %}
+                                <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ score }}">{{ score }}</span>
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            {% if evaluations %}
+                            <td style="text-align: center; font-weight: bold;">
+                                {% if cap_averages[cap.id] is not none %}
+                                {{ cap_averages[cap.id] }}
+                                {% else %}
+                                —
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
