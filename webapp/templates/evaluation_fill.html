@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Évaluation — {{ evaluation.entite.nom }} — Maturité ComNum{% endblock %}
+
+{% block extra_css %}
+<style>
+    .niveau-option { cursor: pointer; padding: .75rem; border-radius: .5rem; border: 2px solid transparent; transition: all .15s; }
+    .niveau-option:hover { border-color: var(--primary); }
+    .niveau-option.selected { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+    .niveau-option input[type="radio"] { display: none; }
+    .dim-nav { position: sticky; top: 0; z-index: 100; background: #f6f6f6; padding: .75rem 0; }
+    .dim-nav .btn { font-size: .85rem; }
+    .progress-eval { height: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h4 mb-1">
+            <span class="badge bg-secondary">{{ evaluation.entite.type }}</span>
+            {{ evaluation.entite.nom }}
+        </h1>
+        <p class="text-muted mb-0">Campagne : {{ evaluation.campagne.label }}</p>
+    </div>
+    <div>
+        {% if evaluation.statut == 'brouillon' %}
+        <span class="badge bg-warning text-dark fs-6">Brouillon</span>
+        {% else %}
+        <span class="badge bg-success fs-6">Validée</span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Barre de progression -->
+<div class="progress progress-eval mb-3">
+    <div class="progress-bar bg-primary" id="progressBar" style="width: 0%"></div>
+</div>
+
+<!-- Navigation dimensions -->
+<div class="dim-nav mb-3">
+    <div class="d-flex flex-wrap gap-2">
+        {% for dim in dimensions %}
+        <a href="#dim-{{ dim.numero }}" class="btn btn-sm btn-outline-primary">
+            {{ dim.numero }}. {{ dim.nom }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<form method="POST" id="evalForm">
+    {% for dim in dimensions %}
+    <div id="dim-{{ dim.numero }}" class="mb-5">
+        <div class="dimension-header">
+            <h2 class="h5 mb-0">{{ dim.numero }}. {{ dim.nom }}</h2>
+            <small>{{ dim.description }}</small>
+        </div>
+
+        {% for cap in dim.capacites %}
+        <div class="card capacite-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h3 class="h6 mb-0">
+                        {{ cap.numero }} {{ cap.nom }}
+                        <span class="badge badge-portee-{{ cap.portee }} ms-1">{{ cap.portee }}</span>
+                    </h3>
+                </div>
+                <p class="text-muted small mb-3">{{ cap.description }}</p>
+
+                <div class="row g-2 mb-3">
+                    {% for niv in cap.niveaux %}
+                    {% set is_selected = existing_scores.get(cap.id) and existing_scores[cap.id].niveau == niv.niveau %}
+                    <div class="col-md-3">
+                        <label class="niveau-option niveau-{{ niv.niveau }} d-block h-100 {{ 'selected' if is_selected }}">
+                            <input type="radio" name="cap_{{ cap.id }}" value="{{ niv.niveau }}"
+                                   class="score-radio" data-cap="{{ cap.id }}"
+                                   {{ 'checked' if is_selected }}>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge niveau-badge-{{ niv.niveau }}">{{ niv.niveau }}</span>
+                                <strong class="small">{{ niv.nom }}</strong>
+                            </div>
+                            <small class="d-block text-muted">{{ niv.description }}</small>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Justification -->
+                <div class="mb-0">
+                    <input type="text" class="form-control form-control-sm" name="just_{{ cap.id }}"
+                           placeholder="Justification / signaux observés (optionnel)"
+                           value="{{ existing_scores.get(cap.id).justification if existing_scores.get(cap.id) and existing_scores[cap.id].justification else '' }}">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    <!-- Actions -->
+    <div class="card p-4 sticky-bottom bg-white border-top">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span id="scoreCount" class="text-muted">0</span> / 44 capacités évaluées
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" name="action" value="save" class="btn btn-outline-primary">
+                    <i class="bi bi-save"></i> Sauvegarder le brouillon
+                </button>
+                <button type="submit" name="action" value="validate" class="btn btn-primary"
+                        id="validateBtn" disabled>
+                    <i class="bi bi-check-circle"></i> Valider l'évaluation
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const radios = document.querySelectorAll('.score-radio');
+    const total = 44;
+
+    function updateProgress() {
+        const checked = document.querySelectorAll('.score-radio:checked').length;
+        document.getElementById('scoreCount').textContent = checked;
+        document.getElementById('progressBar').style.width = (checked / total * 100) + '%';
+        document.getElementById('validateBtn').disabled = checked < total;
+    }
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Highlight selected
+            const name = this.name;
+            document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+                r.closest('.niveau-option').classList.remove('selected');
+            });
+            this.closest('.niveau-option').classList.add('selected');
+            updateProgress();
+        });
+    });
+
+    updateProgress();
+});
+</script>
+{% endblock %}
