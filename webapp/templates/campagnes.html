@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Campagnes — Maturité ComNum{% endblock %}
+
+{% block content %}
+<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-4w">
+    <div class="fr-col">
+        <h1 class="fr-h3">Campagnes d'évaluation</h1>
+    </div>
+    <div class="fr-col-auto">
+        <a href="{{ url_for('campagne_new') }}" class="fr-btn fr-btn--icon-left fr-icon-add-line">Nouvelle campagne</a>
+    </div>
+</div>
+
+{% if campagnes %}
+<div class="fr-table">
+    <div class="fr-table__wrapper">
+        <div class="fr-table__container">
+            <div class="fr-table__content">
+                <table>
+                    <caption class="fr-sr-only">Liste des campagnes d'évaluation</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Campagne</th>
+                            <th scope="col">Début</th>
+                            <th scope="col">Fin</th>
+                            <th scope="col">Statut</th>
+                            <th scope="col">Évaluations</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in campagnes %}
+                        <tr>
+                            <td class="fr-text--bold">{{ c.label }}</td>
+                            <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ c.date_fin.strftime('%d/%m/%Y') if c.date_fin else '—' }}</td>
+                            <td>
+                                {% if c.statut == 'en_cours' %}
+                                <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">En cours</p>
+                                {% else %}
+                                <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Terminée</p>
+                                {% endif %}
+                            </td>
+                            <td>{{ c.evaluations | length }}</td>
+                            <td>
+                                <ul class="fr-btns-group fr-btns-group--inline">
+                                    <li>
+                                        <a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-line-chart-line">Dashboard</a>
+                                    </li>
+                                    <li>
+                                        <button class="fr-btn fr-btn--sm fr-btn--tertiary fr-btn--icon-left fr-icon-delete-line"
+                                                aria-controls="modal-delete-campagne-{{ c.id }}" data-fr-opened="false">
+                                            Supprimer
+                                        </button>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for c in campagnes %}
+<dialog id="modal-delete-campagne-{{ c.id }}" class="fr-modal" role="alertdialog" aria-labelledby="modal-delete-campagne-title-{{ c.id }}">
+    <div class="fr-container fr-container--fluid fr-container-md">
+        <div class="fr-grid-row fr-grid-row--center">
+            <div class="fr-col-12 fr-col-md-6">
+                <div class="fr-modal__body">
+                    <div class="fr-modal__header">
+                        <button class="fr-btn--close fr-btn" aria-controls="modal-delete-campagne-{{ c.id }}" title="Fermer">Fermer</button>
+                    </div>
+                    <div class="fr-modal__content">
+                        <h1 id="modal-delete-campagne-title-{{ c.id }}" class="fr-modal__title">
+                            Supprimer « {{ c.label }} » ?
+                        </h1>
+                        <p>Cette action est irréversible. Toutes les évaluations et scores associés à cette campagne seront également supprimés ({{ c.evaluations | length }} évaluation(s)).</p>
+                    </div>
+                    <div class="fr-modal__footer">
+                        <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline">
+                            <li>
+                                <button class="fr-btn fr-btn--secondary" aria-controls="modal-delete-campagne-{{ c.id }}">Annuler</button>
+                            </li>
+                            <li>
+                                <form method="POST" action="{{ url_for('campagne_delete', campagne_id=c.id) }}">
+                                    <button type="submit" class="fr-btn fr-btn--icon-left fr-icon-delete-line">Confirmer la suppression</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</dialog>
+{% endfor %}
+
+{% else %}
+<div class="fr-callout">
+    <p class="fr-callout__text">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première campagne.</a></p>
+</div>
+{% endif %}
+{% endblock %}

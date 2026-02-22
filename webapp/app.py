@@ -11,6 +11,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 from models import db, ReferentielVersion, Dimension, Capacite, NiveauCritere
 from models import Entite, Campagne, Evaluation, Score
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", os.urandom(24))
@@ -168,8 +169,24 @@ def campagne_new():
         db.session.add(campagne)
         db.session.commit()
         flash(f"Campagne « {campagne.label} » créée.", "success")
-        return redirect(url_for("index"))
+        return redirect(url_for("campagnes_list"))
     return render_template("campagne_form.html", referentiel=ref)
+
+
+@app.route("/campagnes")
+def campagnes_list():
+    campagnes = Campagne.query.order_by(Campagne.date_debut.desc()).all()
+    return render_template("campagnes.html", campagnes=campagnes)
+
+
+@app.route("/campagnes/<int:campagne_id>/delete", methods=["POST"])
+def campagne_delete(campagne_id):
+    campagne = Campagne.query.get_or_404(campagne_id)
+    label = campagne.label
+    db.session.delete(campagne)
+    db.session.commit()
+    flash(f"Campagne « {label} » supprimée.", "success")
+    return redirect(url_for("campagnes_list"))
 
 
 # ──────────────────────────────────────────────
@@ -188,11 +205,37 @@ def evaluation_new():
             entite_id=int(request.form["entite_id"]),
             evaluateur=request.form.get("evaluateur", ""),
         )
-        db.session.add(evaluation)
-        db.session.commit()
-        return redirect(url_for("evaluation_fill", evaluation_id=evaluation.id))
+        try:
+            db.session.add(evaluation)
+            db.session.commit()
+            return redirect(url_for("evaluation_fill", evaluation_id=evaluation.id))
+        except IntegrityError:
+            db.session.rollback()
+            flash(
+                "Une évaluation existe déjà pour cette entité dans cette campagne. "
+                "Consultez la liste des évaluations pour la retrouver ou la supprimer.",
+                "warning",
+            )
+            return redirect(url_for("evaluations_list"))
 
     return render_template("evaluation_new.html", campagnes=campagnes, entites=entites)
+
+
+@app.route("/evaluations")
+def evaluations_list():
+    evaluations = Evaluation.query.order_by(Evaluation.date_evaluation.desc()).all()
+    return render_template("evaluations.html", evaluations=evaluations)
+
+
+@app.route("/evaluations/<int:evaluation_id>/delete", methods=["POST"])
+def evaluation_delete(evaluation_id):
+    evaluation = Evaluation.query.get_or_404(evaluation_id)
+    entite_nom = evaluation.entite.nom
+    campagne_label = evaluation.campagne.label
+    db.session.delete(evaluation)
+    db.session.commit()
+    flash(f"Évaluation de « {entite_nom} » ({campagne_label}) supprimée.", "success")
+    return redirect(url_for("evaluations_list"))
 
 
 @app.route("/evaluation/<int:evaluation_id>/fill", methods=["GET", "POST"])

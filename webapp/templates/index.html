@@ -2,65 +2,45 @@
 {% block title %}Accueil — Maturité ComNum{% endblock %}
 
 {% block content %}
-<div class="fr-mb-4w">
-    <h1 class="fr-h3">Tableau de bord</h1>
-    <p class="fr-text--alt">Suivi de la maturité de la communication numérique ministérielle</p>
+<!-- Header + KPI tags -->
+<div class="fr-grid-row fr-grid-row--middle fr-mb-4w">
+    <div class="fr-col">
+        <h1 class="fr-h3 fr-mb-1v">Tableau de bord</h1>
+        <p class="fr-text--alt">Suivi de la maturité de la communication numérique ministérielle</p>
+    </div>
+    <div class="fr-col-auto">
+        <ul class="fr-tags-group">
+            <li><p class="fr-tag">{{ entites | length }} entités</p></li>
+            <li><p class="fr-tag">{{ campagnes | length }} campagnes</p></li>
+            <li><p class="fr-tag">44 capacités</p></li>
+        </ul>
+    </div>
 </div>
 
-<!-- KPI -->
-<div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
-    <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
-            <div class="fr-tile__body">
-                <div class="fr-tile__content">
-                    <h3 class="fr-tile__title">{{ entites | length }}</h3>
-                    <p class="fr-tile__desc">Entités</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
-            <div class="fr-tile__body">
-                <div class="fr-tile__content">
-                    <h3 class="fr-tile__title">{{ campagnes | length }}</h3>
-                    <p class="fr-tile__desc">Campagnes</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
-            <div class="fr-tile__body">
-                <div class="fr-tile__content">
-                    <h3 class="fr-tile__title">44</h3>
-                    <p class="fr-tile__desc">Capacités évaluées</p>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- CTA -->
+<div class="fr-mb-4w">
+    <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--icon-left fr-icon-clipboard-line">Lancer une évaluation</a>
 </div>
 
 <!-- Campagnes + Entites -->
 <div class="fr-grid-row fr-grid-row--gutters">
+    <!-- Campagnes -->
     <div class="fr-col-12 fr-col-md-8">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title">Campagnes d'évaluation</h2>
-                </div>
-                <div class="fr-card__footer">
-                    <a href="{{ url_for('campagne_new') }}" class="fr-btn fr-btn--sm fr-btn--icon-left fr-icon-add-line">Nouvelle campagne</a>
-                </div>
+        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+            <div class="fr-col">
+                <h2 class="fr-h5 fr-mb-0">Campagnes</h2>
+            </div>
+            <div class="fr-col-auto">
+                <a href="{{ url_for('campagnes_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
             </div>
         </div>
         {% if campagnes %}
-        <div class="fr-table fr-mt-2w">
+        <div class="fr-table">
             <div class="fr-table__wrapper">
                 <div class="fr-table__container">
                     <div class="fr-table__content">
                         <table>
-                            <caption>Liste des campagnes d'évaluation</caption>
+                            <caption class="fr-sr-only">Campagnes récentes</caption>
                             <thead>
                                 <tr>
                                     <th scope="col">Campagne</th>
@@ -95,44 +75,39 @@
             </div>
         </div>
         {% else %}
-        <p class="fr-text--alt fr-mt-2w">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première.</a></p>
+        <p class="fr-text--alt">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première.</a></p>
         {% endif %}
     </div>
 
+    <!-- Entités -->
     <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title">Entités</h2>
-                    <ul class="fr-raw-list">
-                        {% for e in entites %}
-                        <li class="fr-py-1w" style="border-bottom: 1px solid var(--border-default-grey);">
-                            <div class="fr-grid-row fr-grid-row--middle">
-                                <div class="fr-col">
-                                    <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mr-1w">{{ e.type }}</p>
-                                    {{ e.nom }}
-                                </div>
-                                <div class="fr-col-auto">
-                                    <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-up-line" title="Évolution"></a>
-                                </div>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div class="fr-card__footer">
-                    <a href="{{ url_for('entite_new') }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-add-line">Ajouter</a>
-                </div>
+        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+            <div class="fr-col">
+                <h2 class="fr-h5 fr-mb-0">Entités</h2>
+            </div>
+            <div class="fr-col-auto">
+                <a href="{{ url_for('entites_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
             </div>
         </div>
-
-        <div class="fr-card fr-mt-3w">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--lg fr-btn--icon-left fr-icon-clipboard-line">Lancer une évaluation</a>
+        {% if entites %}
+        <ul class="fr-raw-list">
+            {% for e in entites %}
+            <li class="fr-py-1w" style="border-bottom: 1px solid var(--border-default-grey);">
+                <div class="fr-grid-row fr-grid-row--middle">
+                    <div class="fr-col">
+                        <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mr-1w">{{ e.type }}</p>
+                        {{ e.nom }}
+                    </div>
+                    <div class="fr-col-auto">
+                        <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-up-line" title="Évolution"></a>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="fr-text--alt">Aucune entité. <a href="{{ url_for('entite_new') }}">Créez la première.</a></p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
