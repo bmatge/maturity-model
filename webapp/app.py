@@ -1,6 +1,6 @@
 """
 Webapp de suivi de maturité de la communication numérique ministérielle.
-Flask + SQLite + Bootstrap 5 + Chart.js
+Flask + SQLite + DSFR + DSFR Chart
 """
 
 import os
@@ -13,10 +13,9 @@ from models import Entite, Campagne, Evaluation, Score
 from sqlalchemy import func
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.urandom(24)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
-    os.path.abspath(os.path.dirname(__file__)), "maturity.db"
-)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", os.urandom(24))
+db_path = os.environ.get("DATABASE_PATH", os.path.join(os.path.abspath(os.path.dirname(__file__)), "maturity.db"))
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + db_path
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
@@ -258,11 +257,19 @@ def evaluation_results(evaluation_id):
         })
     detail.sort(key=lambda x: (x["dim_numero"], x["cap_numero"]))
 
+    # Données DSFR Chart : radar
+    dim_labels = [f"{d['numero']}. {d['nom']}" for d in dim_scores.values()]
+    dim_moyennes = [d["moyenne"] for d in dim_scores.values()]
+    radar_x = json.dumps([dim_labels])
+    radar_y = json.dumps([dim_moyennes])
+
     return render_template(
         "evaluation_results.html",
         evaluation=evaluation,
         dim_scores=dim_scores,
         detail=detail,
+        radar_x=radar_x,
+        radar_y=radar_y,
     )
 
 
@@ -307,6 +314,33 @@ def campagne_dashboard(campagne_id):
         for cap in dim.capacites:
             all_capacites.append({"numero": cap.numero, "nom": cap.nom, "dim_nom": dim.nom})
 
+    # Données DSFR Chart
+    chart_radar_x = []
+    chart_radar_y = []
+    chart_radar_names = []
+    chart_bar_x = []
+    chart_bar_y_moy = []
+    chart_bar_y_ecart = []
+
+    if stats:
+        dim_labels = [f"{s['numero']}. {s['nom']}" for s in stats.values()]
+        dim_nums = [s["numero"] for s in stats.values()]
+
+        # Radar comparatif : une série par entité + moyenne
+        for ent in entites_data:
+            chart_radar_x.append(dim_labels)
+            chart_radar_y.append([ent["scores"].get(n, 0) for n in dim_nums])
+            chart_radar_names.append(ent["nom"])
+        # Ajouter la moyenne
+        chart_radar_x.append(dim_labels)
+        chart_radar_y.append([s["moyenne"] for s in stats.values()])
+        chart_radar_names.append("Moyenne")
+
+        # Bar chart écarts : 2 séries
+        chart_bar_x = [dim_labels, dim_labels]
+        chart_bar_y_moy = [s["moyenne"] for s in stats.values()]
+        chart_bar_y_ecart = [s["ecart_type"] for s in stats.values()]
+
     return render_template(
         "campagne_dashboard.html",
         campagne=campagne,
@@ -316,6 +350,12 @@ def campagne_dashboard(campagne_id):
         entites_data=json.dumps(entites_data),
         heatmap=heatmap,
         all_capacites=all_capacites,
+        chart_radar_x=json.dumps(chart_radar_x),
+        chart_radar_y=json.dumps(chart_radar_y),
+        chart_radar_names=json.dumps(chart_radar_names),
+        chart_bar_x=json.dumps(chart_bar_x),
+        chart_bar_y=json.dumps([chart_bar_y_moy, chart_bar_y_ecart]),
+        chart_bar_names=json.dumps(["Moyenne", "Écart-type"]),
     )
 
 
@@ -343,11 +383,38 @@ def entite_evolution(entite_id):
     ref = get_active_referentiel()
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
+    # Données DSFR Chart
+    dim_labels = [f"{d.numero}. {d.nom}" for d in dimensions]
+    dim_nums = [d.numero for d in dimensions]
+
+    # Line chart : une série par dimension
+    campagne_labels = [t["campagne"] for t in timeline]
+    line_x = []
+    line_y = []
+    line_names = []
+    for dim in dimensions:
+        line_x.append(campagne_labels)
+        line_y.append([t["scores"].get(dim.numero, 0) for t in timeline])
+        line_names.append(f"{dim.numero}. {dim.nom}")
+
+    # Radar dernière évaluation
+    last_radar_x = []
+    last_radar_y = []
+    if timeline:
+        last = timeline[-1]
+        last_radar_x = [dim_labels]
+        last_radar_y = [[last["scores"].get(n, 0) for n in dim_nums]]
+
     return render_template(
         "entite_evolution.html",
         entite=entite,
         timeline=json.dumps(timeline),
         dimensions=dimensions,
+        line_x=json.dumps(line_x),
+        line_y=json.dumps(line_y),
+        line_names=json.dumps(line_names),
+        last_radar_x=json.dumps(last_radar_x),
+        last_radar_y=json.dumps(last_radar_y),
     )
 
 

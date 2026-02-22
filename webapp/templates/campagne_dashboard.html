@@ -10,9 +10,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h1 class="h3">Dashboard — {{ campagne.label }}</h1>
-    <p class="text-muted">
+<div class="fr-mb-4w">
+    <h1 class="fr-h3">Dashboard — {{ campagne.label }}</h1>
+    <p class="fr-text--alt">
         Référentiel {{ campagne.referentiel.label }} —
         {{ evaluations | selectattr('statut', 'equalto', 'validee') | list | length }} évaluation(s) validée(s)
         sur {{ evaluations | length }} total
@@ -20,70 +20,78 @@
 </div>
 
 {% if not stats %}
-<div class="alert alert-info">
-    Aucune évaluation validée pour cette campagne. Les statistiques apparaîtront une fois les premières évaluations terminées.
+<div class="fr-alert fr-alert--info fr-alert--sm">
+    <p>Aucune évaluation validée pour cette campagne. Les statistiques apparaîtront une fois les premières évaluations terminées.</p>
 </div>
 {% else %}
 
 <!-- Stats globales par dimension -->
-<div class="row g-4 mb-5">
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
     {% for dim_id, s in stats.items() %}
-    <div class="col-md-3 col-lg">
-        <div class="card p-3 text-center h-100">
-            <div class="small text-muted mb-1">{{ s.numero }}. {{ s.nom }}</div>
-            <div class="display-6 mb-1">{{ s.moyenne }}</div>
-            <div class="small">
-                <span class="text-muted">min</span> {{ s.min }}
-                &nbsp;·&nbsp;
-                <span class="text-muted">max</span> {{ s.max }}
-                &nbsp;·&nbsp;
-                <span class="text-muted">&sigma;</span> {{ s.ecart_type }}
-            </div>
+    <div class="fr-col-12 fr-col-md-3 fr-col-lg">
+        <div class="content-card" style="text-align: center; height: 100%;">
+            <p class="fr-text--sm fr-text--alt" style="margin-bottom: 0.25rem;">{{ s.numero }}. {{ s.nom }}</p>
+            <p class="fr-display--xs" style="margin-bottom: 0.25rem;">{{ s.moyenne }}</p>
+            <p class="fr-text--sm">
+                <span class="fr-text--alt">min</span> {{ s.min }}
+                &nbsp;&middot;&nbsp;
+                <span class="fr-text--alt">max</span> {{ s.max }}
+                &nbsp;&middot;&nbsp;
+                <span class="fr-text--alt">&sigma;</span> {{ s.ecart_type }}
+            </p>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<div class="row g-4 mb-5">
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
     <!-- Radar comparatif -->
-    <div class="col-md-7">
-        <div class="card p-4">
-            <h5 class="mb-3">Radar comparatif</h5>
-            <canvas id="radarCompare" height="400"></canvas>
+    <div class="fr-col-12 fr-col-md-7">
+        <div class="content-card">
+            <h2 class="fr-h5 fr-mb-2w">Radar comparatif</h2>
+            <radar-chart
+                x='{{ chart_radar_x | safe }}'
+                y='{{ chart_radar_y | safe }}'
+                name='{{ chart_radar_names | safe }}'
+                selected-palette="categorical">
+            </radar-chart>
         </div>
     </div>
 
     <!-- Écarts -->
-    <div class="col-md-5">
-        <div class="card p-4">
-            <h5 class="mb-3">Écarts par dimension</h5>
-            <canvas id="barEcarts" height="400"></canvas>
+    <div class="fr-col-12 fr-col-md-5">
+        <div class="content-card">
+            <h2 class="fr-h5 fr-mb-2w">Écarts par dimension</h2>
+            <bar-chart horizontal
+                x='{{ chart_bar_x | safe }}'
+                y='{{ chart_bar_y | safe }}'
+                name='{{ chart_bar_names | safe }}'
+                selected-palette="categorical">
+            </bar-chart>
         </div>
     </div>
 </div>
 
 <!-- Heatmap -->
-<div class="card mb-5">
-    <div class="card-header">
-        <h5 class="mb-0">Heatmap entités × capacités</h5>
-    </div>
-    <div class="card-body p-0" style="overflow-x: auto;">
-        <table class="table table-sm heatmap-table mb-0">
+<div class="content-card fr-mb-5w">
+    <h2 class="fr-h5 fr-mb-2w">Heatmap entités &times; capacités</h2>
+    <div style="overflow-x: auto;">
+        <table class="heatmap-table" style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
-                    <th class="bg-white" style="position: sticky; left: 0; z-index: 10;">Entité</th>
+                    <th style="position: sticky; left: 0; z-index: 10; background: #fff; padding: 4px 8px;">Entité</th>
                     {% for cap in all_capacites %}
-                    <th class="text-center" title="{{ cap.dim_nom }} — {{ cap.nom }}">{{ cap.numero }}</th>
+                    <th style="text-align: center; padding: 4px;" title="{{ cap.dim_nom }} — {{ cap.nom }}">{{ cap.numero }}</th>
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for row in heatmap %}
                 <tr>
-                    <td class="fw-semibold bg-white" style="position: sticky; left: 0; z-index: 5;">{{ row.entite }}</td>
+                    <td style="font-weight: 600; position: sticky; left: 0; z-index: 5; background: #fff; padding: 4px 8px; white-space: nowrap;">{{ row.entite }}</td>
                     {% for cap in all_capacites %}
                     {% set score = row.scores.get(cap.numero) %}
-                    <td class="heatmap-cell text-center {{ 'niveau-' ~ score if score }}">
+                    <td class="heatmap-cell {{ 'niveau-' ~ score if score }}" style="text-align: center;">
                         {{ score if score else '—' }}
                     </td>
                     {% endfor %}
@@ -95,12 +103,10 @@
 </div>
 
 <!-- Liste des évaluations -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Évaluations</h5>
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+<div class="content-card">
+    <h2 class="fr-h5 fr-mb-2w">Évaluations</h2>
+    <div class="fr-table">
+        <table>
             <thead>
                 <tr>
                     <th>Entité</th>
@@ -113,21 +119,21 @@
             <tbody>
                 {% for ev in evaluations %}
                 <tr>
-                    <td class="fw-semibold">{{ ev.entite.nom }}</td>
+                    <td style="font-weight: 600;">{{ ev.entite.nom }}</td>
                     <td>{{ ev.evaluateur or '—' }}</td>
                     <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
                     <td>
                         {% if ev.statut == 'brouillon' %}
-                        <span class="badge bg-warning text-dark">Brouillon</span>
+                        <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
                         {% else %}
-                        <span class="badge bg-success">Validée</span>
+                        <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
                         {% endif %}
                     </td>
                     <td>
                         {% if ev.statut == 'brouillon' %}
-                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="btn btn-sm btn-outline-primary">Continuer</a>
+                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
                         {% else %}
-                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="btn btn-sm btn-outline-primary">Résultats</a>
+                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -136,77 +142,5 @@
         </table>
     </div>
 </div>
-{% endif %}
-{% endblock %}
-
-{% block extra_js %}
-{% if stats %}
-<script>
-const entitesData = {{ entites_data | safe }};
-const stats = {{ stats | tojson }};
-
-// — Radar comparatif —
-const dimLabels = Object.values(stats).map(s => s.numero + '. ' + s.nom);
-const dimNums = Object.values(stats).map(s => s.numero);
-
-const colors = [
-    '#000091', '#e1000f', '#009081', '#6a6af4',
-    '#a558a0', '#417dc4', '#18753c', '#b34000'
-];
-
-const radarDatasets = entitesData.map((ent, i) => ({
-    label: ent.nom,
-    data: dimNums.map(n => ent.scores[n] || 0),
-    borderColor: colors[i % colors.length],
-    backgroundColor: colors[i % colors.length] + '15',
-    borderWidth: 2,
-    pointRadius: 3,
-}));
-
-// Moyenne
-radarDatasets.push({
-    label: 'Moyenne',
-    data: Object.values(stats).map(s => s.moyenne),
-    borderColor: '#161616',
-    borderDash: [5, 5],
-    borderWidth: 2,
-    pointRadius: 0,
-    backgroundColor: 'transparent',
-});
-
-new Chart(document.getElementById('radarCompare'), {
-    type: 'radar',
-    data: { labels: dimLabels, datasets: radarDatasets },
-    options: {
-        scales: { r: { min: 0, max: 4, ticks: { stepSize: 1 } } },
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
-    }
-});
-
-// — Bar chart écarts —
-new Chart(document.getElementById('barEcarts'), {
-    type: 'bar',
-    data: {
-        labels: dimLabels,
-        datasets: [
-            {
-                label: 'Moyenne',
-                data: Object.values(stats).map(s => s.moyenne),
-                backgroundColor: '#000091',
-            },
-            {
-                label: 'Écart-type',
-                data: Object.values(stats).map(s => s.ecart_type),
-                backgroundColor: '#e1000f44',
-            }
-        ]
-    },
-    options: {
-        indexAxis: 'y',
-        scales: { x: { min: 0, max: 4 } },
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
-    }
-});
-</script>
 {% endif %}
 {% endblock %}

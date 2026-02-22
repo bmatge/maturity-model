@@ -1,0 +1,40 @@
+services:
+  maturity:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - maturity-data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/maturity.db
+    labels:
+      # Traefik
+      - traefik.enable=true
+
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.maturity-http.rule=Host(`maturity-model.matge.com`)
+      - traefik.http.routers.maturity-http.entrypoints=web
+      - traefik.http.routers.maturity-http.middlewares=redirect-to-https
+
+      # HTTPS
+      - traefik.http.routers.maturity-https.rule=Host(`maturity-model.matge.com`)
+      - traefik.http.routers.maturity-https.entrypoints=websecure
+      - traefik.http.routers.maturity-https.tls=true
+      - traefik.http.routers.maturity-https.tls.certresolver=letsencrypt
+      - traefik.http.routers.maturity-https.tls.options=anssi-strict@file
+      - traefik.http.routers.maturity-https.middlewares=security-headers@file
+
+      # Service
+      - traefik.http.services.maturity.loadbalancer.server.port=8000
+
+      # Redirect middleware
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+    networks:
+      - ecosystem-network
+
+volumes:
+  maturity-data:
+
+networks:
+  ecosystem-network:
+    external: true

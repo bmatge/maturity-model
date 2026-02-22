@@ -4,43 +4,41 @@
 {% block extra_css %}
 <style>
     .niveau-option { cursor: pointer; padding: .75rem; border-radius: .5rem; border: 2px solid transparent; transition: all .15s; }
-    .niveau-option:hover { border-color: var(--primary); }
-    .niveau-option.selected { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+    .niveau-option:hover { border-color: #000091; }
+    .niveau-option.selected { border-color: #000091; box-shadow: 0 0 0 2px #e3e3fd; }
     .niveau-option input[type="radio"] { display: none; }
-    .dim-nav { position: sticky; top: 0; z-index: 100; background: #f6f6f6; padding: .75rem 0; }
-    .dim-nav .btn { font-size: .85rem; }
-    .progress-eval { height: 6px; }
+    .dim-nav { position: sticky; top: 0; z-index: 100; background: var(--background-alt-grey, #f6f6f6); padding: .75rem 0; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h1 class="h4 mb-1">
-            <span class="badge bg-secondary">{{ evaluation.entite.type }}</span>
+<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-2w">
+    <div class="fr-col">
+        <h1 class="fr-h4" style="margin-bottom: 0.25rem;">
+            <p class="fr-badge fr-badge--sm fr-badge--no-icon" style="display: inline-block; vertical-align: middle;">{{ evaluation.entite.type }}</p>
             {{ evaluation.entite.nom }}
         </h1>
-        <p class="text-muted mb-0">Campagne : {{ evaluation.campagne.label }}</p>
+        <p class="fr-text--alt">Campagne : {{ evaluation.campagne.label }}</p>
     </div>
-    <div>
+    <div class="fr-col-auto">
         {% if evaluation.statut == 'brouillon' %}
-        <span class="badge bg-warning text-dark fs-6">Brouillon</span>
+        <p class="fr-badge fr-badge--warning fr-badge--no-icon">Brouillon</p>
         {% else %}
-        <span class="badge bg-success fs-6">Validée</span>
+        <p class="fr-badge fr-badge--success fr-badge--no-icon">Validée</p>
         {% endif %}
     </div>
 </div>
 
 <!-- Barre de progression -->
-<div class="progress progress-eval mb-3">
-    <div class="progress-bar bg-primary" id="progressBar" style="width: 0%"></div>
+<div class="fr-progress fr-mb-2w">
+    <div class="fr-progress__bar" id="progressBar" style="width: 0%"></div>
 </div>
 
 <!-- Navigation dimensions -->
-<div class="dim-nav mb-3">
-    <div class="d-flex flex-wrap gap-2">
+<div class="dim-nav fr-mb-2w">
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
         {% for dim in dimensions %}
-        <a href="#dim-{{ dim.numero }}" class="btn btn-sm btn-outline-primary">
+        <a href="#dim-{{ dim.numero }}" class="fr-btn fr-btn--sm fr-btn--secondary">
             {{ dim.numero }}. {{ dim.nom }}
         </a>
         {% endfor %}
@@ -49,47 +47,45 @@
 
 <form method="POST" id="evalForm">
     {% for dim in dimensions %}
-    <div id="dim-{{ dim.numero }}" class="mb-5">
+    <div id="dim-{{ dim.numero }}" class="fr-mb-5w">
         <div class="dimension-header">
-            <h2 class="h5 mb-0">{{ dim.numero }}. {{ dim.nom }}</h2>
+            <h2 class="fr-h5" style="margin: 0; color: #fff;">{{ dim.numero }}. {{ dim.nom }}</h2>
             <small>{{ dim.description }}</small>
         </div>
 
         {% for cap in dim.capacites %}
-        <div class="card capacite-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h3 class="h6 mb-0">
-                        {{ cap.numero }} {{ cap.nom }}
-                        <span class="badge badge-portee-{{ cap.portee }} ms-1">{{ cap.portee }}</span>
-                    </h3>
-                </div>
-                <p class="text-muted small mb-3">{{ cap.description }}</p>
+        <div class="content-card capacite-card">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                <h3 class="fr-h6" style="margin: 0;">
+                    {{ cap.numero }} {{ cap.nom }}
+                    <span class="fr-badge fr-badge--sm badge-portee-{{ cap.portee }}" style="vertical-align: middle;">{{ cap.portee }}</span>
+                </h3>
+            </div>
+            <p class="fr-text--sm fr-text--alt fr-mb-2w">{{ cap.description }}</p>
 
-                <div class="row g-2 mb-3">
-                    {% for niv in cap.niveaux %}
-                    {% set is_selected = existing_scores.get(cap.id) and existing_scores[cap.id].niveau == niv.niveau %}
-                    <div class="col-md-3">
-                        <label class="niveau-option niveau-{{ niv.niveau }} d-block h-100 {{ 'selected' if is_selected }}">
-                            <input type="radio" name="cap_{{ cap.id }}" value="{{ niv.niveau }}"
-                                   class="score-radio" data-cap="{{ cap.id }}"
-                                   {{ 'checked' if is_selected }}>
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="badge niveau-badge-{{ niv.niveau }}">{{ niv.niveau }}</span>
-                                <strong class="small">{{ niv.nom }}</strong>
-                            </div>
-                            <small class="d-block text-muted">{{ niv.description }}</small>
-                        </label>
-                    </div>
-                    {% endfor %}
+            <div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
+                {% for niv in cap.niveaux %}
+                {% set is_selected = existing_scores.get(cap.id) and existing_scores[cap.id].niveau == niv.niveau %}
+                <div class="fr-col-12 fr-col-md-3">
+                    <label class="niveau-option niveau-{{ niv.niveau }} {{ 'selected' if is_selected }}" style="display: block; height: 100%;">
+                        <input type="radio" name="cap_{{ cap.id }}" value="{{ niv.niveau }}"
+                               class="score-radio" data-cap="{{ cap.id }}"
+                               {{ 'checked' if is_selected }}>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <span class="fr-badge fr-badge--sm niveau-badge-{{ niv.niveau }}">{{ niv.niveau }}</span>
+                            <strong class="fr-text--sm">{{ niv.nom }}</strong>
+                        </div>
+                        <small class="fr-text--alt" style="display: block;">{{ niv.description }}</small>
+                    </label>
                 </div>
+                {% endfor %}
+            </div>
 
-                <!-- Justification -->
-                <div class="mb-0">
-                    <input type="text" class="form-control form-control-sm" name="just_{{ cap.id }}"
-                           placeholder="Justification / signaux observés (optionnel)"
-                           value="{{ existing_scores.get(cap.id).justification if existing_scores.get(cap.id) and existing_scores[cap.id].justification else '' }}">
-                </div>
+            <!-- Justification -->
+            <div class="fr-input-group" style="margin-bottom: 0;">
+                <input class="fr-input fr-input--sm" type="text" name="just_{{ cap.id }}"
+                       placeholder="Justification / signaux observés (optionnel)"
+                       value="{{ existing_scores.get(cap.id).justification if existing_scores.get(cap.id) and existing_scores[cap.id].justification else '' }}">
             </div>
         </div>
         {% endfor %}
@@ -97,20 +93,24 @@
     {% endfor %}
 
     <!-- Actions -->
-    <div class="card p-4 sticky-bottom bg-white border-top">
-        <div class="d-flex justify-content-between align-items-center">
+    <div class="content-card" style="position: sticky; bottom: 0; z-index: 100; border-top: 2px solid var(--border-default-grey);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <span id="scoreCount" class="text-muted">0</span> / 44 capacités évaluées
+                <span id="scoreCount" class="fr-text--alt">0</span> / 44 capacités évaluées
             </div>
-            <div class="d-flex gap-2">
-                <button type="submit" name="action" value="save" class="btn btn-outline-primary">
-                    <i class="bi bi-save"></i> Sauvegarder le brouillon
-                </button>
-                <button type="submit" name="action" value="validate" class="btn btn-primary"
-                        id="validateBtn" disabled>
-                    <i class="bi bi-check-circle"></i> Valider l'évaluation
-                </button>
-            </div>
+            <ul class="fr-btns-group fr-btns-group--inline" style="margin: 0;">
+                <li>
+                    <button type="submit" name="action" value="save" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-save-line">
+                        Sauvegarder le brouillon
+                    </button>
+                </li>
+                <li>
+                    <button type="submit" name="action" value="validate" class="fr-btn fr-btn--icon-left fr-icon-checkbox-circle-line"
+                            id="validateBtn" disabled>
+                        Valider l'évaluation
+                    </button>
+                </li>
+            </ul>
         </div>
     </div>
 </form>
@@ -131,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     radios.forEach(radio => {
         radio.addEventListener('change', function() {
-            // Highlight selected
             const name = this.name;
             document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
                 r.closest('.niveau-option').classList.remove('selected');

@@ -2,46 +2,44 @@
 {% block title %}Nouvelle évaluation — Maturité ComNum{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">Lancer une évaluation</h1>
+<h1 class="fr-h3 fr-mb-4w">Lancer une évaluation</h1>
 
-<div class="card p-4" style="max-width: 600px;">
+<div class="content-card" style="max-width: 600px;">
     {% if not campagnes %}
-    <div class="alert alert-warning">
-        Aucune campagne en cours. <a href="{{ url_for('campagne_new') }}">Créez d'abord une campagne.</a>
+    <div class="fr-alert fr-alert--warning fr-alert--sm">
+        <p>Aucune campagne en cours. <a href="{{ url_for('campagne_new') }}">Créez d'abord une campagne.</a></p>
     </div>
     {% elif not entites %}
-    <div class="alert alert-warning">
-        Aucune entité enregistrée. <a href="{{ url_for('entite_new') }}">Créez d'abord une entité.</a>
+    <div class="fr-alert fr-alert--warning fr-alert--sm">
+        <p>Aucune entité enregistrée. <a href="{{ url_for('entite_new') }}">Créez d'abord une entité.</a></p>
     </div>
     {% else %}
     <form method="POST">
-        <div class="mb-3">
-            <label for="campagne_id" class="form-label">Campagne</label>
-            <select class="form-select" id="campagne_id" name="campagne_id" required>
+        <div class="fr-select-group">
+            <label class="fr-label" for="campagne_id">Campagne</label>
+            <select class="fr-select" id="campagne_id" name="campagne_id" required>
                 {% for c in campagnes %}
                 <option value="{{ c.id }}">{{ c.label }} ({{ c.date_debut.strftime('%d/%m/%Y') }})</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="mb-3">
-            <label for="entite_id" class="form-label">Entité à évaluer</label>
-            <select class="form-select" id="entite_id" name="entite_id" required>
+        <div class="fr-select-group">
+            <label class="fr-label" for="entite_id">Entité à évaluer</label>
+            <select class="fr-select" id="entite_id" name="entite_id" required>
                 {% for e in entites %}
                 <option value="{{ e.id }}">{{ e.nom }} ({{ e.type }})</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="mb-3">
-            <label for="evaluateur" class="form-label">Évaluateur (optionnel)</label>
-            <input type="text" class="form-control" id="evaluateur" name="evaluateur"
+        <div class="fr-input-group">
+            <label class="fr-label" for="evaluateur">Évaluateur (optionnel)</label>
+            <input class="fr-input" type="text" id="evaluateur" name="evaluateur"
                    placeholder="Nom de la personne qui évalue">
         </div>
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-clipboard-check"></i> Démarrer l'évaluation
-            </button>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Annuler</a>
-        </div>
+        <ul class="fr-btns-group fr-btns-group--inline">
+            <li><button type="submit" class="fr-btn fr-btn--icon-left fr-icon-clipboard-line">Démarrer l'évaluation</button></li>
+            <li><a href="{{ url_for('index') }}" class="fr-btn fr-btn--secondary">Annuler</a></li>
+        </ul>
     </form>
     {% endif %}
 </div>
