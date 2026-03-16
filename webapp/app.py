@@ -27,21 +27,54 @@ db.init_app(app)
 # ──────────────────────────────────────────────
 
 def migrate_db():
-    """Migrations incrémentales pour SQLite (pas de DROP COLUMN)."""
+    """Migrations incrémentales pour SQLite."""
     conn = db.engine.connect()
-    # Vérifier si evaluation a la colonne referentiel_id
-    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(evaluation)"))]
-    if "referentiel_id" not in cols:
+
+    # Migration 1 : ajouter referentiel_id à evaluation si absent
+    eval_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(evaluation)"))]
+    if "referentiel_id" not in eval_cols:
         conn.execute(text(
             "ALTER TABLE evaluation ADD COLUMN referentiel_id INTEGER REFERENCES referentiel_version(id)"
         ))
-        # Remplir depuis la campagne associée
         conn.execute(text(
             "UPDATE evaluation SET referentiel_id = ("
             "  SELECT referentiel_id FROM campagne WHERE campagne.id = evaluation.campagne_id"
             ") WHERE referentiel_id IS NULL"
         ))
         conn.commit()
+
+    # Migration 2 : supprimer referentiel_id et cible de campagne
+    # SQLite ne supporte pas DROP COLUMN — on recrée la table
+    camp_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(campagne)"))]
+    if "referentiel_id" in camp_cols:
+        conn.execute(text("CREATE TABLE campagne_new (id INTEGER PRIMARY KEY, label VARCHAR(100) NOT NULL, date_debut DATE NOT NULL, date_fin DATE, statut VARCHAR(20) DEFAULT 'en_cours')"))
+        conn.execute(text("INSERT INTO campagne_new (id, label, date_debut, date_fin, statut) SELECT id, label, date_debut, date_fin, statut FROM campagne"))
+        conn.execute(text("DROP TABLE campagne"))
+        conn.execute(text("ALTER TABLE campagne_new RENAME TO campagne"))
+        conn.commit()
+
+    # Migration 3 : rendre campagne_id nullable sur evaluation
+    # SQLite ne supporte pas ALTER COLUMN — on recrée la table
+    eval_info = list(conn.execute(text("PRAGMA table_info(evaluation)")))
+    campagne_col = [row for row in eval_info if row[1] == "campagne_id"]
+    if campagne_col and campagne_col[0][3] == 1:  # notnull == 1
+        conn.execute(text(
+            "CREATE TABLE evaluation_new ("
+            "id INTEGER PRIMARY KEY, referentiel_id INTEGER NOT NULL REFERENCES referentiel_version(id), "
+            "campagne_id INTEGER REFERENCES campagne(id), "
+            "entite_id INTEGER REFERENCES entite(id), site_id INTEGER REFERENCES site(id), "
+            "evaluateur VARCHAR(200), date_evaluation DATETIME, statut VARCHAR(20) DEFAULT 'brouillon', "
+            "commentaire_global TEXT)"
+        ))
+        conn.execute(text(
+            "INSERT INTO evaluation_new (id, referentiel_id, campagne_id, entite_id, site_id, evaluateur, date_evaluation, statut, commentaire_global) "
+            "SELECT id, referentiel_id, campagne_id, entite_id, site_id, evaluateur, date_evaluation, statut, commentaire_global FROM evaluation"
+        ))
+        # Migrer les scores (FK vers evaluation)
+        conn.execute(text("DROP TABLE evaluation"))
+        conn.execute(text("ALTER TABLE evaluation_new RENAME TO evaluation"))
+        conn.commit()
+
     conn.close()
 
 
