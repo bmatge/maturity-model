@@ -2,10 +2,14 @@
 {% block title %}Résultats — {{ evaluation.cible_nom }} — Maturité ComNum{% endblock %}
 
 {% block content %}
-<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-4w">
+<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-3w">
     <div class="fr-col">
         <h1 class="fr-h3 fr-mb-1v">Résultats : {{ evaluation.cible_nom }}</h1>
-        <p class="fr-text--alt">Campagne : {{ evaluation.campagne.label }} — {{ evaluation.date_evaluation.strftime('%d/%m/%Y') }}</p>
+        <p class="fr-text--alt">
+            {{ evaluation.referentiel.label }}
+            {% if evaluation.campagne_id %} — Campagne : {{ evaluation.campagne.label }}{% endif %}
+            — {{ evaluation.date_evaluation.strftime('%d/%m/%Y') }}
+        </p>
     </div>
     <div class="fr-col-auto">
         <ul class="fr-btns-group fr-btns-group--inline">
@@ -19,9 +23,50 @@
     </div>
 </div>
 
-<div class="fr-grid-row fr-grid-row--gutters">
-    <!-- Radar -->
-    <div class="fr-col-12 fr-col-md-6">
+<!-- Score global + Jauge -->
+{% set all_scores = [] %}
+{% for d in dim_scores.values() %}
+    {% for s in d.scores %}
+        {% if all_scores.append(s) %}{% endif %}
+    {% endfor %}
+{% endfor %}
+{% if all_scores %}
+{% set score_global = (all_scores | sum / all_scores | length) | round(2) %}
+{% set pct_global = (score_global / max_niveau * 100) | round | int %}
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content" style="text-align: center;">
+                    <h2 class="fr-card__title fr-mb-1w">Score global</h2>
+                    <gauge-chart gauge-value="{{ pct_global }}"></gauge-chart>
+                    <p class="fr-text--bold fr-text--lg fr-mt-1w">{{ score_global }} / {{ max_niveau }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-8">
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content">
+                    <h2 class="fr-card__title fr-mb-2w">Score par dimension</h2>
+                    <bar-chart horizontal
+                        x='{{ radar_x | safe }}'
+                        y='{{ radar_y | safe }}'
+                        name='["Score"]'
+                        y-min="0" y-max="{{ max_niveau }}"
+                        selected-palette="categorical">
+                    </bar-chart>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Radar + Dimensions détaillées -->
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-5">
         <div class="fr-card">
             <div class="fr-card__body">
                 <div class="fr-card__content">
@@ -36,62 +81,31 @@
             </div>
         </div>
     </div>
-
-    <!-- Moyennes par dimension -->
-    <div class="fr-col-12 fr-col-md-6">
+    <div class="fr-col-12 fr-col-md-7">
         <div class="fr-card">
             <div class="fr-card__body">
                 <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Moyenne par dimension</h2>
-                    <div class="fr-table">
-                        <div class="fr-table__wrapper">
-                            <div class="fr-table__container">
-                                <div class="fr-table__content">
-                                    <table>
-                                        <caption class="fr-sr-only">Scores moyens par dimension</caption>
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">Dimension</th>
-                                                <th scope="col">Moyenne</th>
-                                                <th scope="col">Niveau</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for dim_id, data in dim_scores.items() %}
-                                            <tr>
-                                                <td>{{ data.numero }}. {{ data.nom }}</td>
-                                                <td>
-                                                    <strong>{{ data.moyenne }}</strong> / {{ max_niveau }}
-                                                </td>
-                                                <td>
-                                                    <div class="fr-progress" style="height: 24px; border-radius: 4px;">
-                                                        <div class="fr-progress__bar niveau-badge-{{ data.moyenne | round | int }}"
-                                                             style="width: {{ data.moyenne / max_niveau * 100 }}%; line-height: 24px; text-align: center; color: #fff; font-size: 0.85rem; border-radius: 4px;">
-                                                            {{ data.moyenne }}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
+                    <h2 class="fr-card__title fr-mb-2w">Détail par dimension</h2>
+                    {% for dim_id, data in dim_scores.items() %}
+                    {% set dim_pct = (data.moyenne / max_niveau * 100) | round | int %}
+                    <div class="fr-mb-2w">
+                        <div class="fr-grid-row fr-grid-row--middle fr-mb-1v">
+                            <div class="fr-col">
+                                <p class="fr-text--bold fr-mb-0">{{ data.numero }}. {{ data.nom }}</p>
+                            </div>
+                            <div class="fr-col-auto">
+                                <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ data.moyenne | round | int }}">
+                                    {{ data.moyenne }} / {{ max_niveau }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="fr-progress" style="height: 8px; border-radius: 4px;">
+                            <div class="fr-progress__bar niveau-badge-{{ data.moyenne | round | int }}"
+                                 style="width: {{ dim_pct }}%; border-radius: 4px;">
                             </div>
                         </div>
                     </div>
-
-                    {% set all_scores = [] %}
-                    {% for d in dim_scores.values() %}
-                        {% for s in d.scores %}
-                            {% if all_scores.append(s) %}{% endif %}
-                        {% endfor %}
                     {% endfor %}
-                    {% if all_scores %}
-                    <div class="fr-alert fr-alert--info fr-alert--sm fr-mt-2w">
-                        <p><strong>Score global moyen :</strong>
-                        {{ (all_scores | sum / all_scores | length) | round(2) }} / {{ max_niveau }}</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -99,7 +113,7 @@
 </div>
 
 <!-- Détail par capacité -->
-<div class="fr-card fr-mt-3w">
+<div class="fr-card">
     <div class="fr-card__body">
         <div class="fr-card__content">
             <h2 class="fr-card__title fr-mb-2w">Détail par capacité</h2>

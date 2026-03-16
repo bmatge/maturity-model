@@ -293,7 +293,25 @@ def referentiel_view():
 @app.route("/entites")
 def entites_list():
     entites = Entite.query.order_by(Entite.nom).all()
-    return render_template("entites.html", entites=entites)
+    # Calculer les scores pour chaque entité
+    entite_scores = {}
+    for e in entites:
+        last_evals = {}
+        for ev in Evaluation.query.filter_by(entite_id=e.id, statut="validee") \
+                .order_by(Evaluation.date_evaluation.desc()).all():
+            if ev.referentiel_id not in last_evals:
+                dim_scores = compute_scores_by_dimension(ev)
+                moyennes = [d["moyenne"] for d in dim_scores.values()]
+                score = round(sum(moyennes) / len(moyennes), 2) if moyennes else 0
+                max_niv = get_max_niveau(ev.referentiel)
+                last_evals[ev.referentiel_id] = {
+                    "ref": ev.referentiel.label,
+                    "score": score,
+                    "max": max_niv,
+                    "pct": round(score / max_niv * 100),
+                }
+        entite_scores[e.id] = list(last_evals.values())
+    return render_template("entites.html", entites=entites, entite_scores=entite_scores)
 
 
 @app.route("/entites/new", methods=["GET", "POST"])
@@ -332,7 +350,25 @@ def entite_delete(entite_id):
 @app.route("/sites")
 def sites_list():
     sites = Site.query.order_by(Site.nom).all()
-    return render_template("sites.html", sites=sites)
+    # Calculer les scores pour chaque site
+    site_scores = {}
+    for s in sites:
+        last_evals = {}
+        for ev in Evaluation.query.filter_by(site_id=s.id, statut="validee") \
+                .order_by(Evaluation.date_evaluation.desc()).all():
+            if ev.referentiel_id not in last_evals:
+                dim_scores = compute_scores_by_dimension(ev)
+                moyennes = [d["moyenne"] for d in dim_scores.values()]
+                score = round(sum(moyennes) / len(moyennes), 2) if moyennes else 0
+                max_niv = get_max_niveau(ev.referentiel)
+                last_evals[ev.referentiel_id] = {
+                    "ref": ev.referentiel.label,
+                    "score": score,
+                    "max": max_niv,
+                    "pct": round(score / max_niv * 100),
+                }
+        site_scores[s.id] = list(last_evals.values())
+    return render_template("sites.html", sites=sites, site_scores=site_scores)
 
 
 @app.route("/sites/new", methods=["GET", "POST"])
@@ -748,6 +784,100 @@ def api_evaluation_scores(evaluation_id):
             for d in dim_scores.values()
         ],
     })
+
+
+@app.route("/api/dashboard")
+def api_dashboard():
+    """Données JSON pour les KPIs et graphiques du dashboard."""
+    nb_entites = Entite.query.count()
+    nb_sites = Site.query.count()
+    nb_evaluations = Evaluation.query.filter_by(statut="validee").count()
+    nb_referentiels = ReferentielVersion.query.count()
+    nb_campagnes = Campagne.query.count()
+
+    # Score moyen global (toutes évaluations d'organisations validées)
+    org_evals = Evaluation.query.filter(
+        Evaluation.statut == "validee",
+        Evaluation.entite_id.isnot(None),
+    ).all()
+    if org_evals:
+        all_moyennes = []
+        for ev in org_evals:
+            dim_scores = compute_scores_by_dimension(ev)
+            moyennes = [d["moyenne"] for d in dim_scores.values()]
+            if moyennes:
+                all_moyennes.append(sum(moyennes) / len(moyennes))
+        score_moyen = round(sum(all_moyennes) / len(all_moyennes), 1) if all_moyennes else 0
+    else:
+        score_moyen = 0
+
+    return jsonify([
+        {"label": "Organisations", "valeur": nb_entites, "icone": "ri-building-line"},
+        {"label": "Sites", "valeur": nb_sites, "icone": "ri-global-line"},
+        {"label": "Référentiels", "valeur": nb_referentiels, "icone": "ri-book-open-line"},
+        {"label": "Évaluations validées", "valeur": nb_evaluations, "icone": "ri-checkbox-circle-line"},
+        {"label": "Campagnes", "valeur": nb_campagnes, "icone": "ri-calendar-line"},
+        {"label": "Score moyen", "valeur": score_moyen, "icone": "ri-bar-chart-box-line"},
+    ])
+
+
+@app.route("/api/entites/scores")
+def api_entites_scores():
+    """Score moyen par entité (dernière évaluation validée de chaque référentiel)."""
+    entites = Entite.query.order_by(Entite.nom).all()
+    result = []
+    for e in entites:
+        evals = Evaluation.query.filter_by(entite_id=e.id, statut="validee") \
+            .order_by(Evaluation.date_evaluation.desc()).all()
+        # Grouper par référentiel, garder la dernière
+        seen_refs = {}
+        for ev in evals:
+            if ev.referentiel_id not in seen_refs:
+                dim_scores = compute_scores_by_dimension(ev)
+                moyennes = [d["moyenne"] for d in dim_scores.values()]
+                score = round(sum(moyennes) / len(moyennes), 2) if moyennes else 0
+                max_niv = get_max_niveau(ev.referentiel)
+                seen_refs[ev.referentiel_id] = {
+                    "referentiel": ev.referentiel.label,
+                    "score": score,
+                    "max_niveau": max_niv,
+                    "pct": round(score / max_niv * 100),
+                }
+        result.append({
+            "nom": e.nom,
+            "type": e.type,
+            "scores": list(seen_refs.values()),
+        })
+    return jsonify(result)
+
+
+@app.route("/api/sites/scores")
+def api_sites_scores():
+    """Score moyen par site (dernière évaluation validée de chaque référentiel)."""
+    sites = Site.query.order_by(Site.nom).all()
+    result = []
+    for s in sites:
+        evals = Evaluation.query.filter_by(site_id=s.id, statut="validee") \
+            .order_by(Evaluation.date_evaluation.desc()).all()
+        seen_refs = {}
+        for ev in evals:
+            if ev.referentiel_id not in seen_refs:
+                dim_scores = compute_scores_by_dimension(ev)
+                moyennes = [d["moyenne"] for d in dim_scores.values()]
+                score = round(sum(moyennes) / len(moyennes), 2) if moyennes else 0
+                max_niv = get_max_niveau(ev.referentiel)
+                seen_refs[ev.referentiel_id] = {
+                    "referentiel": ev.referentiel.label,
+                    "score": score,
+                    "max_niveau": max_niv,
+                    "pct": round(score / max_niv * 100),
+                }
+        result.append({
+            "nom": s.nom,
+            "organisation": s.organisation.nom,
+            "scores": list(seen_refs.values()),
+        })
+    return jsonify(result)
 
 
 # ──────────────────────────────────────────────

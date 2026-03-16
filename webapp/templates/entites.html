@@ -25,6 +25,23 @@
                         <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ e.type }}</p>
                         <p class="fr-badge fr-badge--sm fr-badge--info fr-badge--no-icon">{{ e.evaluations | length }} évaluation(s)</p>
                     </div>
+                    {% if entite_scores.get(e.id) %}
+                    <div class="fr-mt-2w">
+                        {% for sc in entite_scores[e.id] %}
+                        <div class="fr-grid-row fr-grid-row--middle fr-mb-1v">
+                            <div class="fr-col">
+                                <span class="fr-text--xs">{{ sc.ref }}</span>
+                            </div>
+                            <div class="fr-col-auto">
+                                <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ sc.score | round | int }}">{{ sc.score }}/{{ sc.max }}</span>
+                            </div>
+                        </div>
+                        <div class="fr-progress fr-mb-1w" style="height: 4px; border-radius: 2px;">
+                            <div class="fr-progress__bar niveau-badge-{{ sc.score | round | int }}" style="width: {{ sc.pct }}%; border-radius: 2px;"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="fr-card__footer">
                     <ul class="fr-btns-group fr-btns-group--inline">

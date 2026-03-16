@@ -24,6 +24,7 @@
                             <th scope="col">URL</th>
                             <th scope="col">Organisation</th>
                             <th scope="col">Évaluations</th>
+                            <th scope="col">Scores</th>
                             <th scope="col"></th>
                         </tr>
                     </thead>
@@ -34,6 +35,12 @@
                             <td>{% if s.url %}<a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.url }}</a>{% else %}—{% endif %}</td>
                             <td>{{ s.organisation.nom }}</td>
                             <td>{{ s.evaluations | length }}</td>
+                            <td>
+                                {% for sc in site_scores.get(s.id, []) %}
+                                <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ sc.score | round | int }} fr-mr-1v" title="{{ sc.ref }}">{{ sc.score }}/{{ sc.max }}</span>
+                                {% endfor %}
+                                {% if not site_scores.get(s.id) %}—{% endif %}
+                            </td>
                             <td>
                                 <button class="fr-btn fr-btn--sm fr-btn--tertiary fr-btn--icon-left fr-icon-delete-line"
                                         aria-controls="modal-delete-site-{{ s.id }}" data-fr-opened="false">

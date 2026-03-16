@@ -2,29 +2,31 @@
 {% block title %}Accueil — Maturité ComNum{% endblock %}
 
 {% block content %}
-<!-- Header + KPI tags -->
-<div class="fr-grid-row fr-grid-row--middle fr-mb-4w">
+<!-- Header -->
+<div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
     <div class="fr-col">
         <h1 class="fr-h3 fr-mb-1v">Tableau de bord</h1>
-        <p class="fr-text--alt">Suivi de la maturité de la communication numérique ministérielle</p>
+        <p class="fr-text--alt">Suivi de la maturité numérique</p>
     </div>
     <div class="fr-col-auto">
-        <ul class="fr-tags-group">
-            <li><p class="fr-tag">{{ entites | length }} entités</p></li>
-            <li><p class="fr-tag">{{ campagnes | length }} campagnes</p></li>
-            <li><p class="fr-tag">44 capacités</p></li>
-        </ul>
+        <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--icon-left fr-icon-clipboard-line">Lancer une évaluation</a>
     </div>
 </div>
 
-<!-- CTA -->
-<div class="fr-mb-4w">
-    <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--icon-left fr-icon-clipboard-line">Lancer une évaluation</a>
-</div>
+<!-- KPIs via gouv-widgets -->
+<gouv-source id="dashboard-stats" url="/api/dashboard"></gouv-source>
+<gouv-kpi-group cols="6" gap="md">
+    <gouv-kpi source="dashboard-stats" valeur="Organisations" label="Organisations" icone="ri-building-line" couleur="bleu" col="2"></gouv-kpi>
+    <gouv-kpi source="dashboard-stats" valeur="Sites" label="Sites" icone="ri-global-line" couleur="bleu" col="2"></gouv-kpi>
+    <gouv-kpi source="dashboard-stats" valeur="Référentiels" label="Référentiels" icone="ri-book-open-line" couleur="bleu" col="2"></gouv-kpi>
+    <gouv-kpi source="dashboard-stats" valeur="Évaluations validées" label="Évaluations" icone="ri-checkbox-circle-line" couleur="vert" col="2"></gouv-kpi>
+    <gouv-kpi source="dashboard-stats" valeur="Campagnes" label="Campagnes" icone="ri-calendar-line" couleur="bleu" col="2"></gouv-kpi>
+    <gouv-kpi source="dashboard-stats" valeur="Score moyen" label="Score moyen /4" icone="ri-bar-chart-box-line" seuil-vert="3" seuil-orange="2" col="2"></gouv-kpi>
+</gouv-kpi-group>
 
 <!-- Graphiques -->
 {% if has_charts %}
-<div class="fr-grid-row fr-grid-row--gutters fr-mb-4w">
+<div class="fr-grid-row fr-grid-row--gutters fr-mt-4w fr-mb-4w">
     <div class="fr-col-12 fr-col-md-6">
         <div class="fr-card">
             <div class="fr-card__body">
@@ -58,14 +60,12 @@
 </div>
 {% endif %}
 
-<!-- Campagnes + Entites -->
+<!-- Campagnes + Entités + Sites -->
 <div class="fr-grid-row fr-grid-row--gutters">
     <!-- Campagnes -->
-    <div class="fr-col-12 fr-col-md-8">
+    <div class="fr-col-12 fr-col-md-6">
         <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-            <div class="fr-col">
-                <h2 class="fr-h5 fr-mb-0">Campagnes</h2>
-            </div>
+            <div class="fr-col"><h2 class="fr-h5 fr-mb-0">Campagnes</h2></div>
             <div class="fr-col-auto">
                 <a href="{{ url_for('campagnes_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
             </div>
@@ -77,17 +77,14 @@
                     <div class="fr-table__content">
                         <table>
                             <caption class="fr-sr-only">Campagnes récentes</caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Campagne</th>
-                                    <th scope="col">Début</th>
-                                    <th scope="col">Statut</th>
-                                    <th scope="col">Évaluations</th>
-                                    <th scope="col"></th>
-                                </tr>
-                            </thead>
+                            <thead><tr>
+                                <th scope="col">Campagne</th>
+                                <th scope="col">Début</th>
+                                <th scope="col">Statut</th>
+                                <th scope="col"></th>
+                            </tr></thead>
                             <tbody>
-                                {% for c in campagnes %}
+                                {% for c in campagnes[:5] %}
                                 <tr>
                                     <td class="fr-text--bold">{{ c.label }}</td>
                                     <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
@@ -98,10 +95,7 @@
                                         <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Terminée</p>
                                         {% endif %}
                                     </td>
-                                    <td>{{ c.evaluations | length }}</td>
-                                    <td>
-                                        <a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-line-chart-line">Dashboard</a>
-                                    </td>
+                                    <td><a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-line-chart-line" title="Dashboard"></a></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -115,12 +109,10 @@
         {% endif %}
     </div>
 
-    <!-- Entités -->
-    <div class="fr-col-12 fr-col-md-4">
+    <!-- Entités + Sites -->
+    <div class="fr-col-12 fr-col-md-6">
         <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-            <div class="fr-col">
-                <h2 class="fr-h5 fr-mb-0">Entités</h2>
-            </div>
+            <div class="fr-col"><h2 class="fr-h5 fr-mb-0">Organisations</h2></div>
             <div class="fr-col-auto">
                 <a href="{{ url_for('entites_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
             </div>
@@ -135,14 +127,29 @@
                         {{ e.nom }}
                     </div>
                     <div class="fr-col-auto">
-                        <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-up-line" title="Évolution"></a>
+                        <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-right-line" title="Évolution"></a>
                     </div>
                 </div>
             </li>
             {% endfor %}
         </ul>
+        {% endif %}
+
+        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w fr-mt-3w">
+            <div class="fr-col"><h2 class="fr-h5 fr-mb-0">Sites</h2></div>
+            <div class="fr-col-auto">
+                <a href="{{ url_for('sites_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
+            </div>
+        </div>
+        {% if nb_sites > 0 %}
+        <gouv-source id="sites-scores" url="/api/sites/scores"></gouv-source>
+        <gouv-dsfr-chart source="sites-scores" type="bar"
+            label-field="nom" value-field="scores.0.score"
+            horizontal
+            selected-palette="categorical">
+        </gouv-dsfr-chart>
         {% else %}
-        <p class="fr-text--alt">Aucune entité. <a href="{{ url_for('entite_new') }}">Créez la première.</a></p>
+        <p class="fr-text--alt">Aucun site. <a href="{{ url_for('site_new') }}">Ajoutez le premier.</a></p>
         {% endif %}
     </div>
 </div>
