@@ -54,11 +54,12 @@ def migrate_db():
         conn.execute(text("ALTER TABLE campagne_new RENAME TO campagne"))
         conn.commit()
 
-    # Migration 3 : rendre campagne_id nullable sur evaluation
-    # SQLite ne supporte pas ALTER COLUMN — on recrée la table
+    # Migration 3 : recréer evaluation avec le bon schéma (campagne_id nullable, site_id, referentiel_id)
     eval_info = list(conn.execute(text("PRAGMA table_info(evaluation)")))
+    eval_col_names = [row[1] for row in eval_info]
     campagne_col = [row for row in eval_info if row[1] == "campagne_id"]
-    if campagne_col and campagne_col[0][3] == 1:  # notnull == 1
+    needs_rebuild = (campagne_col and campagne_col[0][3] == 1) or ("site_id" not in eval_col_names)
+    if needs_rebuild:
         conn.execute(text("DROP TABLE IF EXISTS evaluation_new"))
         conn.execute(text(
             "CREATE TABLE evaluation_new ("
@@ -68,9 +69,14 @@ def migrate_db():
             "evaluateur VARCHAR(200), date_evaluation DATETIME, statut VARCHAR(20) DEFAULT 'brouillon', "
             "commentaire_global TEXT)"
         ))
+        # Copier uniquement les colonnes qui existent dans l'ancienne table
+        src_cols = "id, referentiel_id, campagne_id, entite_id, evaluateur, date_evaluation, statut, commentaire_global"
+        dst_cols = src_cols
+        if "site_id" in eval_col_names:
+            src_cols += ", site_id"
+            dst_cols += ", site_id"
         conn.execute(text(
-            "INSERT INTO evaluation_new (id, referentiel_id, campagne_id, entite_id, site_id, evaluateur, date_evaluation, statut, commentaire_global) "
-            "SELECT id, referentiel_id, campagne_id, entite_id, site_id, evaluateur, date_evaluation, statut, commentaire_global FROM evaluation"
+            f"INSERT INTO evaluation_new ({dst_cols}) SELECT {src_cols} FROM evaluation"
         ))
         conn.execute(text("DROP TABLE evaluation"))
         conn.execute(text("ALTER TABLE evaluation_new RENAME TO evaluation"))
