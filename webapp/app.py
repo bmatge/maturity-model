@@ -656,62 +656,79 @@ def campagne_dashboard(campagne_id):
 
 @app.route("/entite/<int:entite_id>/evolution")
 def entite_evolution(entite_id):
-    """Évolution d'une entité à travers les campagnes."""
+    """Évolution d'une entité à travers les campagnes, groupée par référentiel."""
     entite = Entite.query.get_or_404(entite_id)
     evaluations = Evaluation.query.filter_by(
         entite_id=entite.id, statut="validee"
     ).order_by(Evaluation.date_evaluation).all()
 
-    timeline = []
+    # Grouper par référentiel
+    ref_groups = {}
     for ev in evaluations:
-        dim_scores = compute_scores_by_dimension(ev)
-        label = ev.campagne.label if ev.campagne_id else ev.date_evaluation.strftime("%Y-%m-%d")
-        timeline.append({
-            "campagne": label,
-            "date": ev.date_evaluation.strftime("%Y-%m-%d"),
-            "referentiel": ev.referentiel.label,
-            "scores": {d["numero"]: d["moyenne"] for d in dim_scores.values()},
-        })
+        ref_id = ev.referentiel_id
+        if ref_id not in ref_groups:
+            ref = ev.referentiel
+            dims = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
+            ref_groups[ref_id] = {
+                "ref": ref,
+                "dimensions": dims,
+                "evaluations": [],
+            }
+        ref_groups[ref_id]["evaluations"].append(ev)
 
-    # Utiliser le référentiel de la dernière évaluation, sinon le référentiel actif
-    if evaluations:
-        ref = evaluations[-1].referentiel
-    else:
-        ref = get_active_referentiel() or ReferentielVersion.query.first()
-    dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
+    # Construire les données de graphique pour chaque référentiel
+    charts = []
+    for ref_id, group in ref_groups.items():
+        ref = group["ref"]
+        dims = group["dimensions"]
+        evs = group["evaluations"]
+        max_niveau = get_max_niveau(ref)
 
-    # Données DSFR Chart
-    dim_labels = [f"{d.numero}. {d.nom}" for d in dimensions]
-    dim_nums = [d.numero for d in dimensions]
+        dim_labels = [f"{d.numero}. {d.nom}" for d in dims]
+        dim_nums = [d.numero for d in dims]
 
-    # Line chart : une série par dimension
-    campagne_labels = [t["campagne"] for t in timeline]
-    line_x = []
-    line_y = []
-    line_names = []
-    for dim in dimensions:
-        line_x.append(campagne_labels)
-        line_y.append([t["scores"].get(dim.numero, 0) for t in timeline])
-        line_names.append(f"{dim.numero}. {dim.nom}")
+        # Timeline pour ce référentiel
+        timeline_entries = []
+        for ev in evs:
+            dim_scores = compute_scores_by_dimension(ev)
+            label = ev.campagne.label if ev.campagne_id else ev.date_evaluation.strftime("%Y-%m-%d")
+            timeline_entries.append({
+                "label": label,
+                "date": ev.date_evaluation.strftime("%Y-%m-%d"),
+                "scores": {d["numero"]: d["moyenne"] for d in dim_scores.values()},
+            })
 
-    # Radar dernière évaluation
-    last_radar_x = []
-    last_radar_y = []
-    if timeline:
-        last = timeline[-1]
+        # Line chart : une série par dimension
+        campagne_labels = [t["label"] for t in timeline_entries]
+        line_x = []
+        line_y = []
+        line_names = []
+        for dim in dims:
+            line_x.append(campagne_labels)
+            line_y.append([t["scores"].get(dim.numero, 0) for t in timeline_entries])
+            line_names.append(f"{dim.numero}. {dim.nom}")
+
+        # Radar dernière évaluation de ce référentiel
+        last = timeline_entries[-1]
         last_radar_x = [dim_labels]
         last_radar_y = [[last["scores"].get(n, 0) for n in dim_nums]]
+
+        charts.append({
+            "ref_label": ref.label,
+            "ref_cible": ref.cible,
+            "max_niveau": max_niveau,
+            "nb_evaluations": len(evs),
+            "line_x": json.dumps(line_x),
+            "line_y": json.dumps(line_y),
+            "line_names": json.dumps(line_names),
+            "last_radar_x": json.dumps(last_radar_x),
+            "last_radar_y": json.dumps(last_radar_y),
+        })
 
     return render_template(
         "entite_evolution.html",
         entite=entite,
-        timeline=json.dumps(timeline),
-        dimensions=dimensions,
-        line_x=json.dumps(line_x),
-        line_y=json.dumps(line_y),
-        line_names=json.dumps(line_names),
-        last_radar_x=json.dumps(last_radar_x),
-        last_radar_y=json.dumps(last_radar_y),
+        charts=charts,
     )
 
 

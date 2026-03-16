@@ -4,61 +4,72 @@
 {% block content %}
 <div class="fr-mb-4w">
     <h1 class="fr-h3">Évolution : {{ entite.nom }}</h1>
-    <p class="fr-text--alt">Progression à travers les campagnes d'évaluation</p>
+    <p class="fr-text--alt">Progression à travers les évaluations, par référentiel</p>
 </div>
 
-<div class="fr-grid-row fr-grid-row--gutters">
-    <!-- Graphe d'évolution -->
-    <div class="fr-col-12 fr-col-md-8">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Score moyen par dimension au fil du temps</h2>
-                    {% if line_x != '[]' %}
-                    <line-chart
-                        x='{{ line_x | safe }}'
-                        y='{{ line_y | safe }}'
-                        name='{{ line_names | safe }}'
-                        y-min="0" y-max="4"
-                        selected-palette="categorical">
-                    </line-chart>
-                    {% else %}
-                    <p class="fr-text--alt">Aucune donnée à afficher.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dernière évaluation -->
-    <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Dernière évaluation</h2>
-                    {% if last_radar_x != '[]' %}
-                    <radar-chart
-                        x='{{ last_radar_x | safe }}'
-                        y='{{ last_radar_y | safe }}'
-                        selected-palette="default">
-                    </radar-chart>
-                    {% else %}
-                    <p class="fr-text--alt">Aucune évaluation validée.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% if not entite.evaluations %}
-<div class="fr-alert fr-alert--info fr-alert--sm fr-mt-3w">
-    <p>Aucune évaluation pour cette entité.
+{% if not charts %}
+<div class="fr-alert fr-alert--info fr-alert--sm">
+    <p>Aucune évaluation validée pour cette entité.
     <a href="{{ url_for('evaluation_new') }}">Lancez la première évaluation.</a></p>
 </div>
 {% endif %}
 
-<!-- Historique -->
+{% for chart in charts %}
+<div class="fr-mb-4w">
+    <h2 class="fr-h5 fr-mb-2w">
+        {{ chart.ref_label }}
+        <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w">{{ chart.nb_evaluations }} évaluation{{ 's' if chart.nb_evaluations > 1 }}</span>
+    </h2>
+
+    <div class="fr-grid-row fr-grid-row--gutters">
+        <!-- Graphe d'évolution -->
+        <div class="fr-col-12 fr-col-md-8">
+            <div class="fr-card">
+                <div class="fr-card__body">
+                    <div class="fr-card__content">
+                        <h3 class="fr-card__title fr-mb-2w">Score moyen par dimension</h3>
+                        {% if chart.nb_evaluations > 1 %}
+                        <line-chart
+                            x='{{ chart.line_x | safe }}'
+                            y='{{ chart.line_y | safe }}'
+                            name='{{ chart.line_names | safe }}'
+                            y-min="0" y-max="{{ chart.max_niveau }}"
+                            selected-palette="categorical">
+                        </line-chart>
+                        {% else %}
+                        <bar-chart horizontal
+                            x='{{ chart.last_radar_x | safe }}'
+                            y='{{ chart.last_radar_y | safe }}'
+                            name='["Score"]'
+                            selected-palette="categorical">
+                        </bar-chart>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radar dernière évaluation -->
+        <div class="fr-col-12 fr-col-md-4">
+            <div class="fr-card">
+                <div class="fr-card__body">
+                    <div class="fr-card__content">
+                        <h3 class="fr-card__title fr-mb-2w">Dernière évaluation</h3>
+                        <radar-chart
+                            x='{{ chart.last_radar_x | safe }}'
+                            y='{{ chart.last_radar_y | safe }}'
+                            name='["{{ chart.ref_label }}"]'
+                            selected-palette="default">
+                        </radar-chart>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Historique complet -->
 <div class="fr-card fr-mt-3w">
     <div class="fr-card__body">
         <div class="fr-card__content">
@@ -71,6 +82,7 @@
                                 <caption class="fr-sr-only">Historique des évaluations de {{ entite.nom }}</caption>
                                 <thead>
                                     <tr>
+                                        <th scope="col">Référentiel</th>
                                         <th scope="col">Campagne</th>
                                         <th scope="col">Date</th>
                                         <th scope="col">Évaluateur</th>
@@ -81,7 +93,8 @@
                                 <tbody>
                                     {% for ev in entite.evaluations %}
                                     <tr>
-                                        <td class="fr-text--bold">{{ ev.campagne.label }}</td>
+                                        <td>{{ ev.referentiel.label }}</td>
+                                        <td class="fr-text--bold">{{ ev.campagne.label if ev.campagne_id else '—' }}</td>
                                         <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
                                         <td>{{ ev.evaluateur or '—' }}</td>
                                         <td>
