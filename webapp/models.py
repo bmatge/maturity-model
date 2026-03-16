@@ -1,9 +1,11 @@
 """
-Modèle de données pour le suivi de maturité de la communication numérique.
+Modèle de données pour le suivi de maturité numérique.
 
 Axes de variabilité :
-- Le référentiel évolue (versions)
+- Plusieurs référentiels (ComNum, Accessibilité, Design, Data…)
+- Chaque référentiel cible des organisations ou des sites
 - Les entités sont multiples (SIRCOM + bureaux)
+- Les sites sont rattachés à des organisations
 - Les évaluations se répètent dans le temps (campagnes)
 """
 
@@ -14,16 +16,17 @@ db = SQLAlchemy()
 
 
 # ──────────────────────────────────────────────
-# Référentiel (versionné)
+# Référentiel (versionné, multi-cible)
 # ──────────────────────────────────────────────
 
 class ReferentielVersion(db.Model):
-    """Une version du référentiel de maturité (ex: v2.0, v2.1)."""
+    """Une version du référentiel de maturité (ex: ComNum v2.0, Accessibilité-org v1)."""
     __tablename__ = "referentiel_version"
 
     id = db.Column(db.Integer, primary_key=True)
-    label = db.Column(db.String(20), nullable=False, unique=True)  # "v2.0"
+    label = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.Text)
+    cible = db.Column(db.String(20), nullable=False, default="organisation")  # "organisation" ou "site"
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=False)
 
@@ -41,7 +44,7 @@ class Dimension(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     referentiel_id = db.Column(db.Integer, db.ForeignKey("referentiel_version.id"), nullable=False)
-    numero = db.Column(db.Integer, nullable=False)  # 1..7
+    numero = db.Column(db.Integer, nullable=False)
     nom = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
 
@@ -81,8 +84,8 @@ class NiveauCritere(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     capacite_id = db.Column(db.Integer, db.ForeignKey("capacite.id"), nullable=False)
-    niveau = db.Column(db.Integer, nullable=False)  # 1, 2, 3, 4
-    nom = db.Column(db.String(20), nullable=False)  # Émergent, Structuré, Intégré, Pérenne
+    niveau = db.Column(db.Integer, nullable=False)  # 1, 2, 3, 4 (ou 1-3 selon le référentiel)
+    nom = db.Column(db.String(30), nullable=False)
     description = db.Column(db.Text, nullable=False)
     signaux_observables = db.Column(db.Text)
 
@@ -93,7 +96,7 @@ class NiveauCritere(db.Model):
 
 
 # ──────────────────────────────────────────────
-# Entités évaluées
+# Entités évaluées (organisations)
 # ──────────────────────────────────────────────
 
 class Entite(db.Model):
@@ -103,15 +106,40 @@ class Entite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(200), nullable=False)
     type = db.Column(db.String(20), nullable=False)  # "SIRCOM" ou "Bureau"
-    direction = db.Column(db.String(200))  # direction de rattachement
+    direction = db.Column(db.String(200))
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     evaluations = db.relationship("Evaluation", back_populates="entite",
                                   order_by="Evaluation.date_evaluation.desc()")
+    sites = db.relationship("Site", back_populates="organisation",
+                            cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Entite {self.nom}>"
+
+
+# ──────────────────────────────────────────────
+# Sites web (rattachés à une organisation)
+# ──────────────────────────────────────────────
+
+class Site(db.Model):
+    """Un site web rattaché à une organisation."""
+    __tablename__ = "site"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(500))
+    description = db.Column(db.Text)
+    organisation_id = db.Column(db.Integer, db.ForeignKey("entite.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    organisation = db.relationship("Entite", back_populates="sites")
+    evaluations = db.relationship("Evaluation", back_populates="site",
+                                  order_by="Evaluation.date_evaluation.desc()")
+
+    def __repr__(self):
+        return f"<Site {self.nom}>"
 
 
 # ──────────────────────────────────────────────
@@ -119,17 +147,15 @@ class Entite(db.Model):
 # ──────────────────────────────────────────────
 
 class Campagne(db.Model):
-    """Une campagne d'évaluation (ex: T1 2026, Audit annuel 2026)."""
+    """Une campagne d'évaluation d'organisations (ex: T1 2026, Audit annuel 2026)."""
     __tablename__ = "campagne"
 
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(100), nullable=False)
-    referentiel_id = db.Column(db.Integer, db.ForeignKey("referentiel_version.id"), nullable=False)
     date_debut = db.Column(db.Date, nullable=False)
     date_fin = db.Column(db.Date)
     statut = db.Column(db.String(20), default="en_cours")  # en_cours, terminee
 
-    referentiel = db.relationship("ReferentielVersion")
     evaluations = db.relationship("Evaluation", back_populates="campagne",
                                   cascade="all, delete-orphan")
 
@@ -138,28 +164,43 @@ class Campagne(db.Model):
 
 
 class Evaluation(db.Model):
-    """Une évaluation = une entité évaluée lors d'une campagne."""
+    """Une évaluation = une entité OU un site évalué sur un référentiel."""
     __tablename__ = "evaluation"
 
     id = db.Column(db.Integer, primary_key=True)
-    campagne_id = db.Column(db.Integer, db.ForeignKey("campagne.id"), nullable=False)
-    entite_id = db.Column(db.Integer, db.ForeignKey("entite.id"), nullable=False)
+    referentiel_id = db.Column(db.Integer, db.ForeignKey("referentiel_version.id"), nullable=False)
+    campagne_id = db.Column(db.Integer, db.ForeignKey("campagne.id"), nullable=True)
+    entite_id = db.Column(db.Integer, db.ForeignKey("entite.id"), nullable=True)
+    site_id = db.Column(db.Integer, db.ForeignKey("site.id"), nullable=True)
     evaluateur = db.Column(db.String(200))
     date_evaluation = db.Column(db.DateTime, default=datetime.utcnow)
     statut = db.Column(db.String(20), default="brouillon")  # brouillon, validee
     commentaire_global = db.Column(db.Text)
 
+    referentiel = db.relationship("ReferentielVersion")
     campagne = db.relationship("Campagne", back_populates="evaluations")
     entite = db.relationship("Entite", back_populates="evaluations")
+    site = db.relationship("Site", back_populates="evaluations")
     scores = db.relationship("Score", back_populates="evaluation",
                              cascade="all, delete-orphan")
 
     __table_args__ = (
-        db.UniqueConstraint("campagne_id", "entite_id", name="uq_campagne_entite"),
+        db.CheckConstraint(
+            "(entite_id IS NOT NULL AND site_id IS NULL) OR "
+            "(entite_id IS NULL AND site_id IS NOT NULL)",
+            name="ck_eval_xor_cible"
+        ),
     )
 
+    @property
+    def cible_nom(self):
+        """Nom de l'entité ou du site évalué."""
+        return self.entite.nom if self.entite_id else self.site.nom
+
     def __repr__(self):
-        return f"<Evaluation {self.entite.nom} — {self.campagne.label}>"
+        cible = self.cible_nom
+        ctx = self.campagne.label if self.campagne_id else self.date_evaluation.strftime("%Y-%m-%d")
+        return f"<Evaluation {cible} — {ctx}>"
 
 
 class Score(db.Model):
@@ -169,16 +210,15 @@ class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     evaluation_id = db.Column(db.Integer, db.ForeignKey("evaluation.id"), nullable=False)
     capacite_id = db.Column(db.Integer, db.ForeignKey("capacite.id"), nullable=False)
-    niveau = db.Column(db.Integer, nullable=False)  # 1, 2, 3, 4
-    justification = db.Column(db.Text)  # pourquoi ce niveau
-    signaux_constates = db.Column(db.Text)  # éléments observés
+    niveau = db.Column(db.Integer, nullable=False)
+    justification = db.Column(db.Text)
+    signaux_constates = db.Column(db.Text)
 
     evaluation = db.relationship("Evaluation", back_populates="scores")
     capacite = db.relationship("Capacite", back_populates="scores")
 
     __table_args__ = (
         db.UniqueConstraint("evaluation_id", "capacite_id", name="uq_eval_capacite"),
-        db.CheckConstraint("niveau BETWEEN 1 AND 4", name="ck_score_niveau"),
     )
 
     def __repr__(self):

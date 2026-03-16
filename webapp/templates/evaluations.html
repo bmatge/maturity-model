@@ -20,7 +20,8 @@
                     <caption class="fr-sr-only">Liste des évaluations</caption>
                     <thead>
                         <tr>
-                            <th scope="col">Entité</th>
+                            <th scope="col">Cible</th>
+                            <th scope="col">Référentiel</th>
                             <th scope="col">Campagne</th>
                             <th scope="col">Évaluateur</th>
                             <th scope="col">Statut</th>
@@ -31,8 +32,9 @@
                     <tbody>
                         {% for ev in evaluations %}
                         <tr>
-                            <td class="fr-text--bold">{{ ev.entite.nom }}</td>
-                            <td>{{ ev.campagne.label }}</td>
+                            <td class="fr-text--bold">{{ ev.cible_nom }}</td>
+                            <td>{{ ev.referentiel.label }}</td>
+                            <td>{{ ev.campagne.label if ev.campagne_id else '—' }}</td>
                             <td>{{ ev.evaluateur or '—' }}</td>
                             <td>
                                 {% if ev.statut == 'brouillon' %}
@@ -83,7 +85,7 @@
                         <h1 id="modal-delete-eval-title-{{ ev.id }}" class="fr-modal__title">
                             Supprimer cette évaluation ?
                         </h1>
-                        <p>Évaluation de <strong>{{ ev.entite.nom }}</strong> dans la campagne <strong>{{ ev.campagne.label }}</strong>. Cette action est irréversible. Tous les scores associés seront supprimés.</p>
+                        <p>Évaluation de <strong>{{ ev.cible_nom }}</strong> dans la campagne <strong>{{ ev.campagne.label }}</strong>. Cette action est irréversible. Tous les scores associés seront supprimés.</p>
                     </div>
                     <div class="fr-modal__footer">
                         <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline">

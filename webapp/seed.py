@@ -4,7 +4,7 @@ Exécuté automatiquement au premier lancement si la DB est vide.
 """
 
 from models import (
-    db, ReferentielVersion, Dimension, Capacite, NiveauCritere, Entite, Campagne
+    db, ReferentielVersion, Dimension, Capacite, NiveauCritere, Entite, Campagne, Site
 )
 from datetime import date
 
@@ -515,6 +515,7 @@ def seed_referentiel():
     ref = ReferentielVersion(
         label="v2.0",
         description="Référentiel de maturité de la communication numérique ministérielle — version 2.0",
+        cible="organisation",
         is_active=True,
     )
     db.session.add(ref)
@@ -554,6 +555,504 @@ def seed_referentiel():
     return True
 
 
+# ──────────────────────────────────────────────
+# Mini-référentiels thématiques
+# ──────────────────────────────────────────────
+
+MINI_REFERENTIELS = [
+    # ── 1. Accessibilité Organisation ──
+    {
+        "label": "Accessibilité-org-v1",
+        "description": "Maturité accessibilité numérique — volet organisation",
+        "cible": "organisation",
+        "is_active": False,
+        "noms_niveaux": {1: "Émergent", 2: "Structuré", 3: "Intégré", 4: "Pérenne"},
+        "dimensions": [
+            {
+                "numero": 1, "nom": "Pilotage & engagement",
+                "description": "Portage stratégique et moyens dédiés à l'accessibilité numérique.",
+                "capacites": [
+                    {"numero": "1.1", "nom": "Engagement de la direction", "portee": "C",
+                     "description": "La direction porte-t-elle l'accessibilité comme un objectif stratégique ?",
+                     "niveaux": [
+                         "L'accessibilité n'est pas un sujet identifié par la direction. Aucune mention dans les documents stratégiques.",
+                         "La direction reconnaît l'obligation légale mais ne porte pas le sujet activement. Quelques initiatives isolées.",
+                         "L'accessibilité est inscrite dans la feuille de route. Un·e référent·e est identifié·e. La direction arbitre en faveur de l'accessibilité.",
+                         "L'accessibilité est un critère de décision systématique. La direction communique sur les résultats. Le sujet est porté au plus haut niveau.",
+                     ]},
+                    {"numero": "1.2", "nom": "Schéma pluriannuel", "portee": "D",
+                     "description": "Existence et mise en œuvre d'un schéma pluriannuel de mise en accessibilité.",
+                     "niveaux": [
+                         "Pas de schéma pluriannuel publié, ou schéma obsolète non mis à jour.",
+                         "Schéma publié mais générique, sans actions concrètes ni calendrier précis.",
+                         "Schéma détaillé avec actions, calendrier, responsables identifiés. Suivi annuel effectif.",
+                         "Schéma intégré au pilotage global, mis à jour régulièrement, bilan publié. Aligné avec la stratégie numérique.",
+                     ]},
+                    {"numero": "1.3", "nom": "Budget dédié", "portee": "D",
+                     "description": "Allocation de ressources financières spécifiques à l'accessibilité.",
+                     "niveaux": [
+                         "Pas de budget identifié pour l'accessibilité. Les audits et corrections sont financés au cas par cas.",
+                         "Budget ponctuel (un audit, une formation) mais pas de ligne récurrente.",
+                         "Ligne budgétaire annuelle dédiée : audits, outils, formation, correction. Suffisante pour les besoins identifiés.",
+                         "Budget pluriannuel sanctuarisé, révisé chaque année. Intègre la maintenance et l'amélioration continue.",
+                     ]},
+                    {"numero": "1.4", "nom": "Suivi & indicateurs", "portee": "D",
+                     "description": "Pilotage par indicateurs : taux de conformité, avancement du schéma, nombre de sites audités.",
+                     "niveaux": [
+                         "Pas d'indicateurs de suivi. L'état de conformité des sites n'est pas connu.",
+                         "Suivi ponctuel : quelques taux de conformité connus mais pas consolidés. Pas de tableau de bord.",
+                         "Tableau de bord avec indicateurs clés (% conformité par site, avancement schéma). Suivi trimestriel.",
+                         "Indicateurs intégrés au reporting de la DSI/DNUM. Benchmark entre sites. Trajectoire de progression suivie.",
+                     ]},
+                ]
+            },
+            {
+                "numero": 2, "nom": "Compétences & culture",
+                "description": "Montée en compétences et diffusion de la culture accessibilité dans l'organisation.",
+                "capacites": [
+                    {"numero": "2.1", "nom": "Référent accessibilité", "portee": "D",
+                     "description": "Existence d'un·e référent·e identifié·e avec un mandat clair.",
+                     "niveaux": [
+                         "Pas de référent. Le sujet est porté par bonne volonté individuelle.",
+                         "Un·e référent·e désigné·e mais sans mandat formel ni temps dédié. Rôle consultatif.",
+                         "Référent·e avec mandat, temps dédié, rattachement hiérarchique clair. Reconnu·e comme point de contact.",
+                         "Équipe accessibilité structurée (ou réseau de référents). Expertise interne reconnue. Capacité d'accompagnement des projets.",
+                     ]},
+                    {"numero": "2.2", "nom": "Formation des équipes", "portee": "P",
+                     "description": "Les équipes (dev, design, contenu, chef de projet) sont-elles formées ?",
+                     "niveaux": [
+                         "Pas de formation. Les équipes découvrent le RGAA au moment de l'audit.",
+                         "Quelques formations ponctuelles (sensibilisation). Pas de plan structuré.",
+                         "Plan de formation par profil (dev, design, rédacteurs, CP). Formations régulières. Parcours d'intégration.",
+                         "Culture d'apprentissage continu. Veille partagée, communauté de pratique, certifications encouragées.",
+                     ]},
+                    {"numero": "2.3", "nom": "Intégration dans les processus", "portee": "P",
+                     "description": "L'accessibilité est-elle intégrée dans le cycle de vie des projets ?",
+                     "niveaux": [
+                         "L'accessibilité est traitée en fin de projet (audit avant MEP, corrections a posteriori).",
+                         "L'accessibilité est mentionnée dans les cahiers des charges mais pas systématiquement vérifiée.",
+                         "Intégrée aux revues de conception, aux tests, à la recette. Critères d'accessibilité dans la Definition of Done.",
+                         "L'accessibilité est native dans tous les processus. Tests automatisés en CI. Revues de code incluent l'accessibilité.",
+                     ]},
+                    {"numero": "2.4", "nom": "Culture & sensibilisation", "portee": "P",
+                     "description": "Le sujet dépasse-t-il le cercle des experts ?",
+                     "niveaux": [
+                         "Sujet perçu comme technique et contraignant. Peu de personnes concernées.",
+                         "Sensibilisation ponctuelle (journée mondiale, présentation interne). Intérêt croissant mais limité.",
+                         "Sensibilisation régulière, témoignages d'usagers, ateliers de mise en situation. Le sujet est compris au-delà des équipes techniques.",
+                         "L'accessibilité fait partie de la culture de l'organisation. Réflexe naturel. Portée par tous les métiers.",
+                     ]},
+                ]
+            },
+        ]
+    },
+    # ── 2. Accessibilité Site ──
+    {
+        "label": "Accessibilité-site-v1",
+        "description": "Conformité et qualité accessibilité — volet site web",
+        "cible": "site",
+        "is_active": False,
+        "noms_niveaux": {1: "Insuffisant", 2: "Partiel", 3: "Conforme"},
+        "dimensions": [
+            {
+                "numero": 1, "nom": "Conformité technique",
+                "description": "Respect du RGAA et des obligations légales d'accessibilité.",
+                "capacites": [
+                    {"numero": "1.1", "nom": "Taux de conformité RGAA", "portee": "D",
+                     "description": "Résultat du dernier audit de conformité au RGAA.",
+                     "niveaux": [
+                         "Taux inconnu ou < 50%. Nombreuses non-conformités bloquantes.",
+                         "Taux entre 50% et 75%. Non-conformités identifiées, plan de correction en cours.",
+                         "Taux > 75%. Non-conformités résiduelles mineures. Dérogations documentées et justifiées.",
+                     ]},
+                    {"numero": "1.2", "nom": "Déclaration d'accessibilité", "portee": "D",
+                     "description": "Présence, complétude et mise à jour de la déclaration obligatoire.",
+                     "niveaux": [
+                         "Absente ou non conforme (pas de mention, ou simple mention « en cours »).",
+                         "Déclaration publiée mais incomplète (manque le plan d'action, les dérogations, ou la date d'audit).",
+                         "Déclaration complète, à jour, conforme au modèle légal. Lien visible depuis toutes les pages.",
+                     ]},
+                    {"numero": "1.3", "nom": "Audit et fréquence", "portee": "D",
+                     "description": "Le site fait-il l'objet d'audits réguliers et fiables ?",
+                     "niveaux": [
+                         "Pas d'audit réalisé, ou audit de plus de 3 ans.",
+                         "Audit réalisé (externe ou auto-évaluation) mais ponctuel. Pas de suivi post-audit structuré.",
+                         "Audits réguliers (a minima à chaque refonte majeure). Suivi des corrections. Re-test après correction.",
+                     ]},
+                ]
+            },
+            {
+                "numero": 2, "nom": "Qualité de l'expérience",
+                "description": "Qualité réelle de l'expérience pour les utilisateurs en situation de handicap.",
+                "capacites": [
+                    {"numero": "2.1", "nom": "Navigation & structure", "portee": "D",
+                     "description": "Le site est-il navigable au clavier et avec un lecteur d'écran ?",
+                     "niveaux": [
+                         "Navigation au clavier impossible ou très dégradée. Pas de landmarks, titres de pages génériques.",
+                         "Navigation au clavier fonctionnelle sur les parcours principaux. Structure de titres cohérente.",
+                         "Navigation fluide au clavier et lecteur d'écran. Landmarks, skip links, titres hiérarchisés.",
+                     ]},
+                    {"numero": "2.2", "nom": "Contenus accessibles", "portee": "P",
+                     "description": "Les contenus (textes, images, documents, vidéos) sont-ils accessibles ?",
+                     "niveaux": [
+                         "Images sans alternatives, documents PDF non balisés, vidéos sans sous-titres.",
+                         "Alternatives textuelles sur les images principales. Certains documents accessibles. Sous-titres sur les vidéos récentes.",
+                         "Politique systématique : toute image a une alternative, documents PDF balisés, vidéos sous-titrées.",
+                     ]},
+                    {"numero": "2.3", "nom": "Formulaires & interactions", "portee": "D",
+                     "description": "Les formulaires et composants interactifs sont-ils accessibles ?",
+                     "niveaux": [
+                         "Formulaires sans labels associés, messages d'erreur non explicites, composants custom non accessibles.",
+                         "Labels présents sur la plupart des champs. Messages d'erreur identifiés. Quelques composants custom à améliorer.",
+                         "Tous les formulaires sont accessibles : labels, erreurs en temps réel, focus géré, composants ARIA conformes.",
+                     ]},
+                    {"numero": "2.4", "nom": "Retour utilisateur", "portee": "P",
+                     "description": "Existe-t-il un canal de signalement des problèmes d'accessibilité ?",
+                     "niveaux": [
+                         "Pas de moyen de signaler un problème d'accessibilité (obligation légale non respectée).",
+                         "Adresse email de contact mentionnée dans la déclaration, mais pas de processus de traitement structuré.",
+                         "Canal de signalement visible, processus de traitement défini avec délais, retour systématique à l'usager.",
+                     ]},
+                ]
+            },
+        ]
+    },
+    # ── 3. Design Organisation ──
+    {
+        "label": "Design-org-v1",
+        "description": "Maturité des pratiques design — volet organisation",
+        "cible": "organisation",
+        "is_active": False,
+        "noms_niveaux": {1: "Émergent", 2: "Structuré", 3: "Intégré", 4: "Pérenne"},
+        "dimensions": [
+            {
+                "numero": 1, "nom": "Recherche utilisateur",
+                "description": "Capacité de l'organisation à comprendre ses usagers avant de concevoir.",
+                "capacites": [
+                    {"numero": "1.1", "nom": "Exploration amont", "portee": "D",
+                     "description": "L'organisation mène-t-elle des recherches avant de concevoir ?",
+                     "niveaux": [
+                         "Pas de recherche préalable. Les projets partent d'hypothèses internes ou de demandes hiérarchiques.",
+                         "Benchmark ponctuel ou quelques entretiens informels. Résultats peu documentés.",
+                         "Recherche structurée (benchmark, entretiens métiers, observation terrain) documentée et partagée.",
+                         "Recherche systématique pour tout nouveau projet. Méthodologies variées, résultats capitalisés et réutilisés.",
+                     ]},
+                    {"numero": "1.2", "nom": "Connaissance des usagers", "portee": "P",
+                     "description": "Existe-t-il des personas ou profils utilisateurs formalisés et maintenus ?",
+                     "niveaux": [
+                         "Pas de personas. Les publics sont décrits de manière vague.",
+                         "Personas créés pour certains projets mais non maintenus. Utilisés ponctuellement.",
+                         "Personas documentés, basés sur la recherche, partagés entre les équipes. Mis à jour régulièrement.",
+                         "Personas vivants, intégrés dans les arbitrages. Enrichis par les analytics et les retours terrain.",
+                     ]},
+                    {"numero": "1.3", "nom": "Tests utilisateurs", "portee": "D",
+                     "description": "Des tests avec de vrais usagers sont-ils pratiqués ?",
+                     "niveaux": [
+                         "Aucun test avec des usagers. Les décisions se basent sur l'intuition ou le consensus interne.",
+                         "Tests ponctuels, souvent en fin de projet. Recommandations partiellement intégrées.",
+                         "Tests à chaque itération majeure, panel diversifié, recommandations systématiquement traitées.",
+                         "Culture du test continu. Tests intégrés au sprint. Panel récurrent d'usagers.",
+                     ]},
+                ]
+            },
+            {
+                "numero": 2, "nom": "Gouvernance design",
+                "description": "Organisation et pilotage de la fonction design.",
+                "capacites": [
+                    {"numero": "2.1", "nom": "Compétences design", "portee": "D",
+                     "description": "L'organisation dispose-t-elle de compétences design ?",
+                     "niveaux": [
+                         "Aucune compétence design. Le design est fait par les développeurs ou les chefs de projet.",
+                         "Compétence partielle (un·e CdP sensibilisé·e UX, ou designer mobilisable ponctuellement).",
+                         "Profil(s) design dédié(s), intégré(s) aux équipes projet. Expertise reconnue en interne.",
+                         "Équipe design structurée avec des rôles différenciés (UX research, UI, service design).",
+                     ]},
+                    {"numero": "2.2", "nom": "Phase d'intervention", "portee": "D",
+                     "description": "À quel moment le design intervient-il dans le cycle projet ?",
+                     "niveaux": [
+                         "Le design intervient en fin de chaîne (habillage graphique avant MEP).",
+                         "Le design intervient en phase de conception, mais après le cadrage fonctionnel.",
+                         "Le design est associé dès le cadrage. Il contribue à la définition du problème.",
+                         "Le design est natif dans la gouvernance projet. Co-pilotage de l'idéation à la livraison.",
+                     ]},
+                    {"numero": "2.3", "nom": "Processus de validation UX", "portee": "P",
+                     "description": "Existe-t-il un circuit formel de validation des livrables design ?",
+                     "niveaux": [
+                         "Pas de validation UX. Les arbitrages visuels sont faits par la hiérarchie ou le client interne.",
+                         "Revue informelle par l'équipe projet. Pas de grille ni de rapport formalisé.",
+                         "Processus de validation formalisé : revue UX avec grille, rapport, suivi de la prise en compte.",
+                         "Validation UX intégrée au workflow projet (gate review). Critères UX dans les critères de qualité/recette.",
+                     ]},
+                    {"numero": "2.4", "nom": "Design system", "portee": "P",
+                     "description": "L'organisation utilise-t-elle un design system partagé ?",
+                     "niveaux": [
+                         "Pas de design system. Chaque projet invente ses propres composants.",
+                         "Le DSFR est connu mais appliqué de manière partielle ou incohérente.",
+                         "Le DSFR est systématiquement utilisé. Les composants custom sont documentés et partagés.",
+                         "Design system vivant : composants enrichis, documentation maintenue, contribution active.",
+                     ]},
+                ]
+            },
+        ]
+    },
+    # ── 4. Design Site ──
+    {
+        "label": "Design-site-v1",
+        "description": "Qualité design et expérience utilisateur — volet site web",
+        "cible": "site",
+        "is_active": False,
+        "noms_niveaux": {1: "Insuffisant", 2: "Partiel", 3: "Conforme"},
+        "dimensions": [
+            {
+                "numero": 1, "nom": "Cohérence & standards",
+                "description": "Respect des standards visuels et techniques de l'État.",
+                "capacites": [
+                    {"numero": "1.1", "nom": "Conformité DSFR", "portee": "D",
+                     "description": "Le site applique-t-il le Design Système de l'État ?",
+                     "niveaux": [
+                         "DSFR non implémenté ou version obsolète. Agrément SIG non demandé.",
+                         "DSFR partiellement implémenté. Agrément en cours. Certaines pages ou composants non conformes.",
+                         "DSFR correctement implémenté, version à jour, agrément obtenu.",
+                     ]},
+                    {"numero": "1.2", "nom": "Cohérence visuelle", "portee": "P",
+                     "description": "L'interface est-elle visuellement cohérente ?",
+                     "niveaux": [
+                         "Incohérences visibles : mélange de styles, composants disparates, pas de grille claire.",
+                         "Cohérence globale respectée mais quelques écarts (pages legacy, modules tiers non stylés).",
+                         "Interface homogène sur l'ensemble du site. Composants réutilisés. Identité visuelle constante.",
+                     ]},
+                    {"numero": "1.3", "nom": "Responsive & mobile", "portee": "D",
+                     "description": "Le site est-il utilisable sur tous les écrans ?",
+                     "niveaux": [
+                         "Site non responsive ou très dégradé sur mobile. Navigation difficile.",
+                         "Responsive sur les pages principales. Quelques problèmes sur les formulaires complexes.",
+                         "Expérience mobile soignée. Tous les parcours testés sur mobile. Performance optimisée.",
+                     ]},
+                ]
+            },
+            {
+                "numero": 2, "nom": "Qualité de l'expérience utilisateur",
+                "description": "Qualité réelle de l'expérience pour les usagers du site.",
+                "capacites": [
+                    {"numero": "2.1", "nom": "Clarté des parcours", "portee": "P",
+                     "description": "Les parcours principaux sont-ils clairs et compréhensibles ?",
+                     "niveaux": [
+                         "Parcours confus, trop d'étapes, architecture de l'information non lisible.",
+                         "Parcours principaux identifiés et fonctionnels. Quelques points de friction connus.",
+                         "Parcours optimisés, testés avec des usagers. Arborescence claire.",
+                     ]},
+                    {"numero": "2.2", "nom": "Qualité rédactionnelle", "portee": "P",
+                     "description": "Les contenus sont-ils rédigés en langage clair et structuré ?",
+                     "niveaux": [
+                         "Jargon administratif, phrases longues, pas de structuration.",
+                         "Effort de simplification sur les contenus principaux. Titres explicites.",
+                         "Langage clair appliqué systématiquement. Contenus structurés, testés, maintenus.",
+                     ]},
+                    {"numero": "2.3", "nom": "Performance perçue", "portee": "D",
+                     "description": "Le site est-il rapide et fluide ?",
+                     "niveaux": [
+                         "Temps de chargement > 5s, interactions lentes, impression de lourdeur.",
+                         "Performance correcte (< 3s) sur les pages principales. Quelques pages lentes.",
+                         "Performance optimisée : Core Web Vitals au vert, chargement progressif, transitions fluides.",
+                     ]},
+                    {"numero": "2.4", "nom": "Satisfaction usagers", "portee": "P",
+                     "description": "La satisfaction des usagers est-elle mesurée ?",
+                     "niveaux": [
+                         "Aucune mesure de satisfaction. Pas de retour usager exploité.",
+                         "Enquête ponctuelle ou bouton de feedback. Résultats pas systématiquement exploités.",
+                         "Mesure récurrente. Résultats intégrés dans la priorisation produit.",
+                     ]},
+                ]
+            },
+        ]
+    },
+    # ── 5. Data Organisation ──
+    {
+        "label": "Data-org-v1",
+        "description": "Maturité data et gouvernance des données — volet organisation",
+        "cible": "organisation",
+        "is_active": False,
+        "noms_niveaux": {1: "Émergent", 2: "Structuré", 3: "Intégré", 4: "Pérenne"},
+        "dimensions": [
+            {
+                "numero": 1, "nom": "Gouvernance data",
+                "description": "Stratégie, rôles et cadre réglementaire autour des données.",
+                "capacites": [
+                    {"numero": "1.1", "nom": "Stratégie data", "portee": "C",
+                     "description": "L'organisation a-t-elle une stratégie data formalisée ?",
+                     "niveaux": [
+                         "Pas de stratégie data. Les données sont gérées au fil de l'eau par chaque projet.",
+                         "Une vision existe mais elle est informelle. Quelques initiatives data portées par des individus motivés.",
+                         "Stratégie data formalisée, feuille de route avec jalons, alignée sur la stratégie numérique globale.",
+                         "Stratégie data vivante, revue annuellement. Budget dédié. La donnée est un actif stratégique reconnu.",
+                     ]},
+                    {"numero": "1.2", "nom": "Rôles & responsabilités", "portee": "D",
+                     "description": "Les rôles data sont-ils identifiés (CDO, DPO, référents, data engineers) ?",
+                     "niveaux": [
+                         "Pas de rôle data identifié. La gestion des données incombe aux développeurs projet par projet.",
+                         "Un DPO existe (obligation légale). Quelques profils data mais sans coordination.",
+                         "Organisation data structurée : CDO ou équivalent, référents métier, data engineers. Responsabilités claires.",
+                         "Communauté data active. Réseau de référents dans les directions. Filière data reconnue.",
+                     ]},
+                    {"numero": "1.3", "nom": "Cadre éthique & RGPD", "portee": "D",
+                     "description": "L'utilisation des données respecte-t-elle un cadre éthique et réglementaire ?",
+                     "niveaux": [
+                         "Conformité RGPD minimale (registre de traitement). Pas de réflexion éthique sur l'usage des données.",
+                         "RGPD respecté formellement. Sensibilisation des équipes. Pas de cadre éthique au-delà du réglementaire.",
+                         "Cadre éthique formalisé pour l'usage des données (IA, profilage, open data). PIA systématiques.",
+                         "Éthique data intégrée dans la culture. Comité éthique ou processus de revue. Transparence sur les algorithmes.",
+                     ]},
+                ]
+            },
+            {
+                "numero": 2, "nom": "Compétences & culture data",
+                "description": "Montée en compétences et diffusion de la culture data.",
+                "capacites": [
+                    {"numero": "2.1", "nom": "Littératie data", "portee": "P",
+                     "description": "Les agents comprennent-ils les données qu'ils manipulent ?",
+                     "niveaux": [
+                         "Les données sont manipulées sans compréhension (copier-coller, pas d'esprit critique sur les chiffres).",
+                         "Quelques agents formés (Excel avancé, notions de dataviz). La majorité consomme sans questionner.",
+                         "Formation data intégrée aux parcours métier. Les agents savent lire un dashboard, poser des questions aux données.",
+                         "Culture data-driven. Les décisions s'appuient sur les données. Les agents sont autonomes dans l'exploration.",
+                     ]},
+                    {"numero": "2.2", "nom": "Outillage & accès", "portee": "D",
+                     "description": "Les équipes disposent-elles d'outils adaptés pour exploiter les données ?",
+                     "niveaux": [
+                         "Pas d'outil de datavisualisation ou de requêtage accessible aux métiers. Tout passe par la DSI.",
+                         "Quelques outils disponibles (Excel, BI ponctuel) mais pas d'accès self-service aux données.",
+                         "Plateforme data accessible aux métiers. Dashboards partagés. Catalogue de données consultable.",
+                         "Data platform mature : accès self-service, API internes, documentation automatisée, monitoring qualité.",
+                     ]},
+                    {"numero": "2.3", "nom": "Partage & documentation", "portee": "P",
+                     "description": "Les jeux de données internes sont-ils documentés et partagés ?",
+                     "niveaux": [
+                         "Données en silos. Chaque direction a ses propres fichiers, pas de vision transverse.",
+                         "Quelques jeux de données partagés de manière informelle. Pas de catalogue.",
+                         "Catalogue de données interne. Métadonnées documentées. Responsables identifiés par jeu de données.",
+                         "Données internes accessibles et documentées par défaut. Politique d'open data interne.",
+                     ]},
+                ]
+            },
+        ]
+    },
+    # ── 6. Data Site ──
+    {
+        "label": "Data-site-v1",
+        "description": "Mesure, transparence et ouverture des données — volet site web",
+        "cible": "site",
+        "is_active": False,
+        "noms_niveaux": {1: "Insuffisant", 2: "Partiel", 3: "Conforme"},
+        "dimensions": [
+            {
+                "numero": 1, "nom": "Mesure & analytics",
+                "description": "Capacité du site à mesurer et exploiter les données d'usage.",
+                "capacites": [
+                    {"numero": "1.1", "nom": "Outil de mesure", "portee": "D",
+                     "description": "Le site dispose-t-il d'un outil de mesure d'audience respectueux du RGPD ?",
+                     "niveaux": [
+                         "Pas d'outil de mesure, ou outil non conforme RGPD (Google Analytics sans consentement).",
+                         "Outil en place (Matomo, AT Internet…) mais configuration partielle.",
+                         "Outil conforme RGPD correctement configuré. Suivi des pages, événements, conversions.",
+                     ]},
+                    {"numero": "1.2", "nom": "Qualité du suivi", "portee": "D",
+                     "description": "Les indicateurs clés sont-ils définis et suivis ?",
+                     "niveaux": [
+                         "Pas d'indicateurs définis. Les données brutes existent mais personne ne les regarde.",
+                         "Quelques KPIs suivis (pages vues, visiteurs) mais pas de tableau de bord.",
+                         "KPIs définis par objectif du site. Tableau de bord partagé. Revue mensuelle.",
+                     ]},
+                    {"numero": "1.3", "nom": "Exploitation des données", "portee": "P",
+                     "description": "Les données analytics sont-elles exploitées pour améliorer le site ?",
+                     "niveaux": [
+                         "Les données ne sont pas exploitées. Pas de lien entre analytics et décisions produit.",
+                         "Analyse ponctuelle pour justifier des évolutions. Pas de démarche proactive.",
+                         "Démarche data-driven : les analytics alimentent le backlog, valident les hypothèses.",
+                     ]},
+                ]
+            },
+            {
+                "numero": 2, "nom": "Transparence & ouverture",
+                "description": "Conformité réglementaire et contribution à l'ouverture des données.",
+                "capacites": [
+                    {"numero": "2.1", "nom": "Conformité cookies & traceurs", "portee": "D",
+                     "description": "La gestion des cookies est-elle conforme au RGPD ?",
+                     "niveaux": [
+                         "Pas de bandeau cookies, ou consentement non recueilli correctement.",
+                         "Bandeau cookies présent mais configuration imparfaite.",
+                         "Gestion des cookies conforme : consentement libre, refus aussi simple qu'acceptation.",
+                     ]},
+                    {"numero": "2.2", "nom": "Open data", "portee": "P",
+                     "description": "Le site contribue-t-il à l'ouverture des données publiques ?",
+                     "niveaux": [
+                         "Pas de données ouvertes. Le site ne publie ni ne référence de jeux de données.",
+                         "Quelques jeux de données publiés sur data.gouv.fr mais pas maintenus.",
+                         "Politique d'ouverture : jeux de données identifiés, publiés, documentés, mis à jour.",
+                     ]},
+                    {"numero": "2.3", "nom": "API & interopérabilité", "portee": "D",
+                     "description": "Le site expose-t-il des données via des API documentées ?",
+                     "niveaux": [
+                         "Pas d'API. Les données du site ne sont accessibles qu'en naviguant sur les pages.",
+                         "API existante mais non documentée ou non maintenue. Usage interne uniquement.",
+                         "API documentée (OpenAPI/Swagger), versionnée, monitorée. Référencée sur api.gouv.fr.",
+                     ]},
+                ]
+            },
+        ]
+    },
+]
+
+
+def seed_mini_referentiels():
+    """Insère les mini-référentiels de test si absents."""
+    for ref_data in MINI_REFERENTIELS:
+        if ReferentielVersion.query.filter_by(label=ref_data["label"]).first():
+            continue
+
+        ref = ReferentielVersion(
+            label=ref_data["label"],
+            description=ref_data["description"],
+            cible=ref_data["cible"],
+            is_active=ref_data.get("is_active", False),
+        )
+        db.session.add(ref)
+        db.session.flush()
+
+        noms_niveaux = ref_data["noms_niveaux"]
+
+        for dim_data in ref_data["dimensions"]:
+            dim = Dimension(
+                referentiel_id=ref.id,
+                numero=dim_data["numero"],
+                nom=dim_data["nom"],
+                description=dim_data.get("description", ""),
+            )
+            db.session.add(dim)
+            db.session.flush()
+
+            for cap_data in dim_data["capacites"]:
+                cap = Capacite(
+                    dimension_id=dim.id,
+                    numero=cap_data["numero"],
+                    nom=cap_data["nom"],
+                    description=cap_data.get("description", ""),
+                    portee=cap_data["portee"],
+                )
+                db.session.add(cap)
+                db.session.flush()
+
+                for i, desc in enumerate(cap_data["niveaux"], start=1):
+                    niv = NiveauCritere(
+                        capacite_id=cap.id,
+                        niveau=i,
+                        nom=noms_niveaux[i],
+                        description=desc,
+                    )
+                    db.session.add(niv)
+
+    db.session.commit()
+
+
 def seed_demo_entites():
     """Insère quelques entités de démo si aucune n'existe."""
     if Entite.query.first():
@@ -567,5 +1066,34 @@ def seed_demo_entites():
         Entite(nom="Bureau com — Jeunesse", type="Bureau", direction="DJEPVA"),
     ]
     db.session.add_all(entites)
+    db.session.commit()
+    return True
+
+
+def seed_demo_sites():
+    """Insère quelques sites de démo si aucun n'existe."""
+    if Site.query.first():
+        return False
+
+    sircom = Entite.query.filter_by(nom="SIRCOM").first()
+    bcom_sante = Entite.query.filter_by(nom="Bureau com — Santé").first()
+    bcom_travail = Entite.query.filter_by(nom="Bureau com — Travail").first()
+
+    if not sircom:
+        return False
+
+    sites = [
+        Site(nom="solidarites.gouv.fr", url="https://solidarites.gouv.fr",
+             description="Portail des solidarités et de la santé", organisation_id=sircom.id),
+        Site(nom="travail-emploi.gouv.fr", url="https://travail-emploi.gouv.fr",
+             description="Portail du travail et de l'emploi", organisation_id=sircom.id),
+        Site(nom="drees.solidarites-sante.gouv.fr", url="https://drees.solidarites-sante.gouv.fr",
+             description="Direction de la recherche, des études, de l'évaluation et des statistiques",
+             organisation_id=bcom_sante.id if bcom_sante else sircom.id),
+        Site(nom="code.travail.gouv.fr", url="https://code.travail.gouv.fr",
+             description="Code du travail numérique",
+             organisation_id=bcom_travail.id if bcom_travail else sircom.id),
+    ]
+    db.session.add_all(sites)
     db.session.commit()
     return True

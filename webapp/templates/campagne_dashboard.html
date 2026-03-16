@@ -13,7 +13,7 @@
 <div class="fr-mb-4w">
     <h1 class="fr-h3">Dashboard — {{ campagne.label }}</h1>
     <p class="fr-text--alt">
-        Référentiel {{ campagne.referentiel.label }} —
+        Référentiel {{ referentiel.label }} —
         {{ evaluations | selectattr('statut', 'equalto', 'validee') | list | length }} évaluation(s) validée(s)
         sur {{ evaluations | length }} total
     </p>
@@ -141,7 +141,7 @@
                                 <tbody>
                                     {% for ev in evaluations %}
                                     <tr>
-                                        <td class="fr-text--bold">{{ ev.entite.nom }}</td>
+                                        <td class="fr-text--bold">{{ ev.cible_nom }}</td>
                                         <td>{{ ev.evaluateur or '—' }}</td>
                                         <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
                                         <td>

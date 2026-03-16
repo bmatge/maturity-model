@@ -1,5 +1,5 @@
 """
-Webapp de suivi de maturité de la communication numérique ministérielle.
+Webapp de suivi de maturité numérique — multi-référentiel (organisations + sites).
 Flask + SQLite + DSFR + DSFR Chart
 """
 
@@ -9,8 +9,8 @@ from datetime import date, datetime
 
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from models import db, ReferentielVersion, Dimension, Capacite, NiveauCritere
-from models import Entite, Campagne, Evaluation, Score
-from sqlalchemy import func
+from models import Entite, Site, Campagne, Evaluation, Score
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 
 app = Flask(__name__)
@@ -26,14 +26,36 @@ db.init_app(app)
 # Initialisation
 # ──────────────────────────────────────────────
 
+def migrate_db():
+    """Migrations incrémentales pour SQLite (pas de DROP COLUMN)."""
+    conn = db.engine.connect()
+    # Vérifier si evaluation a la colonne referentiel_id
+    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(evaluation)"))]
+    if "referentiel_id" not in cols:
+        conn.execute(text(
+            "ALTER TABLE evaluation ADD COLUMN referentiel_id INTEGER REFERENCES referentiel_version(id)"
+        ))
+        # Remplir depuis la campagne associée
+        conn.execute(text(
+            "UPDATE evaluation SET referentiel_id = ("
+            "  SELECT referentiel_id FROM campagne WHERE campagne.id = evaluation.campagne_id"
+            ") WHERE referentiel_id IS NULL"
+        ))
+        conn.commit()
+    conn.close()
+
+
 @app.before_request
 def ensure_db():
     """Crée les tables et seed au premier appel."""
     if not getattr(app, "_db_ready", False):
         db.create_all()
-        from seed import seed_referentiel, seed_demo_entites
+        migrate_db()
+        from seed import seed_referentiel, seed_demo_entites, seed_mini_referentiels, seed_demo_sites
         seed_referentiel()
+        seed_mini_referentiels()
         seed_demo_entites()
+        seed_demo_sites()
         app._db_ready = True
 
 
@@ -43,6 +65,18 @@ def ensure_db():
 
 def get_active_referentiel():
     return ReferentielVersion.query.filter_by(is_active=True).first()
+
+
+def get_max_niveau(ref):
+    """Retourne le nombre max de niveaux pour un référentiel (3 ou 4)."""
+    first_cap = None
+    for dim in ref.dimensions:
+        if dim.capacites:
+            first_cap = dim.capacites[0]
+            break
+    if first_cap and first_cap.niveaux:
+        return max(n.niveau for n in first_cap.niveaux)
+    return 4
 
 
 def compute_scores_by_dimension(evaluation):
@@ -75,7 +109,8 @@ def compute_global_stats(campagne):
     if not evaluations:
         return None
 
-    ref = campagne.referentiel
+    # Utiliser le référentiel de la première évaluation validée
+    ref = evaluations[0].referentiel
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
     stats = {}
@@ -111,13 +146,19 @@ def index():
     campagnes = Campagne.query.order_by(Campagne.date_debut.desc()).all()
     entites = Entite.query.order_by(Entite.nom).all()
 
-    # Données graphiques dashboard
+    # Données graphiques dashboard (scoped aux évaluations d'organisations)
     ref = get_active_referentiel()
-    dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
+    if not ref:
+        ref = ReferentielVersion.query.first()
+
+    dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all() if ref else []
     dim_labels = [f"{d.numero}. {d.nom}" for d in dimensions]
 
-    # Radar global : moyenne par dimension (toutes évaluations validées)
-    all_validated = Evaluation.query.filter_by(statut="validee").all()
+    # Radar global : moyenne par dimension (évaluations validées d'organisations)
+    all_validated = Evaluation.query.filter(
+        Evaluation.statut == "validee",
+        Evaluation.entite_id.isnot(None),
+    ).all()
     dim_totals = {}
     for ev in all_validated:
         dim_scores = compute_scores_by_dimension(ev)
@@ -151,11 +192,17 @@ def index():
     bar_x = json.dumps([bar_labels])
     bar_y = json.dumps([bar_values])
 
+    # Stats pour le dashboard
+    nb_referentiels = ReferentielVersion.query.count()
+    nb_sites = Site.query.count()
+
     return render_template("index.html",
         campagnes=campagnes, entites=entites,
         radar_x=radar_x, radar_y=radar_y,
         bar_x=bar_x, bar_y=bar_y,
         has_charts=has_charts,
+        nb_referentiels=nb_referentiels,
+        nb_sites=nb_sites,
     )
 
 
@@ -166,11 +213,19 @@ def index():
 @app.route("/referentiel")
 def referentiel_view():
     """Affiche le référentiel complet avec accordéons, recherche et filtres."""
-    ref = get_active_referentiel()
+    ref_id = request.args.get("ref_id", type=int)
+    if ref_id:
+        ref = ReferentielVersion.query.get_or_404(ref_id)
+    else:
+        ref = get_active_referentiel() or ReferentielVersion.query.first()
+
+    all_refs = ReferentielVersion.query.order_by(ReferentielVersion.label).all()
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
-    # Score moyen par capacité (toutes évaluations validées)
-    all_validated = Evaluation.query.filter_by(statut="validee").all()
+    # Score moyen par capacité (évaluations validées de CE référentiel)
+    all_validated = Evaluation.query.filter_by(
+        statut="validee", referentiel_id=ref.id
+    ).all()
     cap_avg = {}
     cap_counts = {}
     for ev in all_validated:
@@ -184,6 +239,7 @@ def referentiel_view():
     }
 
     nb_capacites = sum(len(d.capacites) for d in dimensions)
+    max_niveau = get_max_niveau(ref)
 
     return render_template("referentiel.html",
         referentiel=ref,
@@ -191,6 +247,9 @@ def referentiel_view():
         cap_averages=cap_averages,
         nb_evaluations=len(all_validated),
         nb_capacites=nb_capacites,
+        all_refs=all_refs,
+        current_ref_id=ref.id,
+        max_niveau=max_niveau,
     )
 
 
@@ -234,16 +293,54 @@ def entite_delete(entite_id):
 
 
 # ──────────────────────────────────────────────
+# Routes — Sites
+# ──────────────────────────────────────────────
+
+@app.route("/sites")
+def sites_list():
+    sites = Site.query.order_by(Site.nom).all()
+    return render_template("sites.html", sites=sites)
+
+
+@app.route("/sites/new", methods=["GET", "POST"])
+def site_new():
+    entites = Entite.query.order_by(Entite.nom).all()
+    if request.method == "POST":
+        site = Site(
+            nom=request.form["nom"],
+            url=request.form.get("url", ""),
+            description=request.form.get("description", ""),
+            organisation_id=int(request.form["organisation_id"]),
+        )
+        db.session.add(site)
+        db.session.commit()
+        flash(f"Site « {site.nom} » créé.", "success")
+        return redirect(url_for("sites_list"))
+    return render_template("site_form.html", site=None, entites=entites)
+
+
+@app.route("/sites/<int:site_id>/delete", methods=["POST"])
+def site_delete(site_id):
+    site = Site.query.get_or_404(site_id)
+    nom = site.nom
+    for evaluation in site.evaluations:
+        Score.query.filter_by(evaluation_id=evaluation.id).delete()
+        db.session.delete(evaluation)
+    db.session.delete(site)
+    db.session.commit()
+    flash(f"Site « {nom} » supprimé.", "success")
+    return redirect(url_for("sites_list"))
+
+
+# ──────────────────────────────────────────────
 # Routes — Campagnes
 # ──────────────────────────────────────────────
 
 @app.route("/campagnes/new", methods=["GET", "POST"])
 def campagne_new():
-    ref = get_active_referentiel()
     if request.method == "POST":
         campagne = Campagne(
             label=request.form["label"],
-            referentiel_id=ref.id,
             date_debut=date.fromisoformat(request.form["date_debut"]),
             date_fin=date.fromisoformat(request.form["date_fin"]) if request.form.get("date_fin") else None,
         )
@@ -251,7 +348,7 @@ def campagne_new():
         db.session.commit()
         flash(f"Campagne « {campagne.label} » créée.", "success")
         return redirect(url_for("campagnes_list"))
-    return render_template("campagne_form.html", referentiel=ref)
+    return render_template("campagne_form.html")
 
 
 @app.route("/campagnes")
@@ -276,16 +373,31 @@ def campagne_delete(campagne_id):
 
 @app.route("/evaluation/new", methods=["GET", "POST"])
 def evaluation_new():
-    """Crée une nouvelle évaluation (choix entité + campagne)."""
+    """Crée une nouvelle évaluation (choix référentiel + cible)."""
+    referentiels = ReferentielVersion.query.order_by(ReferentielVersion.label).all()
     campagnes = Campagne.query.filter_by(statut="en_cours").order_by(Campagne.date_debut.desc()).all()
     entites = Entite.query.order_by(Entite.nom).all()
+    sites = Site.query.order_by(Site.nom).all()
 
     if request.method == "POST":
-        evaluation = Evaluation(
-            campagne_id=int(request.form["campagne_id"]),
-            entite_id=int(request.form["entite_id"]),
-            evaluateur=request.form.get("evaluateur", ""),
-        )
+        referentiel_id = int(request.form["referentiel_id"])
+        ref = ReferentielVersion.query.get_or_404(referentiel_id)
+
+        eval_kwargs = {
+            "referentiel_id": ref.id,
+            "evaluateur": request.form.get("evaluateur", ""),
+        }
+
+        if ref.cible == "organisation":
+            eval_kwargs["entite_id"] = int(request.form["entite_id"])
+            campagne_id = request.form.get("campagne_id")
+            if campagne_id:
+                eval_kwargs["campagne_id"] = int(campagne_id)
+        else:
+            eval_kwargs["site_id"] = int(request.form["site_id"])
+
+        evaluation = Evaluation(**eval_kwargs)
+
         try:
             db.session.add(evaluation)
             db.session.commit()
@@ -293,13 +405,16 @@ def evaluation_new():
         except IntegrityError:
             db.session.rollback()
             flash(
-                "Une évaluation existe déjà pour cette entité dans cette campagne. "
+                "Une évaluation similaire existe déjà. "
                 "Consultez la liste des évaluations pour la retrouver ou la supprimer.",
                 "warning",
             )
             return redirect(url_for("evaluations_list"))
 
-    return render_template("evaluation_new.html", campagnes=campagnes, entites=entites)
+    return render_template("evaluation_new.html",
+        referentiels=referentiels, campagnes=campagnes,
+        entites=entites, sites=sites,
+    )
 
 
 @app.route("/evaluations")
@@ -311,11 +426,11 @@ def evaluations_list():
 @app.route("/evaluations/<int:evaluation_id>/delete", methods=["POST"])
 def evaluation_delete(evaluation_id):
     evaluation = Evaluation.query.get_or_404(evaluation_id)
-    entite_nom = evaluation.entite.nom
-    campagne_label = evaluation.campagne.label
+    cible_nom = evaluation.cible_nom
+    ctx = evaluation.campagne.label if evaluation.campagne_id else "déclaration"
     db.session.delete(evaluation)
     db.session.commit()
-    flash(f"Évaluation de « {entite_nom} » ({campagne_label}) supprimée.", "success")
+    flash(f"Évaluation de « {cible_nom} » ({ctx}) supprimée.", "success")
     return redirect(url_for("evaluations_list"))
 
 
@@ -323,7 +438,7 @@ def evaluation_delete(evaluation_id):
 def evaluation_fill(evaluation_id):
     """Formulaire de saisie des scores — toutes les capacités."""
     evaluation = Evaluation.query.get_or_404(evaluation_id)
-    ref = evaluation.campagne.referentiel
+    ref = evaluation.referentiel
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
     # Scores existants (pour pré-remplir)
@@ -365,11 +480,14 @@ def evaluation_fill(evaluation_id):
             return redirect(url_for("evaluation_results", evaluation_id=evaluation.id))
         return redirect(url_for("evaluation_fill", evaluation_id=evaluation.id))
 
+    nb_capacites = sum(len(dim.capacites) for dim in dimensions)
+
     return render_template(
         "evaluation_fill.html",
         evaluation=evaluation,
         dimensions=dimensions,
         existing_scores=existing_scores,
+        nb_capacites=nb_capacites,
     )
 
 
@@ -377,7 +495,9 @@ def evaluation_fill(evaluation_id):
 def evaluation_results(evaluation_id):
     """Résultats d'une évaluation."""
     evaluation = Evaluation.query.get_or_404(evaluation_id)
+    ref = evaluation.referentiel
     dim_scores = compute_scores_by_dimension(evaluation)
+    max_niveau = get_max_niveau(ref)
 
     # Détail par capacité
     detail = []
@@ -407,6 +527,7 @@ def evaluation_results(evaluation_id):
         detail=detail,
         radar_x=radar_x,
         radar_y=radar_y,
+        max_niveau=max_niveau,
     )
 
 
@@ -421,26 +542,25 @@ def campagne_dashboard(campagne_id):
     evaluations = Evaluation.query.filter_by(campagne_id=campagne.id).all()
 
     stats = compute_global_stats(campagne)
-    ref = campagne.referentiel
+
+    # Déterminer le référentiel depuis les évaluations
+    validated = [ev for ev in evaluations if ev.statut == "validee"]
+    ref = validated[0].referentiel if validated else (get_active_referentiel() or ReferentielVersion.query.first())
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
-    # Données par entité pour le radar
+    # Données par cible (entité ou site) pour le radar
     entites_data = []
-    for ev in evaluations:
-        if ev.statut != "validee":
-            continue
+    for ev in validated:
         dim_scores = compute_scores_by_dimension(ev)
         entites_data.append({
-            "nom": ev.entite.nom,
+            "nom": ev.cible_nom,
             "scores": {d["numero"]: d["moyenne"] for d in dim_scores.values()},
         })
 
-    # Heatmap data: entité × capacité
+    # Heatmap data: cible × capacité
     heatmap = []
-    for ev in evaluations:
-        if ev.statut != "validee":
-            continue
-        row = {"entite": ev.entite.nom, "scores": {}}
+    for ev in validated:
+        row = {"entite": ev.cible_nom, "scores": {}}
         for s in ev.scores:
             row["scores"][s.capacite.numero] = s.niveau
         heatmap.append(row)
@@ -463,7 +583,7 @@ def campagne_dashboard(campagne_id):
         dim_labels = [f"{s['numero']}. {s['nom']}" for s in stats.values()]
         dim_nums = [s["numero"] for s in stats.values()]
 
-        # Radar comparatif : une série par entité + moyenne
+        # Radar comparatif : une série par cible + moyenne
         for ent in entites_data:
             chart_radar_x.append(dim_labels)
             chart_radar_y.append([ent["scores"].get(n, 0) for n in dim_nums])
@@ -484,6 +604,7 @@ def campagne_dashboard(campagne_id):
         evaluations=evaluations,
         stats=stats,
         dimensions=dimensions,
+        referentiel=ref,
         entites_data=json.dumps(entites_data),
         heatmap=heatmap,
         all_capacites=all_capacites,
@@ -511,13 +632,19 @@ def entite_evolution(entite_id):
     timeline = []
     for ev in evaluations:
         dim_scores = compute_scores_by_dimension(ev)
+        label = ev.campagne.label if ev.campagne_id else ev.date_evaluation.strftime("%Y-%m-%d")
         timeline.append({
-            "campagne": ev.campagne.label,
+            "campagne": label,
             "date": ev.date_evaluation.strftime("%Y-%m-%d"),
+            "referentiel": ev.referentiel.label,
             "scores": {d["numero"]: d["moyenne"] for d in dim_scores.values()},
         })
 
-    ref = get_active_referentiel()
+    # Utiliser le référentiel de la dernière évaluation, sinon le référentiel actif
+    if evaluations:
+        ref = evaluations[-1].referentiel
+    else:
+        ref = get_active_referentiel() or ReferentielVersion.query.first()
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
 
     # Données DSFR Chart
@@ -564,8 +691,8 @@ def api_evaluation_scores(evaluation_id):
     evaluation = Evaluation.query.get_or_404(evaluation_id)
     dim_scores = compute_scores_by_dimension(evaluation)
     return jsonify({
-        "entite": evaluation.entite.nom,
-        "campagne": evaluation.campagne.label,
+        "cible": evaluation.cible_nom,
+        "referentiel": evaluation.referentiel.label,
         "dimensions": [
             {"nom": d["nom"], "numero": d["numero"], "moyenne": d["moyenne"]}
             for d in dim_scores.values()

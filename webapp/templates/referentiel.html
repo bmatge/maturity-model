@@ -2,11 +2,24 @@
 {% block title %}Référentiel — Maturité ComNum{% endblock %}
 
 {% block content %}
+<!-- Sélecteur de référentiel -->
+<div class="fr-select-group fr-mb-2w" style="max-width: 500px;">
+    <label class="fr-label" for="ref-picker">Référentiel</label>
+    <select class="fr-select" id="ref-picker">
+        {% for r in all_refs %}
+        <option value="{{ r.id }}" {{ 'selected' if r.id == current_ref_id }}>
+            {{ r.label }} ({{ r.cible }}) — {{ r.description[:80] }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+
 <!-- Header -->
 <div class="fr-grid-row fr-grid-row--middle fr-mb-4w">
     <div class="fr-col">
-        <h1 class="fr-h3">Référentiel {{ referentiel.label }}</h1>
+        <h1 class="fr-h3">{{ referentiel.label }}</h1>
         <p class="fr-text--alt">{{ referentiel.description }}</p>
+        <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mt-1w">Cible : {{ referentiel.cible }}</p>
     </div>
     <div class="fr-col-auto">
         <ul class="fr-tags-group">
@@ -119,6 +132,14 @@
 {% block extra_js %}
 <script>
 (function() {
+    // Navigation entre référentiels
+    var picker = document.getElementById('ref-picker');
+    if (picker) {
+        picker.addEventListener('change', function() {
+            window.location.href = '{{ url_for("referentiel_view") }}?ref_id=' + this.value;
+        });
+    }
+
     var search = document.getElementById('ref-search');
     var filters = document.querySelectorAll('.portee-filter');
     var items = document.querySelectorAll('.capacite-item');

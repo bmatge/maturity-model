@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Évaluation — {{ evaluation.entite.nom }} — Maturité ComNum{% endblock %}
+{% block title %}Évaluation — {{ evaluation.cible_nom }} — Maturité ComNum{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -15,8 +15,13 @@
 <div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-2w">
     <div class="fr-col">
         <h1 class="fr-h4 fr-mb-1v">
+            {% if evaluation.entite_id %}
             <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ evaluation.entite.type }}</p>
             {{ evaluation.entite.nom }}
+            {% else %}
+            <p class="fr-badge fr-badge--sm fr-badge--no-icon">Site</p>
+            {{ evaluation.site.nom }}
+            {% endif %}
         </h1>
         <p class="fr-text--alt">Campagne : {{ evaluation.campagne.label }}</p>
     </div>
@@ -106,7 +111,7 @@
             <div class="fr-card__content">
                 <div class="fr-grid-row fr-grid-row--middle">
                     <div class="fr-col">
-                        <span id="scoreCount" class="fr-text--alt">0</span> / 44 capacités évaluées
+                        <span id="scoreCount" class="fr-text--alt">0</span> / {{ nb_capacites }} capacités évaluées
                     </div>
                     <div class="fr-col-auto">
                         <ul class="fr-btns-group fr-btns-group--inline fr-mb-0">
@@ -134,7 +139,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const radios = document.querySelectorAll('.score-radio');
-    const total = 44;
+    const total = {{ nb_capacites }};
 
     function updateProgress() {
         const checked = document.querySelectorAll('.score-radio:checked').length;
