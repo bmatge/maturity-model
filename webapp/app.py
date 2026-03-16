@@ -47,6 +47,7 @@ def migrate_db():
     # SQLite ne supporte pas DROP COLUMN — on recrée la table
     camp_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(campagne)"))]
     if "referentiel_id" in camp_cols:
+        conn.execute(text("DROP TABLE IF EXISTS campagne_new"))
         conn.execute(text("CREATE TABLE campagne_new (id INTEGER PRIMARY KEY, label VARCHAR(100) NOT NULL, date_debut DATE NOT NULL, date_fin DATE, statut VARCHAR(20) DEFAULT 'en_cours')"))
         conn.execute(text("INSERT INTO campagne_new (id, label, date_debut, date_fin, statut) SELECT id, label, date_debut, date_fin, statut FROM campagne"))
         conn.execute(text("DROP TABLE campagne"))
@@ -58,6 +59,7 @@ def migrate_db():
     eval_info = list(conn.execute(text("PRAGMA table_info(evaluation)")))
     campagne_col = [row for row in eval_info if row[1] == "campagne_id"]
     if campagne_col and campagne_col[0][3] == 1:  # notnull == 1
+        conn.execute(text("DROP TABLE IF EXISTS evaluation_new"))
         conn.execute(text(
             "CREATE TABLE evaluation_new ("
             "id INTEGER PRIMARY KEY, referentiel_id INTEGER NOT NULL REFERENCES referentiel_version(id), "
@@ -70,7 +72,6 @@ def migrate_db():
             "INSERT INTO evaluation_new (id, referentiel_id, campagne_id, entite_id, site_id, evaluateur, date_evaluation, statut, commentaire_global) "
             "SELECT id, referentiel_id, campagne_id, entite_id, site_id, evaluateur, date_evaluation, statut, commentaire_global FROM evaluation"
         ))
-        # Migrer les scores (FK vers evaluation)
         conn.execute(text("DROP TABLE evaluation"))
         conn.execute(text("ALTER TABLE evaluation_new RENAME TO evaluation"))
         conn.commit()
