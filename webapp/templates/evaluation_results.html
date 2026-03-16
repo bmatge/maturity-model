@@ -12,7 +12,9 @@
             {% if evaluation.entite_id %}
             <li><a href="{{ url_for('entite_evolution', entite_id=evaluation.entite.id) }}" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-arrow-up-line">Évolution</a></li>
             {% endif %}
+            {% if evaluation.campagne_id %}
             <li><a href="{{ url_for('campagne_dashboard', campagne_id=evaluation.campagne.id) }}" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-dashboard-line">Dashboard campagne</a></li>
+            {% endif %}
         </ul>
     </div>
 </div>
