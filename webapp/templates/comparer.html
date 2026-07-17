@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Comparer — Maturité numérique{% endblock %}
+
+{% block content %}
+<h1 class="fr-h3 fr-mb-1w">Comparer</h1>
+<p class="fr-text--lg text-mention fr-mb-2w">Confrontez deux organisations, ou deux campagnes (progression d'une vague à l'autre).</p>
+
+{% if not ref %}
+<div class="fr-callout">
+    <h2 class="fr-callout__title">Aucun référentiel avec des résultats validés pour l'instant</h2>
+    <p class="fr-callout__text">La comparaison sera possible dès que des évaluations auront été validées.</p>
+</div>
+{% else %}
+
+<!-- Filtres -->
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
+    <div class="fr-col-6 fr-col-md-3">
+        <form method="get" action="{{ url_for('comparer') }}">
+            <input type="hidden" name="ref_id" value="{{ ref.id }}">
+            <div class="fr-select-group">
+                <label class="fr-label" for="cmp-mode">Comparer</label>
+                <select class="fr-select" id="cmp-mode" name="mode" onchange="this.form.submit()">
+                    <option value="orgs" {% if mode != 'campagnes' %}selected{% endif %}>Deux organisations</option>
+                    <option value="campagnes" {% if mode == 'campagnes' %}selected{% endif %}>Deux campagnes</option>
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="fr-col-6 fr-col-md-3">
+        <form method="get" action="{{ url_for('comparer') }}">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <div class="fr-select-group">
+                <label class="fr-label" for="cmp-ref">Référentiel</label>
+                <select class="fr-select" id="cmp-ref" name="ref_id" onchange="this.form.submit()">
+                    {% for r in referentiels %}
+                    <option value="{{ r.id }}" {% if r.id == ref.id %}selected{% endif %}>{{ r.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="fr-col-12 fr-col-md-6">
+        <form method="get" action="{{ url_for('comparer') }}">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <input type="hidden" name="ref_id" value="{{ ref.id }}">
+            <div class="fr-grid-row fr-grid-row--gutters">
+                <div class="fr-col-6">
+                    <div class="fr-select-group">
+                        <label class="fr-label" for="cmp-a">A</label>
+                        <select class="fr-select" id="cmp-a" name="a" onchange="this.form.submit()">
+                            {% for c in choices %}
+                            <option value="{{ c.id }}" {% if c.id == a_id %}selected{% endif %}>{{ c.nom if c.nom is defined else c.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="fr-col-6">
+                    <div class="fr-select-group">
+                        <label class="fr-label" for="cmp-b">B</label>
+                        <select class="fr-select" id="cmp-b" name="b" onchange="this.form.submit()">
+                            {% for c in choices %}
+                            <option value="{{ c.id }}" {% if c.id == b_id %}selected{% endif %}>{{ c.nom if c.nom is defined else c.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not a_label or not b_label %}
+<div class="fr-callout">
+    <p class="fr-callout__text">
+        Il faut au moins deux {{ 'organisations évaluées' if mode != 'campagnes' else 'campagnes évaluées' }}
+        sur ce référentiel pour comparer.
+    </p>
+</div>
+{% else %}
+<div class="fr-grid-row fr-grid-row--gutters">
+    <div class="fr-col-12 fr-col-md-5">
+        <div class="fr-card chart-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
+                    <dsfr-data-chart source="r1" type="radar"
+                                     label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+                    <p class="fr-text--xs fr-mb-0 fr-mt-1w">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; margin-right: 16px;">
+                            <span style="width: 12px; height: 3px; background: var(--blue-france-sun-113-625); display: inline-block;"></span>{{ a_label }}
+                        </span>
+                        <span style="display: inline-flex; align-items: center; gap: 6px;">
+                            <span style="width: 12px; height: 3px; background: var(--red-marianne-main-472); display: inline-block;"></span>{{ b_label }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-7">
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <h2 class="fr-card__title fr-h6 fr-mb-2w">Écart par dimension</h2>
+                    <div class="fr-table fr-table--sm fr-mb-0">
+                        <div class="fr-table__wrapper">
+                            <div class="fr-table__container">
+                                <div class="fr-table__content">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Dimension</th>
+                                                <th scope="col">{{ a_label }}</th>
+                                                <th scope="col">{{ b_label }}</th>
+                                                <th scope="col">Écart</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in table_rows %}
+                                            <tr>
+                                                <td>{{ row.dimension }}</td>
+                                                <td><strong>{{ row.a if row.a is not none else '—' }}</strong></td>
+                                                <td><strong>{{ row.b if row.b is not none else '—' }}</strong></td>
+                                                <td>
+                                                    {% if row.delta is not none %}
+                                                    <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--{{ 'success' if row.delta >= 0 else 'error' }}">
+                                                        {{ '+' if row.delta >= 0 }}{{ row.delta }}
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="text-mention">—</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

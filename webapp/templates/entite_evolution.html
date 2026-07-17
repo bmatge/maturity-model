@@ -1,125 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Évolution — {{ entite.nom }} — Maturité ComNum{% endblock %}
+{% block title %}Évolution{% if entite %} — {{ entite.nom }}{% endif %} — Maturité numérique{% endblock %}
 
 {% block content %}
-<div class="fr-mb-4w">
-    <h1 class="fr-h3">Évolution : {{ entite.nom }}</h1>
-    <p class="fr-text--alt">Progression à travers les évaluations, par référentiel</p>
+{% if not entite %}
+<h1 class="fr-h3 fr-mb-1w">Évolution</h1>
+<p class="fr-text--lg text-mention fr-mb-3w">Progressons-nous ? Trajectoire campagne après campagne.</p>
+<div class="fr-callout">
+    <h2 class="fr-callout__title">Aucune organisation avec des résultats validés pour l'instant</h2>
+    <p class="fr-callout__text">La trajectoire apparaîtra dès qu'une organisation comptera au moins une évaluation validée.</p>
 </div>
+{% else %}
+<h1 class="fr-h3 fr-mb-1w">Évolution — {{ entite.nom }}</h1>
+<p class="fr-text--lg text-mention fr-mb-2w">Progressons-nous ? Trajectoire campagne après campagne.</p>
 
-{% if not charts %}
-<div class="fr-alert fr-alert--info fr-alert--sm">
-    <p>Aucune évaluation validée pour cette entité.
-    <a href="{{ url_for('evaluation_new') }}">Lancez la première évaluation.</a></p>
+{% if entites | length > 1 %}
+<div class="fr-select-group fr-mb-3w" style="max-width: 320px;">
+    <label class="fr-label" for="evo-entite">Organisation</label>
+    <select class="fr-select" id="evo-entite"
+            onchange="location.href = '{{ url_for('evolution_view') }}?entite_id=' + this.value;">
+        {% for e in entites %}
+        <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
+        {% endfor %}
+    </select>
 </div>
 {% endif %}
 
+{% if not charts %}
+<div class="fr-callout">
+    <p class="fr-callout__text">Aucune évaluation validée pour cette organisation : pas encore de trajectoire à afficher.</p>
+</div>
+{% else %}
 {% for chart in charts %}
-<div class="fr-mb-4w">
-    <h2 class="fr-h5 fr-mb-2w">
-        {{ chart.ref_label }}
-        <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w">{{ chart.nb_evaluations }} évaluation{{ 's' if chart.nb_evaluations > 1 }}</span>
-    </h2>
-
-    <div class="fr-grid-row fr-grid-row--gutters">
-        <!-- Graphe d'évolution -->
-        <div class="fr-col-12 fr-col-md-8">
-            <div class="fr-card">
-                <div class="fr-card__body">
-                    <div class="fr-card__content">
-                        <h3 class="fr-card__title fr-mb-2w">Score moyen par dimension</h3>
-                        {% if chart.nb_evaluations > 1 %}
-                        <line-chart
-                            x='{{ chart.line_x | safe }}'
-                            y='{{ chart.line_y | safe }}'
-                            name='{{ chart.line_names | safe }}'
-                            y-min="0" y-max="{{ chart.max_niveau }}"
-                            selected-palette="categorical">
-                        </line-chart>
-                        {% else %}
-                        <bar-chart horizontal
-                            x='{{ chart.last_radar_x | safe }}'
-                            y='{{ chart.last_radar_y | safe }}'
-                            name='["Score"]'
-                            selected-palette="categorical">
-                        </bar-chart>
-                        {% endif %}
-                    </div>
+<div class="fr-card fr-mb-3w chart-card">
+    <div class="fr-card__body">
+        <div class="fr-card__content fr-py-3w">
+            <h2 class="fr-card__title fr-h6 fr-mb-2w">
+                {{ chart.ref.label }} — score par dimension dans le temps
+                ({{ chart.nb_evaluations }} évaluation{{ 's' if chart.nb_evaluations > 1 }})
+            </h2>
+            <div class="fr-grid-row fr-grid-row--gutters">
+                <div class="fr-col-12 fr-col-lg-7">
+                    <dsfr-data-source id="l{{ loop.index }}" data='{{ chart.line_rows | tojson }}'></dsfr-data-source>
+                    <dsfr-data-chart source="l{{ loop.index }}" type="line"
+                                     label-field="campagne" series-field="dimension" value-field="score"></dsfr-data-chart>
                 </div>
-            </div>
-        </div>
-
-        <!-- Radar dernière évaluation -->
-        <div class="fr-col-12 fr-col-md-4">
-            <div class="fr-card">
-                <div class="fr-card__body">
-                    <div class="fr-card__content">
-                        <h3 class="fr-card__title fr-mb-2w">Dernière évaluation</h3>
-                        <radar-chart
-                            x='{{ chart.last_radar_x | safe }}'
-                            y='{{ chart.last_radar_y | safe }}'
-                            name='["{{ chart.ref_label }}"]'
-                            selected-palette="default">
-                        </radar-chart>
-                    </div>
+                <div class="fr-col-12 fr-col-lg-5">
+                    <p class="fr-text--sm fr-text--bold fr-mb-1w">Dernière évaluation</p>
+                    <dsfr-data-source id="r{{ loop.index }}" data='{{ chart.radar_rows | tojson }}'></dsfr-data-source>
+                    <dsfr-data-chart source="r{{ loop.index }}" type="radar"
+                                     label-field="dimension" value-field="score"></dsfr-data-chart>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endfor %}
-
-<!-- Historique complet -->
-<div class="fr-card fr-mt-3w">
-    <div class="fr-card__body">
-        <div class="fr-card__content">
-            <h2 class="fr-card__title fr-mb-2w">Historique des évaluations</h2>
-            <div class="fr-table">
-                <div class="fr-table__wrapper">
-                    <div class="fr-table__container">
-                        <div class="fr-table__content">
-                            <table>
-                                <caption class="fr-sr-only">Historique des évaluations de {{ entite.nom }}</caption>
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Référentiel</th>
-                                        <th scope="col">Campagne</th>
-                                        <th scope="col">Date</th>
-                                        <th scope="col">Évaluateur</th>
-                                        <th scope="col">Statut</th>
-                                        <th scope="col"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for ev in entite.evaluations %}
-                                    <tr>
-                                        <td>{{ ev.referentiel.label }}</td>
-                                        <td class="fr-text--bold">{{ ev.campagne.label if ev.campagne_id else '—' }}</td>
-                                        <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
-                                        <td>{{ ev.evaluateur or '—' }}</td>
-                                        <td>
-                                            {% if ev.statut == 'brouillon' %}
-                                            <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
-                                            {% else %}
-                                            <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if ev.statut == 'brouillon' %}
-                                            <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
-                                            {% else %}
-                                            <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% endif %}
+{% endif %}
 {% endblock %}

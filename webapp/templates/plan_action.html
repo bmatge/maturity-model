@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Plan d'action{% if entite %} — {{ entite.nom }}{% endif %} — Maturité numérique{% endblock %}
+
+{% block content %}
+{% if not entite %}
+<h1 class="fr-h3 fr-mb-1w">Plan d'action</h1>
+<div class="fr-callout">
+    <h2 class="fr-callout__title">Aucune organisation avec des résultats validés pour l'instant</h2>
+    <p class="fr-callout__text">Le plan d'action apparaîtra dès qu'une organisation comptera au moins une évaluation validée.</p>
+</div>
+{% else %}
+<h1 class="fr-h3 fr-mb-1w">Plan d'action — {{ entite.nom }}</h1>
+<p class="fr-text--lg text-mention fr-mb-2w" style="max-width: 45rem;">
+    Le niveau supérieur de chaque capacité décrit l'étape suivante.
+    Voici les capacités les plus faibles et l'action pour gagner un niveau.
+</p>
+
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
+    {% if entites | length > 1 %}
+    <div class="fr-col-12 fr-col-md-5">
+        <div class="fr-select-group">
+            <label class="fr-label" for="pa-entite">Organisation</label>
+            <select class="fr-select" id="pa-entite"
+                    onchange="location.href = '{{ url_for('plan_action') }}/' + this.value;">
+                {% for e in entites %}
+                <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+    {% if ref_cards is defined and ref_cards | length > 1 %}
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="fr-select-group">
+            <label class="fr-label" for="pa-ref">Référentiel</label>
+            <select class="fr-select" id="pa-ref"
+                    onchange="location.href = '?ref_id=' + this.value;">
+                {% for card in ref_cards %}
+                <option value="{{ card.ref.id }}" {% if ref and card.ref.id == ref.id %}selected{% endif %}>{{ card.ref.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if items %}
+{% for item in items %}
+<div class="fr-card fr-mb-2w">
+    <div class="fr-card__body fr-p-0">
+        <div class="eval-card">
+            <div class="eval-card__stripe eval-card__stripe--{{ 'error' if item.niveau == 1 else 'warning' }}"></div>
+            <div class="eval-card__body fr-py-2w fr-pr-2w">
+                <p class="fr-mb-1v">
+                    <span class="fr-text--lg fr-text--bold fr-mr-1w">{{ item.cap.numero }} {{ item.cap.nom }}</span>
+                    <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-mr-1w">{{ item.dim.nom }}</span>
+                    <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--{{ 'error' if item.prio == 'Haute' else 'warning' }}">Priorité {{ item.prio }}</span>
+                </p>
+                <p class="fr-text--sm text-mention fr-mb-1w">
+                    Niveau actuel : <strong>{{ item.cur_nom }}</strong>
+                    <span class="fr-icon-arrow-right-line fr-icon--sm fr-mx-1v" aria-hidden="true"></span>
+                    Cible : <strong style="color: var(--text-default-success);">{{ item.next_nom }}</strong>
+                </p>
+                <p class="fr-text--sm fr-mb-0">
+                    <span class="fr-icon-flag-line fr-icon--sm fr-mr-1v" aria-hidden="true" style="color: var(--text-action-high-blue-france);"></span>{{ item.action }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+<div class="fr-callout fr-mt-3w">
+    <p class="fr-callout__text">
+        L'action proposée est le critère du niveau supérieur du référentiel —
+        c'est le référentiel qui décrit l'étape suivante.
+    </p>
+</div>
+{% elif evaluation is defined and evaluation %}
+<div class="fr-callout fr-callout--green-emeraude fr-icon-checkbox-circle-line">
+    <h2 class="fr-callout__title">Toutes les capacités sont au niveau maximal</h2>
+    <p class="fr-callout__text">Sur {{ ref.label if ref else 'ce référentiel' }}, aucune capacité n'a de niveau supérieur à viser. Bravo — maintenez le cap.</p>
+</div>
+{% else %}
+<div class="fr-callout">
+    <p class="fr-callout__text">Aucune évaluation validée pour cette organisation : pas encore de plan d'action à proposer.</p>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

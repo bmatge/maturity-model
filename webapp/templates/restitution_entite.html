@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ entite.nom if entite else 'Organisations' }} — Restitution — Maturité numérique{% endblock %}
+
+{% block content %}
+{% if not entite %}
+<h1 class="fr-h3 fr-mb-1w">Organisations</h1>
+<div class="fr-callout">
+    <h2 class="fr-callout__title">Aucune organisation pour l'instant</h2>
+    <p class="fr-callout__text">Les fiches de restitution apparaîtront dès qu'une organisation aura été créée et évaluée.</p>
+</div>
+{% else %}
+
+{% if entites | length > 1 %}
+<div class="fr-select-group fr-mb-3w" style="max-width: 320px;">
+    <label class="fr-label" for="entite-select">Organisation</label>
+    <select class="fr-select" id="entite-select"
+            onchange="location.href = '{{ url_for('restitution_orgs') }}/' + this.value;">
+        {% for e in entites %}
+        <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+
+<h1 class="fr-h3 fr-mb-1v">{{ entite.nom }}</h1>
+<p class="text-mention fr-mb-3w">
+    {{ entite.type }}{% if entite.direction %} · {{ entite.direction }}{% endif %}
+    · {{ entite.sites | length }} site{{ 's' if entite.sites | length > 1 }} rattaché{{ 's' if entite.sites | length > 1 }}
+</p>
+
+<h2 class="fr-h6 fr-mb-2w">Maturité par référentiel</h2>
+{% if ref_cards %}
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    {% for card in ref_cards %}
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <p class="fr-text--sm text-mention fr-mb-0">{{ card.ref.label }}</p>
+                    <p class="kpi__value score-hero__pct--{{ card.color }} fr-mb-0">{{ card.pct }} %</p>
+                    <p class="fr-text--xs text-mention fr-mb-1w">Score {{ card.score }} / {{ card.max }}</p>
+                    <div class="progress">
+                        <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="fr-callout fr-mb-3w">
+    <p class="fr-callout__text">Aucune évaluation validée pour cette organisation pour l'instant.</p>
+</div>
+{% endif %}
+
+<div class="fr-grid-row fr-grid-row--gutters">
+    {% if radar_eval %}
+    <div class="fr-col-12 fr-col-md-5">
+        <div class="fr-card chart-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <h2 class="fr-card__title fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
+                    <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
+                    <dsfr-data-chart source="r1" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <div class="fr-col-12 fr-col-md-{{ '7' if radar_eval else '12' }}">
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <h2 class="fr-card__title fr-h6 fr-mb-2w">Sites rattachés</h2>
+                    {% if sites_rows %}
+                    <div class="fr-table fr-table--sm fr-mb-2w">
+                        <div class="fr-table__wrapper">
+                            <div class="fr-table__container">
+                                <div class="fr-table__content">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Site</th>
+                                                <th scope="col">Maturité</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in sites_rows %}
+                                            <tr>
+                                                <td><strong>{{ row.site.nom }}</strong></td>
+                                                <td>
+                                                    {% for card in row.cards %}
+                                                    <div class="score-inline{% if not loop.last %} fr-mb-1v{% endif %}">
+                                                        <span class="fr-text--xs text-mention" style="width: 7rem;">{{ card.ref.label }}</span>
+                                                        <div class="progress">
+                                                            <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
+                                                        </div>
+                                                        <strong class="fr-text--sm">{{ card.score }}/{{ card.max }}</strong>
+                                                        <a class="fr-link fr-text--sm" href="{{ url_for('evaluation_results', evaluation_id=card.eval.id) }}">Détail →</a>
+                                                    </div>
+                                                    {% else %}
+                                                    <span class="fr-text--sm text-mention">Pas encore évalué</span>
+                                                    {% endfor %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="fr-text--sm text-mention">Aucun site rattaché à cette organisation.</p>
+                    {% endif %}
+                    <div class="fr-alert fr-alert--info fr-alert--sm">
+                        <p>La maturité des sites qualifiera à terme celle de l'organisation (consolidation à venir).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

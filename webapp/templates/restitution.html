@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Restitution — Maturité numérique{% endblock %}
+
+{% block content %}
+<h1 class="fr-h3 fr-mb-1w">Où en est la maturité ?</h1>
+
+{% if not campagne %}
+<p class="fr-text--lg text-mention fr-mb-3w">Vue d'ensemble exécutive — les données sont auto-déclarées et justifiées.</p>
+<div class="fr-callout">
+    <h2 class="fr-callout__title">Aucune campagne avec des résultats validés pour l'instant</h2>
+    <p class="fr-callout__text">La restitution apparaîtra dès qu'une campagne comptera au moins une évaluation validée.</p>
+</div>
+{% else %}
+<p class="fr-text--lg text-mention fr-mb-2w">
+    {{ campagne.label }} · {{ classement | length }} entité{{ 's' if classement | length > 1 }} évaluée{{ 's' if classement | length > 1 }} sur {{ camp_part.attendus }} ·
+    les données sont auto-déclarées et justifiées.
+</p>
+
+{% if campagnes | length > 1 %}
+<form method="get" action="{{ url_for('restitution') }}" class="fr-mb-3w">
+    <div class="fr-select-group" style="max-width: 320px;">
+        <label class="fr-label" for="campagne-select">Campagne</label>
+        <select class="fr-select" id="campagne-select" name="campagne_id" onchange="this.form.submit()">
+            {% for c in campagnes %}
+            <option value="{{ c.id }}" {% if c.id == campagne.id %}selected{% endif %}>{{ c.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+{% endif %}
+
+<!-- Messages clés -->
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="fr-card exec-card {% if delta is none %}{% elif delta >= 0 %}exec-card--success{% else %}exec-card--warning{% endif %}">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    {% if delta is none %}
+                    <p class="exec-card__kicker fr-mb-0">
+                        <span class="fr-icon-flag-line fr-icon--sm" aria-hidden="true"></span>Le point de départ
+                    </p>
+                    <p class="exec-card__value fr-mb-0">{{ pct_moyen }} %</p>
+                    <p class="fr-text--sm text-mention fr-mb-0">
+                        Score moyen {{ score_moyen }}/{{ max_niveau }} ({{ pct_moyen }} %).
+                        Première mesure : la référence pour les prochaines campagnes.
+                    </p>
+                    {% else %}
+                    <p class="exec-card__kicker fr-mb-0">
+                        <span class="{{ 'fr-icon-arrow-up-line' if delta >= 0 else 'fr-icon-arrow-down-line' }} fr-icon--sm" aria-hidden="true"></span>
+                        {{ 'La démarche progresse' if delta >= 0 else 'La démarche recule' }}
+                    </p>
+                    <p class="exec-card__value fr-mb-0">{{ '%+d' | format(delta) }} pts</p>
+                    <p class="fr-text--sm text-mention fr-mb-0">
+                        Score moyen {{ score_moyen }}/{{ max_niveau }} ({{ pct_moyen }} %),
+                        contre {{ pct_moyen - delta }} % à {{ prev_label }}.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if weakest_dim %}
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="fr-card exec-card exec-card--warning">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <p class="exec-card__kicker fr-mb-0">
+                        <span class="fr-icon-focus-line fr-icon--sm" aria-hidden="true"></span>Un chantier transverse
+                    </p>
+                    <p class="exec-card__value fr-mb-0">{{ weakest_dim.nom }}</p>
+                    <p class="fr-text--sm text-mention fr-mb-0">
+                        Dimension la plus faible ({{ weakest_dim.moyenne }}/{{ max_niveau }}) : priorité collective.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if weakest_entity and classement | length > 1 %}
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="fr-card exec-card exec-card--error">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <p class="exec-card__kicker fr-mb-0">
+                        <span class="fr-icon-warning-line fr-icon--sm" aria-hidden="true"></span>Une entité décroche
+                    </p>
+                    <p class="exec-card__value fr-mb-0">{{ weakest_entity.nom }}</p>
+                    <p class="fr-text--sm text-mention fr-mb-0">
+                        {{ weakest_entity.score }}/{{ max_niveau }} ({{ weakest_entity.pct }} %), sous la moyenne.
+                        Accompagnement ciblé.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="fr-grid-row fr-grid-row--gutters">
+    <!-- Classement -->
+    <div class="fr-col-12 fr-col-md-7">
+        <div class="fr-card">
+            <div class="fr-card__body">
+                <div class="fr-card__content fr-py-3w">
+                    <h2 class="fr-card__title fr-h6 fr-mb-1v">Classement des organisations</h2>
+                    <p class="fr-text--xs text-mention fr-mb-2w">Score global sur {{ referentiel.label if referentiel else campagne.label }}</p>
+                    {% for row in classement %}
+                    <div class="score-inline fr-mb-1w">
+                        <span style="flex: 1; min-width: 0;">
+                            {% if row.entite_id %}
+                            <a class="fr-link fr-text--sm" href="{{ url_for('restitution_orgs', entite_id=row.entite_id) }}">{{ row.nom }}</a>
+                            {% else %}
+                            <span class="fr-text--sm">{{ row.nom }}</span>
+                            {% endif %}
+                        </span>
+                        <div class="progress progress--lg" style="width: 160px;">
+                            <div class="progress__bar progress__bar--{{ row.color }}" style="width: {{ row.pct }}%;"></div>
+                        </div>
+                        <strong class="fr-text--sm" style="width: 3.5rem; text-align: right;">{{ row.score }}/{{ max_niveau }}</strong>
+                    </div>
+                    {% endfor %}
+                    <p class="fr-text--xs text-mention fr-mb-0 fr-mt-2w">
+                        Repères : moins de 50 % = alerte, 50–75 % = en progrès, plus de 75 % = solide.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Fiabilité -->
+    <div class="fr-col-12 fr-col-md-5">
+        <div class="fr-callout fr-icon-checkbox-circle-line fr-mb-0">
+            <h2 class="fr-callout__title fr-h6">Fiabilité de la donnée</h2>
+            <div class="fr-callout__text fr-text--sm">
+                <p class="fr-mb-1w" style="display: flex; justify-content: space-between;">
+                    <span>Taux de participation</span>
+                    <strong>{{ camp_part.pct }} % ({{ camp_part.valides }}/{{ camp_part.attendus }})</strong>
+                </p>
+                <p class="fr-mb-1w" style="display: flex; justify-content: space-between;">
+                    <span>Évaluations justifiées</span>
+                    <strong>{{ justif_pct }} % des réponses</strong>
+                </p>
+                <p class="fr-mb-2w" style="display: flex; justify-content: space-between;">
+                    <span>Référentiel partagé</span>
+                    <strong>{% if ref_partage %}Oui{% if referentiel %} — {{ referentiel.label }}{% endif %}{% else %}Non{% endif %}</strong>
+                </p>
+                <p class="fr-text--sm fr-mb-0">
+                    Auto-évaluation tracée : les écarts sont discutables mais reposent sur des justifications consultables.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
