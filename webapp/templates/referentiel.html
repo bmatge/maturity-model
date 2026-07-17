@@ -1,190 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Référentiel — Maturité ComNum{% endblock %}
+{% block title %}Le référentiel — Maturité numérique{% endblock %}
+
+{% set portee_labels = {'C': 'Centrale — pilotée par le SIRCOM',
+                        'D': 'Distribuée — exercée par les bureaux',
+                        'P': 'Partagée — coordination nécessaire'} %}
 
 {% block content %}
-<!-- Sélecteur de référentiel -->
-<div class="fr-select-group fr-mb-2w" style="max-width: 500px;">
-    <label class="fr-label" for="ref-picker">Référentiel</label>
-    <select class="fr-select" id="ref-picker">
-        {% for r in all_refs %}
-        <option value="{{ r.id }}" {{ 'selected' if r.id == current_ref_id }}>
-            {{ r.label }} ({{ r.cible }}) — {{ r.description[:80] }}
-        </option>
-        {% endfor %}
-    </select>
-</div>
+<h1 class="fr-h3 fr-mb-1w">Le référentiel</h1>
+<p class="fr-text--lg fr-text-mention--grey fr-mb-1w" style="max-width: 720px;">Comprenez ce qui est mesuré avant de vous évaluer : dimensions, capacités, et le critère observable de chaque niveau. C'est ce texte qui vous sert de repère pour vous positionner.</p>
+<p class="fr-text--sm fr-text-mention--grey fr-mb-3w">
+    {{ referentiel.label }} — cible : {{ referentiel.cible }} · {{ dimensions|length }} dimensions · {{ nb_capacites }} capacités · {{ max_niveau }} niveaux
+    {% if nb_evaluations %} · moyennes constatées sur {{ nb_evaluations }} évaluation(s) validée(s){% endif %}
+</p>
 
-<!-- Header -->
-<div class="fr-grid-row fr-grid-row--middle fr-mb-4w">
-    <div class="fr-col">
-        <h1 class="fr-h3">{{ referentiel.label }}</h1>
-        <p class="fr-text--alt">{{ referentiel.description }}</p>
-        <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mt-1w">Cible : {{ referentiel.cible }}</p>
+<!-- Pédagogie : l'échelle -->
+{% if scale %}
+<div class="fr-callout fr-mb-3w{% if max_niveau == 4 %} levels-4{% endif %}">
+    <h2 class="fr-callout__title fr-text--md">L'échelle de ce référentiel — la logique de pérennité</h2>
+    <div class="fr-mt-2w" style="display: flex; gap: 12px; flex-wrap: wrap;">
+        {% for st in scale %}
+        <div style="flex: 1; min-width: 180px; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 14px 16px;">
+            <p class="fr-mb-1v" style="display: flex; align-items: center; gap: 8px;">
+                <span class="level-dot level-dot--{{ st.niveau }}">{{ st.niveau }}</span>
+                <span class="fr-text--sm fr-text--bold">{{ st.nom }}</span>
+            </p>
+            <p class="fr-text--xs fr-text-mention--grey fr-mb-0">{{ st.description }}</p>
+        </div>
+        {% endfor %}
     </div>
-    <div class="fr-col-auto">
-        <ul class="fr-tags-group">
-            <li><p class="fr-tag">{{ dimensions|length }} dimensions</p></li>
-            <li><p class="fr-tag">{{ nb_capacites }} capacités</p></li>
-            <li><p class="fr-tag">{{ nb_evaluations }} évaluations</p></li>
+</div>
+{% endif %}
+
+<!-- Contrôles : référentiel, recherche, portée -->
+<div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-5">
+        <form method="get" action="{{ url_for('referentiel_view') }}">
+            <div class="fr-select-group fr-mb-0">
+                <label class="fr-label" for="select-ref">Référentiel</label>
+                <select class="fr-select" id="select-ref" name="ref_id" onchange="this.form.submit()">
+                    {% for r in all_refs %}
+                    {% set ns = namespace(caps=0, niv=0) %}
+                    {% for d in r.dimensions %}
+                        {% set ns.caps = ns.caps + d.capacites|length %}
+                        {% if ns.niv == 0 and d.capacites and d.capacites[0].niveaux %}{% set ns.niv = d.capacites[0].niveaux|length %}{% endif %}
+                    {% endfor %}
+                    <option value="{{ r.id }}" {% if r.id == current_ref_id %}selected{% endif %}>
+                        {{ r.label }} — {{ r.cible }} ({{ r.dimensions|length }} dim · {{ ns.caps }} cap · {{ ns.niv or 4 }} niveaux)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="fr-col-12 fr-col-md-4">
+        <label class="fr-label fr-mb-1v" for="ref-search">Rechercher une capacité</label>
+        <div class="fr-search-bar" role="search">
+            <input class="fr-input" placeholder="numéro, nom, mot-clé…" type="search" id="ref-search">
+            <button type="button" class="fr-btn" title="Rechercher">Rechercher</button>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-3">
+        <p class="fr-label fr-mb-1v">Portée</p>
+        <ul class="fr-tags-group fr-mb-0">
+            <li><button type="button" class="fr-tag" data-portee-filter="" aria-pressed="true" title="Toutes les capacités">Toutes</button></li>
+            <li><button type="button" class="fr-tag" data-portee-filter="C" aria-pressed="false" title="{{ portee_labels['C'] }}">C</button></li>
+            <li><button type="button" class="fr-tag" data-portee-filter="D" aria-pressed="false" title="{{ portee_labels['D'] }}">D</button></li>
+            <li><button type="button" class="fr-tag" data-portee-filter="P" aria-pressed="false" title="{{ portee_labels['P'] }}">P</button></li>
         </ul>
     </div>
 </div>
 
-<!-- Recherche + Filtres -->
-<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-3w">
-    <div class="fr-col-12 fr-col-md-6">
-        <div class="fr-search-bar" role="search">
-            <label class="fr-label" for="ref-search">Rechercher une capacité</label>
-            <input class="fr-input" type="search" id="ref-search"
-                   placeholder="Ex: stratégie, veille, accessibilité...">
-            <button class="fr-btn" title="Rechercher">Rechercher</button>
-        </div>
-    </div>
-    <div class="fr-col-12 fr-col-md-6">
-        <fieldset class="fr-fieldset">
-            <legend class="fr-fieldset__legend fr-text--sm">Filtrer par portée :</legend>
-            <div class="fr-fieldset__content">
-                <ul class="fr-tags-group">
-                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter" data-portee="all" aria-pressed="true">Toutes</button></li>
-                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter badge-portee-C" data-portee="C" aria-pressed="false">C — Cabinet</button></li>
-                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter badge-portee-D" data-portee="D" aria-pressed="false">D — Direction</button></li>
-                    <li><button type="button" class="fr-tag fr-tag--sm portee-filter badge-portee-P" data-portee="P" aria-pressed="false">P — Publique</button></li>
-                </ul>
-            </div>
-        </fieldset>
-    </div>
-</div>
-
-<!-- Compteur résultats -->
-<p class="fr-text--sm fr-mb-2w" id="ref-count">{{ nb_capacites }} capacités</p>
-
-<!-- Accordéons dimensions -->
-{% for dim in dimensions %}
-<section class="fr-accordion fr-mb-2w" data-dimension="{{ dim.numero }}">
-    <h2 class="fr-accordion__title">
-        <button class="fr-accordion__btn" aria-expanded="false" aria-controls="dim-{{ dim.numero }}">
-            {{ dim.numero }}. {{ dim.nom }}
-            <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w">{{ dim.capacites|length }} capacités</span>
-        </button>
-    </h2>
-    <div class="fr-collapse" id="dim-{{ dim.numero }}">
-        {% if dim.description %}
-        <p class="fr-text--alt fr-mb-2w">{{ dim.description }}</p>
-        {% endif %}
-
-        {% for cap in dim.capacites %}
-        <div class="fr-card fr-mb-2w capacite-item" data-portee="{{ cap.portee }}"
-             data-search="{{ cap.numero }} {{ cap.nom }} {{ cap.description or '' }}">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <div class="fr-grid-row fr-grid-row--middle fr-mb-1w">
-                        <div class="fr-col">
-                            <h3 class="fr-card__title fr-text--md fr-mb-0">
-                                {{ cap.numero }} — {{ cap.nom }}
-                            </h3>
-                        </div>
-                        <div class="fr-col-auto">
-                            <span class="fr-badge fr-badge--sm fr-badge--no-icon badge-portee-{{ cap.portee }} fr-mr-1w">{{ cap.portee }}</span>
-                            {% if cap.id in cap_averages %}
-                            <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ cap_averages[cap.id]|round|int }}">
-                                Moy. {{ cap_averages[cap.id] }}/4
-                            </span>
-                            {% endif %}
-                        </div>
+<!-- Dimensions en accordéons -->
+<div class="fr-accordions-group">
+    {% for dim in dimensions %}
+    <section class="fr-accordion">
+        <h2 class="fr-accordion__title">
+            <button type="button" class="fr-accordion__btn" aria-expanded="false" aria-controls="accordion-dim-{{ dim.id }}">
+                {{ dim.numero }}. {{ dim.nom }} — {{ dim.capacites|length }} capacités
+            </button>
+        </h2>
+        <div class="fr-collapse" id="accordion-dim-{{ dim.id }}">
+            {% for cap in dim.capacites %}
+            <div class="fr-py-2w" style="border-bottom: 1px solid var(--border-default-grey);"
+                 data-search="{{ (cap.numero ~ ' ' ~ cap.nom ~ ' ' ~ (cap.description or ''))|lower }}"
+                 data-portee="{{ cap.portee }}">
+                <div class="fr-mb-2w" style="display: flex; align-items: flex-start; gap: 12px;">
+                    <span class="fr-text--sm fr-text--bold fr-text-mention--grey" style="flex: none;">{{ cap.numero }}</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <p class="fr-text--md fr-text--bold fr-mb-0">{{ cap.nom }}</p>
+                        {% if cap.description %}<p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ cap.description }}</p>{% endif %}
                     </div>
-                    {% if cap.description %}
-                    <p class="fr-text--sm fr-mb-1w">{{ cap.description }}</p>
+                    <span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(cap.portee, cap.portee) }}">{{ cap.portee }}</span>
+                    {% if cap.id in cap_averages %}
+                    <span class="fr-badge fr-badge--sm fr-badge--info fr-badge--no-icon" title="Score moyen constaté sur les évaluations validées">Moy. {{ cap_averages[cap.id] }}/{{ max_niveau }}</span>
                     {% endif %}
-
-                    <!-- Niveaux de maturité (sous-accordéon) -->
-                    <section class="fr-accordion">
-                        <h4 class="fr-accordion__title">
-                            <button class="fr-accordion__btn fr-text--sm" aria-expanded="false"
-                                    aria-controls="niveaux-{{ cap.id }}">
-                                Niveaux de maturité
-                            </button>
-                        </h4>
-                        <div class="fr-collapse" id="niveaux-{{ cap.id }}">
-                            <div class="fr-grid-row fr-grid-row--gutters">
-                                {% for niv in cap.niveaux %}
-                                <div class="fr-col-12 fr-col-md-6 fr-col-lg-3">
-                                    <div style="border-left: 3px solid; padding: .75rem;" class="niveau-{{ niv.niveau }}">
-                                        <p class="fr-text--bold fr-mb-1v">
-                                            <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ niv.niveau }}">{{ niv.niveau }}</span>
-                                            {{ niv.nom }}
-                                        </p>
-                                        <p class="fr-text--xs fr-mb-0">{{ niv.description }}</p>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </section>
+                </div>
+                <div class="level-picker{% if max_niveau == 4 %} level-picker--4 levels-4{% endif %}">
+                    {% for niv in cap.niveaux %}
+                    <div class="level-card level-card--{{ niv.niveau }}">
+                        <p class="fr-text--sm fr-text--bold fr-mb-1v">{{ niv.niveau }} · {{ niv.nom }}</p>
+                        <p class="fr-text--sm fr-mb-0">{{ niv.description }}</p>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-</section>
-{% endfor %}
+    </section>
+    {% endfor %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-(function() {
-    // Navigation entre référentiels
-    var picker = document.getElementById('ref-picker');
-    if (picker) {
-        picker.addEventListener('change', function() {
-            window.location.href = '{{ url_for("referentiel_view") }}?ref_id=' + this.value;
-        });
-    }
-
-    var search = document.getElementById('ref-search');
-    var filters = document.querySelectorAll('.portee-filter');
-    var items = document.querySelectorAll('.capacite-item');
-    var counter = document.getElementById('ref-count');
-    var activePortee = 'all';
-
-    function applyFilters() {
-        var query = search.value.toLowerCase().trim();
-        var visible = 0;
-        items.forEach(function(item) {
-            var matchSearch = !query || item.dataset.search.toLowerCase().indexOf(query) !== -1;
-            var matchPortee = activePortee === 'all' || item.dataset.portee === activePortee;
-            var show = matchSearch && matchPortee;
-            item.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-        counter.textContent = visible + ' capacité' + (visible > 1 ? 's' : '') +
-            (query || activePortee !== 'all' ? ' (filtrées)' : '');
-
-        // Ouvrir/fermer les dimensions selon les résultats visibles
-        document.querySelectorAll('[data-dimension]').forEach(function(section) {
-            var hasVisible = section.querySelector('.capacite-item:not([style*="display: none"])');
-            var collapse = section.querySelector('.fr-collapse');
-            var btn = section.querySelector('.fr-accordion__btn');
-            if (query || activePortee !== 'all') {
-                if (hasVisible && !collapse.classList.contains('fr-collapse--expanded')) {
-                    btn.click();
-                } else if (!hasVisible && collapse.classList.contains('fr-collapse--expanded')) {
-                    btn.click();
-                }
-            }
-        });
-    }
-
-    search.addEventListener('input', applyFilters);
-
-    filters.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            activePortee = btn.dataset.portee;
-            filters.forEach(function(b) {
-                b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
-            });
-            applyFilters();
-        });
+(function () {
+  "use strict";
+  var input = document.getElementById("ref-search");
+  var tags = document.querySelectorAll("[data-portee-filter]");
+  var portee = "";
+  function apply() {
+    var q = input.value.trim().toLowerCase();
+    document.querySelectorAll("[data-search]").forEach(function (el) {
+      var okQ = !q || el.getAttribute("data-search").indexOf(q) !== -1;
+      var okP = !portee || el.getAttribute("data-portee") === portee;
+      el.hidden = !(okQ && okP);
     });
+  }
+  input.addEventListener("input", apply);
+  tags.forEach(function (t) {
+    t.addEventListener("click", function () {
+      portee = t.getAttribute("data-portee-filter");
+      tags.forEach(function (o) { o.setAttribute("aria-pressed", o === t ? "true" : "false"); });
+      apply();
+    });
+  });
 })();
 </script>
 {% endblock %}

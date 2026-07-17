@@ -1,165 +1,100 @@
 {% extends "base.html" %}
-{% block title %}Évaluation — {{ evaluation.cible_nom }} — Maturité ComNum{% endblock %}
+{% block title %}Questionnaire — {{ evaluation.cible_nom }} — Maturité numérique{% endblock %}
 
-{% block extra_css %}
-<style>
-    .niveau-option { cursor: pointer; padding: .75rem; border-radius: .5rem; border: 2px solid transparent; transition: all .15s; }
-    .niveau-option:hover { border-color: #000091; }
-    .niveau-option.selected { border-color: #000091; box-shadow: 0 0 0 2px #e3e3fd; }
-    .niveau-option input[type="radio"] { display: none; }
-    .dim-nav { position: sticky; top: 0; z-index: 100; background: var(--background-alt-grey, #f6f6f6); padding: .75rem 0; }
-</style>
-{% endblock %}
+{% set portee_labels = {'C': 'Centrale — pilotée par le SIRCOM',
+                        'D': 'Distribuée — exercée par les bureaux',
+                        'P': 'Partagée — coordination nécessaire'} %}
 
 {% block content %}
-<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-2w">
-    <div class="fr-col">
-        <h1 class="fr-h4 fr-mb-1v">
-            {% if evaluation.entite_id %}
-            <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ evaluation.entite.type }}</p>
-            {{ evaluation.entite.nom }}
-            {% else %}
-            <p class="fr-badge fr-badge--sm fr-badge--no-icon">Site</p>
-            {{ evaluation.site.nom }}
-            {% endif %}
-        </h1>
-        <p class="fr-text--alt">Campagne : {{ evaluation.campagne.label }}</p>
-    </div>
-    <div class="fr-col-auto">
-        {% if evaluation.statut == 'brouillon' %}
-        <p class="fr-badge fr-badge--warning fr-badge--no-icon">Brouillon</p>
-        {% else %}
-        <p class="fr-badge fr-badge--success fr-badge--no-icon">Validée</p>
-        {% endif %}
-    </div>
-</div>
+<a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('mes_evaluations') }}">Quitter (le brouillon est conservé)</a>
 
-<!-- Barre de progression -->
-<div class="fr-progress fr-mb-2w">
-    <div class="fr-progress__bar" id="progressBar" style="width: 0%"></div>
-</div>
+<form method="post" id="fill-form" class="fr-mt-2w">
+    <div class="fill-layout">
+        <div class="fill-form">
+            <h1 class="fr-h4 fr-mb-1v">{{ evaluation.referentiel.label }} — {{ evaluation.cible_nom }}</h1>
+            <p class="fr-text--sm fr-text-mention--grey fr-mb-3w">Pour chaque capacité, lisez les descriptions et choisissez le niveau qui décrit le mieux votre situation. Une capacité qui ne vous concerne pas peut être marquée « non applicable ».</p>
 
-<!-- Navigation dimensions -->
-<div class="dim-nav fr-mb-2w">
-    <ul class="fr-btns-group fr-btns-group--inline">
-        {% for dim in dimensions %}
-        <li>
-            <a href="#dim-{{ dim.numero }}" class="fr-btn fr-btn--sm fr-btn--secondary">
-                {{ dim.numero }}. {{ dim.nom }}
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
+            {% for dim in dimensions %}
+            <section id="dim-{{ dim.id }}" class="fr-mb-5w">
+                <div class="fr-mb-2w" style="display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border-action-high-blue-france);">
+                    <span class="fr-h4 fr-mb-0" style="color: var(--text-title-blue-france);">{{ dim.numero }}</span>
+                    <h2 class="fr-h5 fr-mb-0">{{ dim.nom }}</h2>
+                </div>
 
-<form method="POST" id="evalForm">
-    {% for dim in dimensions %}
-    <div id="dim-{{ dim.numero }}" class="fr-mb-5w">
-        <div class="dimension-header">
-            <h2 class="fr-h5 fr-mb-0" style="color: #fff;">{{ dim.numero }}. {{ dim.nom }}</h2>
-            <small>{{ dim.description }}</small>
-        </div>
-
-        {% for cap in dim.capacites %}
-        <div class="fr-card capacite-card fr-mb-2w">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <div class="fr-grid-row fr-grid-row--middle fr-mb-1w">
-                        <div class="fr-col">
-                            <h3 class="fr-h6 fr-mb-0">
-                                {{ cap.numero }} {{ cap.nom }}
-                                <span class="fr-badge fr-badge--sm badge-portee-{{ cap.portee }}">{{ cap.portee }}</span>
-                            </h3>
+                {% for cap in dim.capacites %}
+                {% set sc = existing_scores.get(cap.id) %}
+                <div class="cap-card{% if max_niveau == 4 %} levels-4{% endif %}{% if sc and sc.niveau > 0 %} is-answered{% elif sc and sc.niveau == 0 %} is-na{% endif %}" data-dim="{{ dim.id }}">
+                    <div style="display: flex; align-items: flex-start; gap: 12px;" class="fr-mb-2w">
+                        <span class="fr-text--sm fr-text--bold fr-text-mention--grey" style="flex: none;">{{ cap.numero }}</span>
+                        <div style="flex: 1; min-width: 0;">
+                            <p class="fr-text--md fr-text--bold fr-mb-0">{{ cap.nom }}</p>
+                            {% if cap.description %}<p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ cap.description }}</p>{% endif %}
                         </div>
+                        <span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(cap.portee, cap.portee) }}">{{ cap.portee }}</span>
                     </div>
-                    <p class="fr-text--sm fr-text--alt fr-mb-2w">{{ cap.description }}</p>
 
-                    <div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
+                    <input type="hidden" name="cap_{{ cap.id }}" data-cap-input
+                           value="{% if sc %}{% if sc.niveau == 0 %}na{% else %}{{ sc.niveau }}{% endif %}{% endif %}">
+
+                    <div class="level-picker{% if max_niveau == 4 %} level-picker--4{% endif %}">
                         {% for niv in cap.niveaux %}
-                        {% set is_selected = existing_scores.get(cap.id) and existing_scores[cap.id].niveau == niv.niveau %}
-                        <div class="fr-col-12 fr-col-md-3">
-                            <label class="niveau-option niveau-{{ niv.niveau }} {{ 'selected' if is_selected }}" style="display: block; height: 100%;">
-                                <input type="radio" name="cap_{{ cap.id }}" value="{{ niv.niveau }}"
-                                       class="score-radio" data-cap="{{ cap.id }}"
-                                       {{ 'checked' if is_selected }}>
-                                <div class="fr-grid-row fr-grid-row--middle fr-mb-1v">
-                                    <span class="fr-badge fr-badge--sm niveau-badge-{{ niv.niveau }} fr-mr-1w">{{ niv.niveau }}</span>
-                                    <strong class="fr-text--sm">{{ niv.nom }}</strong>
-                                </div>
-                                <small class="fr-text--alt" style="display: block;">{{ niv.description }}</small>
-                            </label>
-                        </div>
+                        <button type="button" class="level-option{% if sc and sc.niveau == niv.niveau %} is-selected{% endif %}" data-niveau="{{ niv.niveau }}">
+                            <span class="level-option__head">
+                                <span class="level-dot level-dot--{{ niv.niveau }}">{{ niv.niveau }}</span>
+                                <span class="level-option__name">{{ niv.nom }}</span>
+                            </span>
+                            <span class="level-option__crit">{{ niv.description }}</span>
+                        </button>
                         {% endfor %}
                     </div>
 
-                    <!-- Justification -->
-                    <div class="fr-input-group fr-mb-0">
-                        <input class="fr-input fr-input--sm" type="text" name="just_{{ cap.id }}"
-                               placeholder="Justification / signaux observés (optionnel)"
-                               value="{{ existing_scores.get(cap.id).justification if existing_scores.get(cap.id) and existing_scores[cap.id].justification else '' }}">
+                    <div class="fr-mt-2w" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                        <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-chat-3-line fr-btn--icon-left" data-justif-btn>
+                            <span data-label>{% if sc and sc.justification %}Masquer la justification{% else %}Ajouter une justification{% endif %}</span>
+                        </button>
+                        <button type="button" class="fr-btn fr-btn--tertiary fr-btn--sm" data-na-btn
+                                aria-pressed="{% if sc and sc.niveau == 0 %}true{% else %}false{% endif %}">Non applicable</button>
                     </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endfor %}
 
-    <!-- Actions -->
-    <div class="fr-card" style="position: sticky; bottom: 0; z-index: 100; border-top: 2px solid var(--border-default-grey);">
-        <div class="fr-card__body">
-            <div class="fr-card__content">
-                <div class="fr-grid-row fr-grid-row--middle">
-                    <div class="fr-col">
-                        <span id="scoreCount" class="fr-text--alt">0</span> / {{ nb_capacites }} capacités évaluées
-                    </div>
-                    <div class="fr-col-auto">
-                        <ul class="fr-btns-group fr-btns-group--inline fr-mb-0">
-                            <li>
-                                <button type="submit" name="action" value="save" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-save-line">
-                                    Sauvegarder le brouillon
-                                </button>
-                            </li>
-                            <li>
-                                <button type="submit" name="action" value="validate" class="fr-btn fr-btn--icon-left fr-icon-checkbox-circle-line"
-                                        id="validateBtn" disabled>
-                                    Valider l'évaluation
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
+                    <textarea name="just_{{ cap.id }}" class="fr-input fr-mt-1w"
+                              placeholder="Signaux observés qui justifient ce niveau (facultatif mais recommandé)…"
+                              {% if not (sc and sc.justification) %}hidden{% endif %}>{{ sc.justification if sc and sc.justification else '' }}</textarea>
                 </div>
-            </div>
+                {% endfor %}
+            </section>
+            {% endfor %}
         </div>
+
+        <aside class="fill-aside">
+            {% set pct0 = (done / total * 100)|round|int if total else 0 %}
+            <div class="fr-p-3w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+                <p class="fr-text--sm fr-text--bold fr-mb-1v">Progression</p>
+                <p class="fr-h3 fr-mb-0" style="color: var(--text-title-blue-france);"><span data-progress-done>{{ done }}</span><span class="fr-text--md fr-text-mention--grey"> / {{ total }}</span></p>
+                <div class="progress fr-my-1w">
+                    <div class="progress__bar" data-progress-bar style="width: {{ pct0 }}%;"></div>
+                </div>
+                <p class="fr-text--xs fr-text-mention--grey fr-mb-0"><span data-progress-pct>{{ pct0 }} %</span> des capacités renseignées</p>
+                <div class="fr-mt-2w" style="display: grid; gap: 8px;">
+                    <button type="submit" name="action" value="save" class="fr-btn fr-btn--secondary" style="width: 100%; justify-content: center;">Sauvegarder le brouillon</button>
+                    <button type="submit" name="action" value="recap" id="btn-recap" class="fr-btn" style="width: 100%; justify-content: center;" {% if done < total %}disabled{% endif %}>Vérifier &amp; valider</button>
+                </div>
+                <p id="fill-incomplete-warn" class="fr-text--xs fr-mt-1w fr-mb-0" style="color: var(--text-default-warning);" {% if done >= total %}hidden{% endif %}>Validation possible une fois toutes les capacités renseignées.</p>
+            </div>
+
+            <div class="fr-p-2w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+                <p class="fr-text--xs fr-text--bold fr-text-mention--grey fr-mb-1w" style="text-transform: uppercase; letter-spacing: 0.05em;">Dimensions</p>
+                {% for dim in dimensions %}
+                <a href="#dim-{{ dim.id }}" class="fr-text--sm" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; background: none;">
+                    <span>{{ dim.numero }}. {{ dim.nom }}</span>
+                    <span class="fr-badge fr-badge--sm fr-badge--no-icon" data-dim-count="{{ dim.id }}"></span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <div class="fr-callout fr-p-2w">
+                <p class="fr-callout__text fr-text--sm">Un doute entre deux niveaux&nbsp;? Prenez le niveau que vous savez tenir dans la durée, et notez pourquoi en justification.</p>
+            </div>
+        </aside>
     </div>
 </form>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const radios = document.querySelectorAll('.score-radio');
-    const total = {{ nb_capacites }};
-
-    function updateProgress() {
-        const checked = document.querySelectorAll('.score-radio:checked').length;
-        document.getElementById('scoreCount').textContent = checked;
-        document.getElementById('progressBar').style.width = (checked / total * 100) + '%';
-        document.getElementById('validateBtn').disabled = checked < total;
-    }
-
-    radios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            const name = this.name;
-            document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
-                r.closest('.niveau-option').classList.remove('selected');
-            });
-            this.closest('.niveau-option').classList.add('selected');
-            updateProgress();
-        });
-    });
-
-    updateProgress();
-});
-</script>
 {% endblock %}

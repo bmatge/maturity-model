@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Vérifier avant de valider — {{ evaluation.cible_nom }} — Maturité numérique{% endblock %}
+
+{% block content %}
+<div style="max-width: 820px;">
+    <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('evaluation_fill', evaluation_id=evaluation.id) }}">Revenir au questionnaire</a>
+    <h1 class="fr-h3 fr-mb-1w fr-mt-2w">Vérifier avant de valider</h1>
+    <p class="fr-text--lg fr-text-mention--grey fr-mb-3w">La validation fige la date, fait compter l'évaluation dans les statistiques et ouvre vos résultats. Vous pourrez demander une réouverture au pilote si besoin.</p>
+
+    {% if missing %}
+    <div class="fr-alert fr-alert--warning fr-mb-3w">
+        <h3 class="fr-alert__title">{{ done }} / {{ total }} capacités renseignées — {{ missing|length }} capacité(s) manquante(s)</h3>
+        <ul class="fr-mb-0">
+            {% for cap in missing %}
+            <li><a href="{{ url_for('evaluation_fill', evaluation_id=evaluation.id) }}#dim-{{ cap.dimension_id }}">{{ cap.numero }} — {{ cap.nom }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="fr-alert fr-alert--success fr-mb-3w">
+        <p>{{ done }} / {{ total }} capacités renseignées — l'évaluation est complète.</p>
+    </div>
+    {% endif %}
+
+    <div class="fr-p-3w fr-mb-3w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+        <h2 class="fr-h6 fr-mb-2w">Aperçu de votre profil</h2>
+        <div class="fr-grid-row fr-grid-row--gutters">
+            {% for rd in recap_dims %}
+            <div class="fr-col-6 fr-col-md-3">
+                <p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ rd.nom }}</p>
+                <p class="fr-h5 fr-mb-0">{{ rd.moyenne }}<span class="fr-text--sm fr-text-mention--grey"> / {{ max_niveau }}</span></p>
+                <div class="progress progress--sm fr-mt-1v">
+                    <div class="progress__bar progress__bar--{{ rd.color }}" style="width: {{ rd.pct }}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <form method="post" action="{{ url_for('evaluation_validate', evaluation_id=evaluation.id) }}" class="fr-m-0">
+            <button type="submit" class="fr-btn fr-icon-check-line fr-btn--icon-left" {% if missing %}disabled{% endif %}>Valider l'évaluation</button>
+        </form>
+        <a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('evaluation_fill', evaluation_id=evaluation.id) }}">Modifier une réponse</a>
+    </div>
+</div>
+{% endblock %}

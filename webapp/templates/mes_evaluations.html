@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Mes évaluations — Maturité numérique{% endblock %}
+
+{% block content %}
+{% if current_user_obj %}
+<p class="fr-text--sm fr-text-mention--grey fr-mb-1v">Bonjour {{ current_user_obj.nom }}{% if current_user_obj.scope_label != 'Toutes entités' %} — {{ current_user_obj.scope_label }}{% endif %}</p>
+{% endif %}
+<h1 class="fr-h3 fr-mb-1w">Mes évaluations</h1>
+<p class="fr-text--lg fr-text-mention--grey fr-mb-4w">Retrouvez ici les évaluations qu'on vous a demandé de compléter et vos résultats. Vous pouvez interrompre et reprendre une saisie à tout moment.</p>
+
+<h2 class="fr-h5 fr-mb-2w">À compléter</h2>
+{% if drafts or invitations %}
+<div class="fr-mb-4w">
+    {% for s in drafts %}
+    <div class="eval-card fr-p-3w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+        <div class="eval-card__stripe eval-card__stripe--warning"></div>
+        <div class="eval-card__body">
+            <p class="fr-mb-1v">
+                <span class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon · {{ s.done }}/{{ s.total }}</span>
+                <span class="fr-text--xs fr-text-mention--grey fr-ml-1w">{{ s.eval.campagne.label if s.eval.campagne_id else 'Hors campagne' }}</span>
+            </p>
+            <p class="fr-text--lg fr-text--bold fr-mb-0">{{ s.eval.referentiel.label }} — {{ s.eval.cible_nom }}</p>
+            <p class="fr-text--sm fr-text-mention--grey fr-mb-0">
+                {% if s.eval.campagne_id and s.eval.campagne.date_fin %}Échéance le {{ s.eval.campagne.date_fin.strftime('%d/%m/%Y') }} · {% endif %}reprise là où vous vous êtes arrêté·e
+            </p>
+            <div class="progress fr-mt-1w" style="max-width: 360px;">
+                <div class="progress__bar" style="width: {{ s.pct_progress }}%;"></div>
+            </div>
+        </div>
+        <a class="fr-btn fr-btn--icon-right fr-icon-arrow-right-line" href="{{ url_for('evaluation_fill', evaluation_id=s.eval.id) }}">Reprendre</a>
+    </div>
+    {% endfor %}
+
+    {% for p in invitations %}
+    <div class="eval-card fr-p-3w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+        <div class="eval-card__stripe eval-card__stripe--info"></div>
+        <div class="eval-card__body">
+            <p class="fr-mb-1v">
+                <span class="fr-badge fr-badge--info fr-badge--sm fr-badge--no-icon">Invitation · non commencée</span>
+                <span class="fr-text--xs fr-text-mention--grey fr-ml-1w">{{ p.campagne.label }}</span>
+            </p>
+            <p class="fr-text--lg fr-text--bold fr-mb-0">
+                {% if p.campagne.referentiel %}{{ p.campagne.referentiel.label }} — {% endif %}{{ p.entite.nom }}
+            </p>
+            {% if p.campagne.referentiel %}
+            {% set ns = namespace(caps=0) %}
+            {% for d in p.campagne.referentiel.dimensions %}{% set ns.caps = ns.caps + d.capacites|length %}{% endfor %}
+            <p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ ns.caps }} capacités à renseigner{% if p.campagne.date_fin %} · échéance le {{ p.campagne.date_fin.strftime('%d/%m/%Y') }}{% endif %}</p>
+            {% endif %}
+        </div>
+        <a class="fr-btn fr-btn--secondary" href="{{ url_for('invitation', campagne_id=p.campagne_id, entite_id=p.entite_id) }}">Démarrer</a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="fr-callout fr-mb-4w">
+    <h3 class="fr-callout__title fr-text--md">Rien à compléter pour l'instant</h3>
+    <p class="fr-callout__text">Aucun brouillon en cours ni invitation en attente. Vous pouvez démarrer une évaluation de votre propre initiative.</p>
+    <a class="fr-btn fr-btn--icon-left fr-icon-add-circle-line fr-mt-2w" href="{{ url_for('evaluation_new') }}">Démarrer une évaluation</a>
+</div>
+{% endif %}
+
+<h2 class="fr-h5 fr-mb-2w">Mes résultats</h2>
+{% if valides %}
+<div>
+    {% for s in valides %}
+    <div class="eval-card fr-p-3w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+        <div class="eval-card__stripe eval-card__stripe--success"></div>
+        <div class="eval-card__body">
+            <p class="fr-mb-1v">
+                <span class="fr-badge fr-badge--success fr-badge--sm">Validée</span>
+                <span class="fr-text--xs fr-text-mention--grey fr-ml-1w">
+                    {% if s.eval.campagne_id %}{{ s.eval.campagne.label }} · {% endif %}validée le {{ s.eval.date_evaluation.strftime('%d/%m/%Y') }}
+                </span>
+            </p>
+            <p class="fr-text--lg fr-text--bold fr-mb-0">{{ s.eval.referentiel.label }} — {{ s.eval.cible_nom }}</p>
+            <p class="fr-text--sm fr-text-mention--grey fr-mb-0">Score global {{ s.score }} / {{ s.max }} · {{ s.pct }} % de maturité</p>
+        </div>
+        <a class="fr-btn fr-btn--secondary" href="{{ url_for('evaluation_results', evaluation_id=s.eval.id) }}">Voir mes résultats</a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="fr-callout">
+    <h3 class="fr-callout__title fr-text--md">Aucun résultat pour l'instant</h3>
+    <p class="fr-callout__text">Vos résultats apparaîtront ici dès qu'une de vos évaluations sera validée.</p>
+</div>
+{% endif %}
+{% endblock %}
