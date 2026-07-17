@@ -925,7 +925,7 @@ def campagne_detail(campagne_id):
 @require_roles("pilote", "admin")
 def campagne_perimetre(campagne_id):
     campagne = Campagne.query.get_or_404(campagne_id)
-    selected = {int(x) for x in request.form.getlist("entite_ids")}
+    selected = {int(x) for x in request.form.getlist("entite_ids") if x.isdigit()}
     existing = {p.entite_id: p for p in campagne.participants}
     for eid, p in existing.items():
         if eid not in selected:
