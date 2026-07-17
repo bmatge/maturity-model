@@ -1,0 +1,117 @@
+/* ─────────────────────────────────────────────────────────────────
+   Maturité numérique — complément au DSFR.
+   Uniquement ce que le DSFR n'offre pas nativement, construit sur
+   ses tokens (var(--…)) : sélecteur de niveau, heatmap, barres de
+   progression, cartes exécutives, impression.
+   ───────────────────────────────────────────────────────────────── */
+
+/* ── Layout : sidemenu collé + main aéré ── */
+.app-main { padding-bottom: 4rem; }
+.fr-sidemenu { height: 100%; }
+
+/* ── Barre de progression (absente du DSFR) ── */
+.progress { height: 8px; background: var(--background-contrast-grey); }
+.progress--sm { height: 6px; }
+.progress--lg { height: 12px; }
+.progress__bar { height: 100%; background: var(--background-action-high-blue-france); }
+.progress__bar--success { background: var(--text-default-success); }
+.progress__bar--warning { background: var(--text-default-warning); }
+.progress__bar--error { background: var(--text-default-error); }
+.score-inline { display: flex; align-items: center; gap: 8px; }
+.score-inline .progress { width: 90px; flex: none; }
+
+/* ── KPI (chiffre clé simple) ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.kpi { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 16px; }
+.kpi__value { font-size: 2rem; line-height: 2.5rem; font-weight: 700; color: var(--text-title-blue-france); }
+.kpi__value--warning { color: var(--text-default-warning); }
+.kpi__label { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-mention-grey); }
+
+/* ── Questionnaire : carte capacité + sélecteur de niveau ── */
+.fill-layout { display: flex; gap: 2rem; align-items: flex-start; }
+.fill-form { flex: 1; min-width: 0; }
+.fill-aside { width: 280px; flex: none; position: sticky; top: 1.5rem; }
+.cap-card { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 1.25rem; margin-bottom: 0.875rem; }
+.cap-card.is-answered { box-shadow: inset 3px 0 0 0 var(--background-action-high-blue-france); }
+.cap-card.is-na { opacity: 0.6; }
+.level-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.level-picker--4 { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 62em) { .level-picker--4 { grid-template-columns: repeat(4, 1fr); } }
+.level-option { text-align: left; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 12px; cursor: pointer; font-family: inherit; }
+.level-option:hover { background: var(--background-alt-grey); }
+.level-option.is-selected { background: var(--background-alt-blue-france); border: 2px solid var(--border-action-high-blue-france); padding: 11px; }
+.level-option__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.level-option__name { font-weight: 700; font-size: 0.875rem; line-height: 1.125rem; }
+.level-option__crit { font-size: 0.8125rem; line-height: 1.125rem; }
+
+/* pastille ronde de niveau — couleurs par échelle (3 ou 4 niveaux) */
+.level-dot { flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; color: #fff; }
+.level-dot--0 { background: var(--text-mention-grey); }
+.level-dot--1 { background: var(--text-default-error); }
+.level-dot--2 { background: var(--text-default-warning); }
+.level-dot--3 { background: var(--text-default-success); }
+.levels-4 .level-dot--3 { background: var(--text-default-info); }
+.level-dot--4 { background: var(--text-default-success); }
+
+/* fiches niveau (consultation référentiel) */
+.level-card { border: 1px solid var(--border-default-grey); border-top: 3px solid var(--text-mention-grey); padding: 10px 12px; }
+.level-card--1 { border-top-color: var(--text-default-error); }
+.level-card--2 { border-top-color: var(--text-default-warning); }
+.level-card--3 { border-top-color: var(--text-default-success); }
+.levels-4 .level-card--3 { border-top-color: var(--text-default-info); }
+.level-card--4 { border-top-color: var(--text-default-success); }
+
+/* ── Heatmap entités × capacités ── */
+.heatmap-scroll { overflow-x: auto; }
+.heatmap { border-collapse: collapse; font-size: 0.75rem; line-height: 1rem; }
+.heatmap th.rot { padding: 4px 2px; font-weight: 500; color: var(--text-mention-grey); writing-mode: vertical-rl; transform: rotate(180deg); height: 52px; vertical-align: bottom; }
+.heatmap .row-label { padding: 4px 8px; font-weight: 700; white-space: nowrap; position: sticky; left: 0; background: var(--background-default-grey); text-align: left; }
+.hm-cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 700; border: 1px solid var(--background-default-grey); }
+.hm-cell--1 { background: var(--background-contrast-error); color: var(--text-default-error); }
+.hm-cell--2 { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+.hm-cell--3 { background: var(--background-contrast-success); color: var(--text-default-success); }
+.levels-4 .hm-cell--3 { background: var(--background-contrast-info); color: var(--text-default-info); }
+.hm-cell--4 { background: var(--background-contrast-success); color: var(--text-default-success); }
+.hm-cell--na, .hm-cell--0 { background: var(--background-contrast-grey); color: var(--text-mention-grey); }
+
+/* ── Cartes exécutives (restitution) ── */
+.exec-card { border-top: 4px solid var(--border-default-grey); }
+.exec-card--success { border-top-color: var(--border-default-success); }
+.exec-card--warning { border-top-color: var(--border-default-warning); }
+.exec-card--error { border-top-color: var(--border-default-error); }
+.exec-card__kicker { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.875rem; }
+.exec-card--success .exec-card__kicker { color: var(--text-default-success); }
+.exec-card--warning .exec-card__kicker { color: var(--text-default-warning); }
+.exec-card--error .exec-card__kicker { color: var(--text-default-error); }
+.exec-card__value { font-size: 2.5rem; line-height: 3rem; font-weight: 700; margin: 8px 0 4px; }
+
+/* ── Cartes d'évaluation (mes évaluations) ── */
+.eval-card { display: flex; gap: 1.5rem; align-items: center; }
+.eval-card__stripe { flex: none; width: 4px; align-self: stretch; }
+.eval-card__stripe--warning { background: var(--text-default-warning); }
+.eval-card__stripe--info { background: var(--text-default-info); }
+.eval-card__stripe--success { background: var(--text-default-success); }
+.eval-card__body { flex: 1; min-width: 0; }
+
+/* ── Score « hero » des résultats ── */
+.score-hero { text-align: center; }
+.score-hero__pct { font-size: 3.5rem; line-height: 4rem; font-weight: 700; margin: 4px 0; }
+.score-hero__pct--success { color: var(--text-default-success); }
+.score-hero__pct--warning { color: var(--text-default-warning); }
+.score-hero__pct--error { color: var(--text-default-error); }
+
+/* ── Identité (header) ── */
+.identity-form select { max-width: 220px; }
+
+/* ── Divers ── */
+.text-mention { color: var(--text-mention-grey); }
+.dropzone { border: 2px dashed var(--border-default-grey); padding: 2.5rem; text-align: center; }
+.chart-card dsfr-data-chart { display: block; }
+
+/* ── Impression (« export PDF ») ── */
+@media print {
+  .fr-header, .fr-sidemenu, .fr-footer, .no-print, .fr-btns-group { display: none !important; }
+  .app-main { padding: 0; }
+  .fr-card, .fr-tile, .heatmap-scroll { break-inside: avoid; }
+  body { background: #fff; }
+}

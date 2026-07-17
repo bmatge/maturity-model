@@ -155,12 +155,42 @@ class Campagne(db.Model):
     date_debut = db.Column(db.Date, nullable=False)
     date_fin = db.Column(db.Date)
     statut = db.Column(db.String(20), default="en_cours")  # en_cours, terminee
+    # Référentiel de la campagne : garantit la comparabilité inter-entités
+    # et le pré-remplissage des invitations. Nullable (campagnes historiques).
+    referentiel_id = db.Column(db.Integer, db.ForeignKey("referentiel_version.id"), nullable=True)
 
+    referentiel = db.relationship("ReferentielVersion")
     evaluations = db.relationship("Evaluation", back_populates="campagne",
                                   cascade="all, delete-orphan")
+    participants = db.relationship("CampagneParticipant", back_populates="campagne",
+                                   cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Campagne {self.label}>"
+
+
+class CampagneParticipant(db.Model):
+    """Le périmètre d'une campagne : une entité attendue.
+
+    Permet de distinguer « n'a pas commencé » de « pas concernée »
+    et de mesurer la participation.
+    """
+    __tablename__ = "campagne_participant"
+
+    id = db.Column(db.Integer, primary_key=True)
+    campagne_id = db.Column(db.Integer, db.ForeignKey("campagne.id"), nullable=False)
+    entite_id = db.Column(db.Integer, db.ForeignKey("entite.id"), nullable=False)
+    evaluateur = db.Column(db.String(200))  # évaluateur pressenti (facultatif)
+
+    campagne = db.relationship("Campagne", back_populates="participants")
+    entite = db.relationship("Entite")
+
+    __table_args__ = (
+        db.UniqueConstraint("campagne_id", "entite_id", name="uq_campagne_entite"),
+    )
+
+    def __repr__(self):
+        return f"<Participant {self.entite.nom} @ {self.campagne.label}>"
 
 
 class Evaluation(db.Model):
@@ -203,6 +233,50 @@ class Evaluation(db.Model):
         return f"<Evaluation {cible} — {ctx}>"
 
 
+# ──────────────────────────────────────────────
+# Utilisateurs (pré-Authentik — cf. tasks/todo.md)
+# ──────────────────────────────────────────────
+
+class User(db.Model):
+    """Compte utilisateur minimal, en attendant le SSO Authentik.
+
+    Rôles à compte : repondant, pilote, admin.
+    Le rôle « lecteur » est public (pas de compte).
+    Droit : global, ou restreint à une entité ou un site.
+    """
+    __tablename__ = "user"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), nullable=False, unique=True)
+    role = db.Column(db.String(20), nullable=False, default="repondant")  # repondant, pilote, admin
+    scope_type = db.Column(db.String(20), nullable=False, default="global")  # global, entite, site
+    scope_entite_id = db.Column(db.Integer, db.ForeignKey("entite.id"), nullable=True)
+    scope_site_id = db.Column(db.Integer, db.ForeignKey("site.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    scope_entite = db.relationship("Entite", foreign_keys=[scope_entite_id])
+    scope_site = db.relationship("Site", foreign_keys=[scope_site_id])
+
+    ROLES = ("repondant", "pilote", "admin")
+    SCOPES = ("global", "entite", "site")
+
+    @property
+    def role_label(self):
+        return {"repondant": "Répondant", "pilote": "Pilote", "admin": "Administrateur"}.get(self.role, self.role)
+
+    @property
+    def scope_label(self):
+        if self.scope_type == "entite" and self.scope_entite:
+            return self.scope_entite.nom
+        if self.scope_type == "site" and self.scope_site:
+            return self.scope_site.nom
+        return "Toutes entités"
+
+    def __repr__(self):
+        return f"<User {self.email} ({self.role})>"
+
+
 class Score(db.Model):
     """Un score attribué à une capacité dans une évaluation."""
     __tablename__ = "score"
@@ -210,7 +284,7 @@ class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     evaluation_id = db.Column(db.Integer, db.ForeignKey("evaluation.id"), nullable=False)
     capacite_id = db.Column(db.Integer, db.ForeignKey("capacite.id"), nullable=False)
-    niveau = db.Column(db.Integer, nullable=False)
+    niveau = db.Column(db.Integer, nullable=False)  # 0 = non applicable (exclu des moyennes)
     justification = db.Column(db.Text)
     signaux_constates = db.Column(db.Text)
 

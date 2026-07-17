@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 81 73" width="81" height="73" role="img" aria-label="République française">
+  <g transform="translate(18 10)">
+    <rect x="0" y="0" width="15" height="36" fill="#000091"></rect>
+    <rect x="15" y="0" width="15" height="36" fill="#ffffff"></rect>
+    <rect x="30" y="0" width="15" height="36" fill="#e1000f"></rect>
+  </g>
+  <text x="40.5" y="62" style="font: 700 10px/11px 'Marianne', system-ui, sans-serif; fill: #161616; text-anchor: middle; letter-spacing: 0.02em;">RÉPUBLIQUE</text>
+  <text x="40.5" y="72" style="font: 700 10px/11px 'Marianne', system-ui, sans-serif; fill: #161616; text-anchor: middle; letter-spacing: 0.02em;">FRANÇAISE</text>
+</svg>
