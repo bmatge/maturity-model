@@ -1,67 +1,66 @@
 {% extends "base.html" %}
-{% block title %}Évaluations — Maturité ComNum{% endblock %}
+{% block title %}Évaluations — Maturité numérique{% endblock %}
 
 {% block content %}
-<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-4w">
-    <div class="fr-col">
-        <h1 class="fr-h3">Évaluations</h1>
-    </div>
-    <div class="fr-col-auto">
-        <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--icon-left fr-icon-add-line">Nouvelle évaluation</a>
-    </div>
-</div>
+<h1 class="fr-h3 fr-mb-1w">Toutes les évaluations</h1>
+<p class="fr-text--lg fr-text-mention--grey fr-mb-3w">
+    Vue transverse (pilotage) : brouillons et évaluations validées, toutes cibles confondues.
+</p>
 
 {% if evaluations %}
-<div class="fr-table">
+<div class="fr-table fr-table--sm">
     <div class="fr-table__wrapper">
         <div class="fr-table__container">
             <div class="fr-table__content">
                 <table>
-                    <caption class="fr-sr-only">Liste des évaluations</caption>
                     <thead>
                         <tr>
                             <th scope="col">Cible</th>
                             <th scope="col">Référentiel</th>
                             <th scope="col">Campagne</th>
-                            <th scope="col">Évaluateur</th>
                             <th scope="col">Statut</th>
-                            <th scope="col">Date</th>
-                            <th scope="col"></th>
+                            <th scope="col">Score</th>
+                            <th scope="col">Évaluateur</th>
+                            <th scope="col"><span class="fr-sr-only">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for ev in evaluations %}
+                        {% for row in evaluations %}
+                        {% set ev = row.eval %}
                         <tr>
                             <td class="fr-text--bold">{{ ev.cible_nom }}</td>
                             <td>{{ ev.referentiel.label }}</td>
-                            <td>{{ ev.campagne.label if ev.campagne_id else '—' }}</td>
-                            <td>{{ ev.evaluateur or '—' }}</td>
+                            <td class="fr-text-mention--grey">{{ ev.campagne.label if ev.campagne_id else "Hors campagne" }}</td>
                             <td>
-                                {% if ev.statut == 'brouillon' %}
-                                <p class="fr-badge fr-badge--info fr-badge--sm fr-badge--no-icon">Brouillon</p>
+                                {% if ev.statut == "validee" %}
+                                <p class="fr-badge fr-badge--success fr-badge--sm">Validée</p>
                                 {% else %}
-                                <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
+                                <p class="fr-badge fr-badge--warning fr-badge--sm">Brouillon · {{ row.done }}/{{ row.total }}</p>
                                 {% endif %}
                             </td>
-                            <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') if ev.date_evaluation else '—' }}</td>
                             <td>
-                                <ul class="fr-btns-group fr-btns-group--inline">
-                                    {% if ev.statut == 'validee' %}
-                                    <li>
-                                        <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-line-chart-line">Résultats</a>
-                                    </li>
-                                    {% else %}
-                                    <li>
-                                        <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-edit-line">Compléter</a>
-                                    </li>
-                                    {% endif %}
-                                    <li>
-                                        <button class="fr-btn fr-btn--sm fr-btn--tertiary fr-btn--icon-left fr-icon-delete-line"
-                                                aria-controls="modal-delete-eval-{{ ev.id }}" data-fr-opened="false">
-                                            Supprimer
-                                        </button>
-                                    </li>
-                                </ul>
+                                {% if ev.statut == "validee" %}
+                                <span class="fr-text--bold">{{ row.score }}</span> / {{ row.max }}
+                                <span class="fr-text-mention--grey">({{ row.pct }} %)</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="fr-text-mention--grey">{{ ev.evaluateur or "—" }}</td>
+                            <td>
+                                {% if ev.statut == "validee" %}
+                                <a class="fr-link fr-link--sm" href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}">Résultats</a>
+                                <form method="post" class="fr-m-0" style="display:inline"
+                                      action="{{ url_for('evaluation_reopen', evaluation_id=ev.id) }}">
+                                    <input type="hidden" name="next" value="{{ url_for('evaluations_list') }}">
+                                    <button type="submit" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm">Rouvrir</button>
+                                </form>
+                                {% else %}
+                                <a class="fr-link fr-link--sm" href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}">Reprendre</a>
+                                {% endif %}
+                                <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-delete-line"
+                                        title="Supprimer"
+                                        data-delete-action="{{ url_for('evaluation_delete', evaluation_id=ev.id) }}"
+                                        data-delete-name="l'évaluation de {{ ev.cible_nom }}"
+                                        data-delete-next="{{ url_for('evaluations_list') }}">Supprimer</button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -71,44 +70,10 @@
         </div>
     </div>
 </div>
-
-{% for ev in evaluations %}
-<dialog id="modal-delete-eval-{{ ev.id }}" class="fr-modal" role="alertdialog" aria-labelledby="modal-delete-eval-title-{{ ev.id }}">
-    <div class="fr-container fr-container--fluid fr-container-md">
-        <div class="fr-grid-row fr-grid-row--center">
-            <div class="fr-col-12 fr-col-md-6">
-                <div class="fr-modal__body">
-                    <div class="fr-modal__header">
-                        <button class="fr-btn--close fr-btn" aria-controls="modal-delete-eval-{{ ev.id }}" title="Fermer">Fermer</button>
-                    </div>
-                    <div class="fr-modal__content">
-                        <h1 id="modal-delete-eval-title-{{ ev.id }}" class="fr-modal__title">
-                            Supprimer cette évaluation ?
-                        </h1>
-                        <p>Évaluation de <strong>{{ ev.cible_nom }}</strong> dans la campagne <strong>{{ ev.campagne.label }}</strong>. Cette action est irréversible. Tous les scores associés seront supprimés.</p>
-                    </div>
-                    <div class="fr-modal__footer">
-                        <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline">
-                            <li>
-                                <button class="fr-btn fr-btn--secondary" aria-controls="modal-delete-eval-{{ ev.id }}">Annuler</button>
-                            </li>
-                            <li>
-                                <form method="POST" action="{{ url_for('evaluation_delete', evaluation_id=ev.id) }}">
-                                    <button type="submit" class="fr-btn fr-btn--icon-left fr-icon-delete-line">Confirmer la suppression</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</dialog>
-{% endfor %}
-
 {% else %}
 <div class="fr-callout">
-    <p class="fr-callout__text">Aucune évaluation. <a href="{{ url_for('evaluation_new') }}">Lancez la première.</a></p>
+    <p class="fr-callout__title">Aucune évaluation</p>
+    <p class="fr-callout__text">Les évaluations apparaîtront ici dès qu'un répondant aura démarré un questionnaire.</p>
 </div>
 {% endif %}
 {% endblock %}

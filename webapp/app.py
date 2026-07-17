@@ -384,6 +384,7 @@ NAVS = {
     "pilote": [
         {"endpoint": "home", "label": "Tableau de bord", "icon": "fr-icon-dashboard-3-line"},
         {"endpoint": "campagnes_list", "label": "Campagnes", "icon": "fr-icon-calendar-2-line"},
+        {"endpoint": "evaluations_list", "label": "Évaluations", "icon": "fr-icon-survey-line"},
         {"endpoint": "entites_list", "label": "Organisations", "icon": "fr-icon-building-line"},
         {"endpoint": "sites_list", "label": "Sites web", "icon": "fr-icon-earth-line"},
         {"endpoint": "referentiels_admin", "label": "Référentiels", "icon": "fr-icon-stack-line"},

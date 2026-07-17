@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Importer un référentiel — Maturité numérique{% endblock %}
+
+{% block content %}
+<div style="max-width: 760px;">
+    <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('referentiels_admin') }}">Référentiels</a>
+    <h1 class="fr-mt-1w fr-mb-1w">Importer un référentiel</h1>
+    <p class="fr-text--lg text-mention fr-mb-3w">
+        Remplacez l'édition du code par un import structuré. Le fichier doit décrire la hiérarchie
+        référentiel → dimensions → capacités → niveaux/critères.
+    </p>
+
+    <div class="panel">
+        <form method="post" enctype="multipart/form-data">
+            <div class="dropzone fr-mb-3w">
+                <span class="fr-icon-file-download-line fr-icon--lg text-mention" aria-hidden="true"></span>
+                <div class="fr-upload-group fr-mt-1w">
+                    <label class="fr-label" for="import-fichier">Déposez un fichier JSON
+                        <span class="fr-hint-text">Format JSON structuré ; xlsx à venir. ex. Referentiel_Maturite_Design_MEF.json</span>
+                    </label>
+                    <input class="fr-upload" type="file" id="import-fichier" name="fichier" accept=".json" required>
+                </div>
+            </div>
+
+            <div class="fr-select-group fr-mb-3w">
+                <label class="fr-label" for="import-cible">Cible
+                    <span class="fr-hint-text">À qui s'adresse ce référentiel : organisations ou sites web.</span>
+                </label>
+                <select class="fr-select" id="import-cible" name="cible">
+                    <option value="organisation" selected>Organisation</option>
+                    <option value="site">Site</option>
+                </select>
+            </div>
+
+            <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w">
+                <p>Un référentiel déjà utilisé par des évaluations validées ne peut pas être modifié en place :
+                   l'import crée une nouvelle version.</p>
+            </div>
+
+            <section class="fr-accordion fr-mb-3w">
+                <h2 class="fr-accordion__title">
+                    <button type="button" class="fr-accordion__btn" aria-expanded="false" aria-controls="accordion-format">Format attendu</button>
+                </h2>
+                <div class="fr-collapse" id="accordion-format">
+                    <pre class="fr-text--xs" style="overflow-x: auto;"><code>{
+  "label": "Design-org v2",
+  "description": "Référentiel Design pour les organisations",
+  "cible": "organisation",
+  "dimensions": [
+    {
+      "numero": 1,
+      "nom": "Vision &amp; positionnement",
+      "capacites": [
+        {
+          "numero": "1.1",
+          "nom": "Vision stratégique",
+          "portee": "P",
+          "niveaux": [
+            { "niveau": 1, "nom": "Absent", "description": "Aucune vision formalisée." },
+            { "niveau": 2, "nom": "Engagé", "description": "Une vision existe, portée par quelques personnes." },
+            { "niveau": 3, "nom": "Systématisé", "description": "Vision partagée, revue et pilotée." }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre>
+                </div>
+            </section>
+
+            <div class="fr-btns-group fr-btns-group--inline">
+                <button type="submit" class="fr-btn">Prévisualiser &amp; importer</button>
+                <a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('referentiels_admin') }}">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

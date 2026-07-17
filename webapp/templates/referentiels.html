@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Référentiels — Maturité numérique{% endblock %}
+
+{% block content %}
+<div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
+    <div class="fr-col">
+        <h1 class="fr-mb-1w">Référentiels</h1>
+        <p class="fr-text--lg text-mention fr-mb-0">Gérez les cadres d'évaluation : import, activation, versionnage.</p>
+    </div>
+    <div class="fr-col-auto">
+        <a class="fr-btn fr-btn--icon-left fr-icon-upload-2-line" href="{{ url_for('referentiel_import') }}">Importer un référentiel</a>
+    </div>
+</div>
+
+<div class="fr-table" id="table-referentiels">
+    <div class="fr-table__wrapper">
+        <div class="fr-table__container">
+            <div class="fr-table__content">
+                <table>
+                    <caption class="fr-sr-only">Liste des référentiels</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Référentiel</th>
+                            <th scope="col">Cible</th>
+                            <th scope="col">Structure</th>
+                            <th scope="col">Utilisations</th>
+                            <th scope="col">Statut</th>
+                            <th scope="col"><span class="fr-sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in rows %}
+                        <tr>
+                            <td>
+                                <strong>{{ r.ref.label }}</strong>
+                                {% if r.ref.description %}
+                                <p class="fr-text--xs text-mention fr-mb-0" style="max-width: 320px;">{{ r.ref.description }}</p>
+                                {% endif %}
+                            </td>
+                            <td>{{ "Organisation" if r.ref.cible == "organisation" else "Site" }}</td>
+                            <td class="text-mention">{{ r.nb_dims }} dim · {{ r.nb_caps }} cap · {{ r.max_niveau }} niv.</td>
+                            <td class="text-mention">{{ r.nb_evals }} éval.</td>
+                            <td>
+                                <form method="post" action="{{ url_for('referentiel_toggle', ref_id=r.ref.id) }}" class="fr-m-0">
+                                    <div class="fr-toggle">
+                                        <input type="checkbox" class="fr-toggle__input" id="toggle-ref-{{ r.ref.id }}"
+                                               {% if r.ref.is_active %}checked{% endif %} onchange="this.form.submit()">
+                                        <label class="fr-toggle__label" for="toggle-ref-{{ r.ref.id }}">Actif</label>
+                                    </div>
+                                </form>
+                            </td>
+                            <td style="text-align: right;">
+                                <a class="fr-link fr-text--sm" href="{{ url_for('referentiel_view', ref_id=r.ref.id) }}">Consulter</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

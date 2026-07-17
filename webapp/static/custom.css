@@ -73,6 +73,7 @@
 .levels-4 .hm-cell--3 { background: var(--background-contrast-info); color: var(--text-default-info); }
 .hm-cell--4 { background: var(--background-contrast-success); color: var(--text-default-success); }
 .hm-cell--na, .hm-cell--0 { background: var(--background-contrast-grey); color: var(--text-mention-grey); }
+.hm-cell--empty { background: var(--background-alt-grey); }
 
 /* ── Cartes exécutives (restitution) ── */
 .exec-card { border-top: 4px solid var(--border-default-grey); }
@@ -88,6 +89,7 @@
 /* ── Cartes d'évaluation (mes évaluations) ── */
 .eval-card { display: flex; gap: 1.5rem; align-items: center; }
 .eval-card__stripe { flex: none; width: 4px; align-self: stretch; }
+.eval-card__stripe--error { background: var(--text-default-error); }
 .eval-card__stripe--warning { background: var(--text-default-warning); }
 .eval-card__stripe--info { background: var(--text-default-info); }
 .eval-card__stripe--success { background: var(--text-default-success); }
@@ -99,6 +101,22 @@
 .score-hero__pct--success { color: var(--text-default-success); }
 .score-hero__pct--warning { color: var(--text-default-warning); }
 .score-hero__pct--error { color: var(--text-default-error); }
+
+/* ── Panneau générique (carte de contenu, maquette pilote) ── */
+.panel { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 1.5rem; }
+.panel--danger { border-color: var(--border-default-error); background: var(--background-contrast-error); }
+.panel__title { font-weight: 700; font-size: 1.125rem; line-height: 1.5rem; margin: 0 0 0.75rem; }
+.panel--danger .panel__title { color: var(--text-default-error); }
+
+/* ── Blocs statut de campagne (Validées / Brouillon / Non commencée / Participation) ── */
+.camp-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.camp-stat { flex: 1; min-width: 110px; padding: 16px; text-align: center; }
+.camp-stat__value { font-size: 1.75rem; line-height: 2.25rem; font-weight: 700; }
+.camp-stat__label { font-size: 0.8125rem; line-height: 1.125rem; }
+.camp-stat--success { background: var(--background-contrast-success); color: var(--text-default-success); }
+.camp-stat--warning { background: var(--background-contrast-warning); color: var(--text-default-warning); }
+.camp-stat--neutral { background: var(--background-contrast-grey); color: var(--text-mention-grey); }
+.camp-stat--info { background: var(--background-alt-blue-france); color: var(--text-title-blue-france); }
 
 /* ── Identité (header) ── */
 .identity-form select { max-width: 220px; }

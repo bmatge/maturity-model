@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}{{ campagne.label }} — Maturité numérique{% endblock %}
+
+{% block content %}
+<a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('campagnes_list') }}">Campagnes</a>
+<div class="fr-grid-row fr-grid-row--middle fr-mt-1w fr-mb-3w">
+    <div class="fr-col">
+        <h1 class="fr-mb-1v">{{ campagne.label }}</h1>
+        <p class="fr-text--sm text-mention fr-mb-0">
+            {{ campagne.referentiel.label if campagne.referentiel else "Sans référentiel" }}
+            · {{ "en cours" if campagne.statut == "en_cours" else "terminée" }}
+            · {{ stats.pct }} % de participation
+        </p>
+    </div>
+    <div class="fr-col-auto">
+        <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-bar-chart-box-line"
+           href="{{ url_for('campagne_dashboard', campagne_id=campagne.id) }}">Restitution</a>
+    </div>
+</div>
+
+{% set tabs = [("suivi", "Suivi", "fr-icon-todo-line"),
+               ("perimetre", "Périmètre", "fr-icon-community-line"),
+               ("invitations", "Invitations", "fr-icon-mail-line"),
+               ("reglages", "Réglages", "fr-icon-settings-5-line")] %}
+{% set active_tab = tab if tab in ["suivi", "perimetre", "invitations", "reglages"] else "suivi" %}
+
+<div class="fr-tabs">
+    <ul class="fr-tabs__list" role="tablist" aria-label="Pilotage de la campagne">
+        {% for tid, tlabel, ticon in tabs %}
+        <li role="presentation">
+            <button type="button" id="tab-{{ tid }}" class="fr-tabs__tab {{ ticon }} fr-tabs__tab--icon-left"
+                    tabindex="{{ "0" if active_tab == tid else "-1" }}" role="tab"
+                    aria-selected="{{ "true" if active_tab == tid else "false" }}"
+                    aria-controls="tab-{{ tid }}-panel">{{ tlabel }}</button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {# ── Onglet Suivi ── #}
+    <div id="tab-suivi-panel" class="fr-tabs__panel{% if active_tab == "suivi" %} fr-tabs__panel--selected{% endif %}"
+         role="tabpanel" aria-labelledby="tab-suivi" tabindex="0">
+        {% if not stats.has_perimetre %}
+        <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-2w">
+            <p>Aucun périmètre défini — les lignes ci-dessous reflètent les évaluations existantes.
+               Définissez le périmètre pour mesurer la participation.</p>
+        </div>
+        {% endif %}
+        {% if stats.rows %}
+        <div class="fr-table" id="table-suivi">
+            <div class="fr-table__wrapper">
+                <div class="fr-table__container">
+                    <div class="fr-table__content">
+                        <table>
+                            <caption class="fr-sr-only">Suivi des évaluations de la campagne</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Organisation attendue</th>
+                                    <th scope="col">Évaluateur</th>
+                                    <th scope="col">Statut</th>
+                                    <th scope="col"><span class="fr-sr-only">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in stats.rows %}
+                                {% set nom_cible = r.entite.nom if r.entite else (r.site.nom if r.site else "—") %}
+                                <tr>
+                                    <td><strong>{{ nom_cible }}</strong></td>
+                                    <td class="text-mention">{{ r.evaluateur or "—" }}</td>
+                                    <td>
+                                        {% if r.statut == "validee" %}
+                                        <span class="fr-badge fr-badge--sm fr-badge--success">Validée</span>
+                                        {% elif r.statut == "brouillon" %}
+                                        <span class="fr-badge fr-badge--sm fr-badge--warning">Brouillon{% if r.eval %} · {{ r.done }}/{{ r.total }}{% endif %}</span>
+                                        {% else %}
+                                        <span class="fr-badge fr-badge--sm fr-badge--no-icon">Non commencée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right; white-space: nowrap;">
+                                        {% if r.statut != "validee" %}
+                                        {% set relance_body = "Bonjour,\n\nVotre évaluation « " ~ nom_cible ~ " » pour la campagne « " ~ campagne.label ~ " » est attendue." %}
+                                        {% if campagne.referentiel and r.entite %}
+                                        {% set relance_body = relance_body ~ "\n\nLien direct : " ~ url_for("invitation", campagne_id=campagne.id, entite_id=r.entite.id, _external=True) %}
+                                        {% endif %}
+                                        <a class="fr-link fr-text--sm fr-icon-mail-send-line fr-link--icon-left fr-mr-2w"
+                                           href="mailto:?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ relance_body|urlencode }}">Relancer</a>
+                                        {% endif %}
+                                        {% if r.eval %}
+                                        <a class="fr-link fr-text--sm"
+                                           href="{{ url_for("evaluation_results", evaluation_id=r.eval.id) if r.statut == "validee" else url_for("evaluation_fill", evaluation_id=r.eval.id) }}">Ouvrir →</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="fr-callout">
+            <p class="fr-callout__title">Aucune évaluation pour l'instant</p>
+            <p class="fr-callout__text">Définissez le périmètre puis envoyez les invitations : chaque organisation attendue apparaîtra ici avec son statut.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Onglet Périmètre ── #}
+    <div id="tab-perimetre-panel" class="fr-tabs__panel{% if active_tab == "perimetre" %} fr-tabs__panel--selected{% endif %}"
+         role="tabpanel" aria-labelledby="tab-perimetre" tabindex="0">
+        <p class="text-mention fr-mb-2w">Sélectionnez les organisations attendues. Le périmètre permet de distinguer
+           « n'a pas commencé » de « pas concerné » et de mesurer la participation.</p>
+        <form method="post" action="{{ url_for('campagne_perimetre', campagne_id=campagne.id) }}">
+            <fieldset class="fr-fieldset" aria-labelledby="perimetre-legend">
+                <legend class="fr-fieldset__legend fr-fieldset__legend--regular" id="perimetre-legend">
+                    Organisations attendues
+                </legend>
+                {% for e in entites %}
+                <div class="fr-fieldset__element">
+                    <div class="fr-checkbox-group">
+                        <input type="checkbox" id="perim-{{ e.id }}" name="entite_ids" value="{{ e.id }}"
+                               {% if e.id in participant_ids %}checked{% endif %}>
+                        <label class="fr-label" for="perim-{{ e.id }}">{{ e.nom }}
+                            {% if e.direction %}<span class="fr-hint-text">{{ e.direction }}</span>{% endif %}
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+            </fieldset>
+            <button type="submit" class="fr-btn fr-mt-1w">Enregistrer le périmètre</button>
+        </form>
+    </div>
+
+    {# ── Onglet Invitations ── #}
+    <div id="tab-invitations-panel" class="fr-tabs__panel{% if active_tab == "invitations" %} fr-tabs__panel--selected{% endif %}"
+         role="tabpanel" aria-labelledby="tab-invitations" tabindex="0">
+        <div class="fr-alert fr-alert--info fr-alert--sm fr-mb-2w">
+            <p>Chaque invitation pré-remplit le triplet référentiel + campagne + cible : le répondant n'a plus qu'à répondre.
+               Fini les doublons et les erreurs de cible.</p>
+        </div>
+        {% if not campagne.referentiel %}
+        <div class="fr-alert fr-alert--warning fr-alert--sm fr-mb-2w">
+            <p>Cette campagne n'a pas de référentiel attribué — définissez-le dans l'onglet Réglages
+               pour générer des liens d'invitation pré-remplis.</p>
+        </div>
+        {% endif %}
+        {% if stats.has_perimetre %}
+        <div class="panel">
+            <div style="display: grid; gap: 12px;">
+                {% for r in stats.rows if r.entite %}
+                {% set inv_url = url_for('invitation', campagne_id=campagne.id, entite_id=r.entite.id, _external=True) %}
+                {% set inv_body = "Bonjour,\n\nVous êtes invité·e à évaluer « " ~ r.entite.nom ~ " » dans le cadre de la campagne « " ~ campagne.label ~ " ».\n\nLien direct (référentiel et cible pré-remplis) : " ~ inv_url %}
+                <div class="fr-grid-row fr-grid-row--middle" style="gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-default-grey);">
+                    <span class="fr-col fr-text--bold">{{ r.entite.nom }}</span>
+                    <span class="fr-col-auto fr-text--sm text-mention">{{ campagne.referentiel.label if campagne.referentiel else "—" }}</span>
+                    <span class="fr-col-auto">
+                        <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-links-line"
+                                data-copy-link="{{ inv_url }}">Copier le lien</button>
+                    </span>
+                    <span class="fr-col-auto">
+                        <a class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line"
+                           href="mailto:?subject={{ ("Invitation — " ~ campagne.label)|urlencode }}&body={{ inv_body|urlencode }}">Inviter</a>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="fr-callout">
+            <p class="fr-callout__title">Définissez d'abord le périmètre</p>
+            <p class="fr-callout__text">Les invitations sont générées pour chaque organisation attendue.
+               Sélectionnez-les dans l'onglet Périmètre.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Onglet Réglages ── #}
+    <div id="tab-reglages-panel" class="fr-tabs__panel{% if active_tab == "reglages" %} fr-tabs__panel--selected{% endif %}"
+         role="tabpanel" aria-labelledby="tab-reglages" tabindex="0">
+        <div style="max-width: 640px; display: grid; gap: 20px;">
+            <div class="panel">
+                <p class="panel__title">Renommer / ajuster</p>
+                <form method="post" action="{{ url_for('campagne_update', campagne_id=campagne.id) }}">
+                    <div class="fr-input-group fr-mb-2w">
+                        <label class="fr-label" for="reglage-label">Nom</label>
+                        <input class="fr-input" type="text" id="reglage-label" name="label" value="{{ campagne.label }}" required>
+                    </div>
+                    <div class="fr-grid-row fr-grid-row--gutters fr-mb-1w">
+                        <div class="fr-col-12 fr-col-md-6">
+                            <div class="fr-input-group">
+                                <label class="fr-label" for="reglage-debut">Date de début</label>
+                                <input class="fr-input" type="date" id="reglage-debut" name="date_debut"
+                                       value="{{ campagne.date_debut.isoformat() }}">
+                            </div>
+                        </div>
+                        <div class="fr-col-12 fr-col-md-6">
+                            <div class="fr-input-group">
+                                <label class="fr-label" for="reglage-fin">Date de fin (optionnelle)</label>
+                                <input class="fr-input" type="date" id="reglage-fin" name="date_fin"
+                                       value="{{ campagne.date_fin.isoformat() if campagne.date_fin else "" }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fr-select-group fr-mb-3w">
+                        <label class="fr-label" for="reglage-ref">Référentiel de la campagne
+                            <span class="fr-hint-text">Toutes les évaluations de la campagne partageront ce référentiel — garantit la comparabilité.</span>
+                        </label>
+                        <select class="fr-select" id="reglage-ref" name="referentiel_id">
+                            <option value="" {% if not campagne.referentiel_id %}selected{% endif %}>Aucun</option>
+                            {% for ref in referentiels %}
+                            <option value="{{ ref.id }}" {% if campagne.referentiel_id == ref.id %}selected{% endif %}>{{ ref.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="fr-btn">Enregistrer</button>
+                </form>
+            </div>
+
+            <div class="panel">
+                <p class="panel__title fr-mb-1v">Clôturer la campagne</p>
+                <p class="fr-text--sm text-mention fr-mb-2w">Fige les résultats et retire la campagne des choix proposés aux répondants. Réversible.</p>
+                <form method="post" action="{{ url_for('campagne_statut', campagne_id=campagne.id) }}">
+                    {% if campagne.statut == "en_cours" %}
+                    <button type="submit" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-lock-line">Clôturer (passer « terminée »)</button>
+                    {% else %}
+                    <button type="submit" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-lock-unlock-line">Réouvrir</button>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="panel panel--danger">
+                <p class="panel__title fr-mb-1v">Supprimer la campagne</p>
+                <p class="fr-text--sm fr-mb-2w">Supprime la campagne et, en cascade, toutes ses évaluations et scores. Action irréversible.</p>
+                <button type="button" class="fr-btn fr-btn--icon-left fr-icon-delete-line"
+                        data-delete-action="{{ url_for('campagne_delete', campagne_id=campagne.id) }}"
+                        data-delete-name="la campagne {{ campagne.label }}">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Copie du lien d'invitation dans le presse-papiers
+document.querySelectorAll("[data-copy-link]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        navigator.clipboard.writeText(btn.getAttribute("data-copy-link")).then(function () {
+            var label = btn.textContent;
+            btn.textContent = "Copié ✓";
+            setTimeout(function () { btn.textContent = label; }, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,162 +1,76 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — {{ campagne.label }} — Maturité ComNum{% endblock %}
-
-{% block extra_css %}
-<style>
-    .heatmap-table { font-size: .75rem; }
-    .heatmap-table th { white-space: nowrap; max-width: 40px; overflow: hidden; text-overflow: ellipsis; }
-    .heatmap-table td { padding: 2px; }
-</style>
-{% endblock %}
+{% block title %}Restitution — {{ campagne.label }} — Maturité numérique{% endblock %}
 
 {% block content %}
-<div class="fr-mb-4w">
-    <h1 class="fr-h3">Dashboard — {{ campagne.label }}</h1>
-    <p class="fr-text--alt">
-        Référentiel {{ referentiel.label }} —
-        {{ evaluations | selectattr('statut', 'equalto', 'validee') | list | length }} évaluation(s) validée(s)
-        sur {{ evaluations | length }} total
-    </p>
+<a class="fr-link fr-icon-arrow-left-line fr-link--icon-left no-print" href="{{ url_for('campagne_detail', campagne_id=campagne.id) }}">{{ campagne.label }}</a>
+<div class="fr-grid-row fr-grid-row--middle fr-mt-1w fr-mb-2w">
+    <div class="fr-col">
+        <h1 class="fr-mb-1w">Restitution — {{ campagne.label }}</h1>
+        <p class="fr-text--lg text-mention fr-mb-0">
+            Comparaison inter-entités sur les évaluations validées. Repérez les capacités faibles partout
+            (chantier transverse) et les entités faibles partout (accompagnement ciblé).
+        </p>
+    </div>
+    <div class="fr-col-auto no-print">
+        <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--sm">
+            <li>
+                <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-printer-line"
+                   href="{{ url_for('campagne_dashboard', campagne_id=campagne.id, print=1) }}">Exporter (PDF)</a>
+            </li>
+            <li>
+                <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-download-line"
+                   href="{{ url_for('export_campagne_csv', campagne_id=campagne.id) }}">Scores (CSV)</a>
+            </li>
+        </ul>
+    </div>
 </div>
 
-{% if not stats %}
-<div class="fr-alert fr-alert--info fr-alert--sm">
-    <p>Aucune évaluation validée pour cette campagne. Les statistiques apparaîtront une fois les premières évaluations terminées.</p>
+{% if nb_validees == 0 %}
+<div class="fr-callout">
+    <p class="fr-callout__title">Aucune évaluation validée pour l'instant</p>
+    <p class="fr-callout__text">La restitution se construit à partir des évaluations validées :
+       {{ stats_campagne.valides }}/{{ stats_campagne.attendus }} pour l'instant.
+       Relancez les organisations attendues depuis l'onglet Suivi de la campagne.</p>
 </div>
 {% else %}
 
-<!-- Stats globales par dimension -->
-<div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
-    {% for dim_id, s in stats.items() %}
-    <div class="fr-col-12 fr-col-md-3 fr-col-lg">
-        <div class="fr-tile fr-tile--no-border fr-tile--shadow">
-            <div class="fr-tile__body">
-                <div class="fr-tile__content">
-                    <h3 class="fr-tile__title">{{ s.moyenne }}</h3>
-                    <p class="fr-tile__desc">{{ s.numero }}. {{ s.nom }}</p>
-                    <p class="fr-text--sm fr-mt-1v">
-                        <span class="fr-text--alt">min</span> {{ s.min }}
-                        &nbsp;&middot;&nbsp;
-                        <span class="fr-text--alt">max</span> {{ s.max }}
-                        &nbsp;&middot;&nbsp;
-                        <span class="fr-text--alt">&sigma;</span> {{ s.ecart_type }}
-                    </p>
-                </div>
-            </div>
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-lg-5">
+        <div class="panel chart-card" style="height: 100%;">
+            <p class="panel__title">Radar comparatif</p>
+            <dsfr-data-source id="cmp" data='{{ radar_rows|tojson }}'></dsfr-data-source>
+            <dsfr-data-chart source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
         </div>
     </div>
-    {% endfor %}
-</div>
-
-<div class="fr-grid-row fr-grid-row--gutters fr-mb-5w">
-    <!-- Radar comparatif -->
-    <div class="fr-col-12 fr-col-md-7">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Radar comparatif</h2>
-                    <radar-chart
-                        x='{{ chart_radar_x | safe }}'
-                        y='{{ chart_radar_y | safe }}'
-                        name='{{ chart_radar_names | safe }}'
-                        selected-palette="categorical">
-                    </radar-chart>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Écarts -->
-    <div class="fr-col-12 fr-col-md-5">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Écarts par dimension</h2>
-                    <bar-chart horizontal
-                        x='{{ chart_bar_x | safe }}'
-                        y='{{ chart_bar_y | safe }}'
-                        name='{{ chart_bar_names | safe }}'
-                        selected-palette="categorical">
-                    </bar-chart>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Heatmap (custom — pas d'équivalent DSFR pour sticky columns + scroll horizontal) -->
-<div class="fr-card fr-mb-5w">
-    <div class="fr-card__body">
-        <div class="fr-card__content">
-            <h2 class="fr-card__title fr-mb-2w">Heatmap entités &times; capacités</h2>
-            <div style="overflow-x: auto;">
-                <table class="heatmap-table" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr>
-                            <th style="position: sticky; left: 0; z-index: 10; background: #fff; padding: 4px 8px;">Entité</th>
-                            {% for cap in all_capacites %}
-                            <th style="text-align: center; padding: 4px;" title="{{ cap.dim_nom }} — {{ cap.nom }}">{{ cap.numero }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in heatmap %}
-                        <tr>
-                            <td class="fr-text--bold" style="position: sticky; left: 0; z-index: 5; background: #fff; padding: 4px 8px; white-space: nowrap;">{{ row.entite }}</td>
-                            {% for cap in all_capacites %}
-                            {% set score = row.scores.get(cap.numero) %}
-                            <td class="heatmap-cell {{ 'niveau-' ~ score if score }}">
-                                {{ score if score else '—' }}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Liste des évaluations -->
-<div class="fr-card">
-    <div class="fr-card__body">
-        <div class="fr-card__content">
-            <h2 class="fr-card__title fr-mb-2w">Évaluations</h2>
-            <div class="fr-table">
+    <div class="fr-col-12 fr-col-lg-7">
+        <div class="panel" style="height: 100%;">
+            <p class="panel__title">Statistiques par dimension</p>
+            <div class="fr-table fr-table--sm fr-mb-0" id="table-dim-stats">
                 <div class="fr-table__wrapper">
                     <div class="fr-table__container">
                         <div class="fr-table__content">
                             <table>
-                                <caption class="fr-sr-only">Liste des évaluations de la campagne</caption>
+                                <caption class="fr-sr-only">Statistiques par dimension (moyenne, écart-type, min-max)</caption>
                                 <thead>
                                     <tr>
-                                        <th scope="col">Entité</th>
-                                        <th scope="col">Évaluateur</th>
-                                        <th scope="col">Date</th>
-                                        <th scope="col">Statut</th>
-                                        <th scope="col"></th>
+                                        <th scope="col">Dimension</th>
+                                        <th scope="col">Moyenne</th>
+                                        <th scope="col">Écart-type</th>
+                                        <th scope="col">Min–Max</th>
+                                        <th scope="col"><span class="fr-sr-only">Jauge</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for ev in evaluations %}
+                                    {% for d in dim_stats %}
                                     <tr>
-                                        <td class="fr-text--bold">{{ ev.cible_nom }}</td>
-                                        <td>{{ ev.evaluateur or '—' }}</td>
-                                        <td>{{ ev.date_evaluation.strftime('%d/%m/%Y') }}</td>
-                                        <td>
-                                            {% if ev.statut == 'brouillon' %}
-                                            <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon</p>
-                                            {% else %}
-                                            <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Validée</p>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if ev.statut == 'brouillon' %}
-                                            <a href="{{ url_for('evaluation_fill', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Continuer</a>
-                                            {% else %}
-                                            <a href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary">Résultats</a>
-                                            {% endif %}
+                                        <td>{{ d.numero }}. {{ d.nom }}</td>
+                                        <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
+                                        <td class="text-mention">± {{ d.ecart_type }}</td>
+                                        <td class="text-mention">{{ d.min }} – {{ d.max }}</td>
+                                        <td style="width: 120px;">
+                                            <div class="progress">
+                                                <div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -167,6 +81,56 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+{# ── Heatmap entités × capacités ── #}
+<div class="panel">
+    <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+        <div class="fr-col"><p class="panel__title fr-mb-0">Heatmap — entités × capacités</p></div>
+        <div class="fr-col-auto fr-text--sm text-mention">
+            Survol : détail ·
+            {% if all_capacites and all_capacites[0].niveaux %}
+            {% for niv in all_capacites[0].niveaux %}
+            {% set legcolor = {1: "error", 2: "warning", 3: ("info" if max_niveau == 4 else "success"), 4: "success"}.get(niv.niveau, "info") %}
+            <span style="color: var(--text-default-{{ legcolor }});" aria-hidden="true">■</span> {{ niv.nom }}{% if not loop.last %} {% endif %}
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+    <div class="heatmap-scroll">
+        <table class="heatmap{% if max_niveau == 4 %} levels-4{% endif %}">
+            <caption class="fr-sr-only">Niveaux atteints par entité et par capacité</caption>
+            <thead>
+                <tr>
+                    <th class="row-label" scope="col"><span class="fr-sr-only">Entité</span></th>
+                    {% for cap in all_capacites %}
+                    <th class="rot" scope="col" title="{{ cap.numero }} {{ cap.nom }}">{{ cap.numero }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in heatmap %}
+                <tr>
+                    <td class="row-label">{{ row.nom }}</td>
+                    {% for cap in all_capacites %}
+                    {% set score = row.cells[loop.index0] %}
+                    <td style="padding: 0;">
+                        {% if score is none %}
+                        <div class="hm-cell hm-cell--empty" title="{{ cap.numero }} {{ cap.nom }} — non renseigné"></div>
+                        {% elif score.niveau == 0 %}
+                        <div class="hm-cell hm-cell--na" title="{{ cap.numero }} {{ cap.nom }} — non applicable">NA</div>
+                        {% else %}
+                        {% set niv_def = cap.niveaux | selectattr("niveau", "equalto", score.niveau) | list | first %}
+                        <div class="hm-cell hm-cell--{{ score.niveau }}"
+                             title="{{ cap.numero }} {{ cap.nom }} — niveau {{ score.niveau }}{% if niv_def %} ({{ niv_def.nom }}){% endif %}">{{ score.niveau }}</div>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endif %}

@@ -1,97 +1,81 @@
 {% extends "base.html" %}
-{% block title %}Entités — Maturité ComNum{% endblock %}
+{% block title %}Organisations — Maturité numérique{% endblock %}
 
 {% block content %}
-<div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-4w">
+<div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
     <div class="fr-col">
-        <h1 class="fr-h3">Entités évaluées</h1>
+        <h1 class="fr-mb-1w">Organisations</h1>
+        <p class="fr-text--lg text-mention fr-mb-0">Le patrimoine évalué, avec le dernier score par référentiel.</p>
     </div>
     <div class="fr-col-auto">
-        <a href="{{ url_for('entite_new') }}" class="fr-btn fr-btn--icon-left fr-icon-add-line">Nouvelle entité</a>
+        <a class="fr-btn fr-btn--icon-left fr-icon-add-line" href="{{ url_for('entite_form') }}">Créer une organisation</a>
     </div>
 </div>
 
-<div class="fr-grid-row fr-grid-row--gutters">
-    {% for e in entites %}
-    <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h3 class="fr-card__title">{{ e.nom }}</h3>
-                    <p class="fr-card__desc">
-                        {% if e.direction %}{{ e.direction }}{% else %}—{% endif %}
-                    </p>
-                    <div class="fr-card__start">
-                        <p class="fr-badge fr-badge--sm fr-badge--no-icon">{{ e.type }}</p>
-                        <p class="fr-badge fr-badge--sm fr-badge--info fr-badge--no-icon">{{ e.evaluations | length }} évaluation(s)</p>
-                    </div>
-                    {% if entite_scores.get(e.id) %}
-                    <div class="fr-mt-2w">
-                        {% for sc in entite_scores[e.id] %}
-                        <div class="fr-grid-row fr-grid-row--middle fr-mb-1v">
-                            <div class="fr-col">
-                                <span class="fr-text--xs">{{ sc.ref }}</span>
-                            </div>
-                            <div class="fr-col-auto">
-                                <span class="fr-badge fr-badge--sm fr-badge--no-icon niveau-badge-{{ sc.score | round | int }}">{{ sc.score }}/{{ sc.max }}</span>
-                            </div>
-                        </div>
-                        <div class="fr-progress fr-mb-1w" style="height: 4px; border-radius: 2px;">
-                            <div class="fr-progress__bar niveau-badge-{{ sc.score | round | int }}" style="width: {{ sc.pct }}%; border-radius: 2px;"></div>
-                        </div>
+{% if entites %}
+<div class="fr-table" id="table-entites">
+    <div class="fr-table__wrapper">
+        <div class="fr-table__container">
+            <div class="fr-table__content">
+                <table>
+                    <caption class="fr-sr-only">Liste des organisations</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Nom</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Direction</th>
+                            <th scope="col">Sites</th>
+                            <th scope="col">Maturité par référentiel</th>
+                            <th scope="col"><span class="fr-sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in entites %}
+                        <tr>
+                            <td><strong>{{ e.nom }}</strong></td>
+                            <td><span class="fr-badge fr-badge--sm fr-badge--no-icon">{{ e.type }}</span></td>
+                            <td class="text-mention">{{ e.direction or "—" }}</td>
+                            <td class="text-mention">{{ e.sites | length }}</td>
+                            <td>
+                                {% set cards = entite_scores.get(e.id, []) %}
+                                {% if cards %}
+                                <div style="display: grid; gap: 6px;">
+                                    {% for card in cards %}
+                                    <div class="score-inline">
+                                        <span class="fr-text--xs text-mention" style="width: 130px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                              title="{{ card.ref.label }}">{{ card.ref.label }}</span>
+                                        <div class="progress progress--sm">
+                                            <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
+                                        </div>
+                                        <span class="fr-text--sm fr-text--bold">{{ card.score }}/{{ card.max }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="fr-text--sm text-mention">Aucune évaluation validée</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <a class="fr-link fr-text--sm fr-mr-2w" href="{{ url_for('entite_form', entite_id=e.id) }}">Modifier</a>
+                                <a class="fr-link fr-text--sm fr-mr-2w" href="{{ url_for('entite_evolution', entite_id=e.id) }}">Évolution</a>
+                                <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-delete-line"
+                                        title="Supprimer {{ e.nom }}"
+                                        data-delete-action="{{ url_for('entite_delete', entite_id=e.id) }}"
+                                        data-delete-name="l'organisation {{ e.nom }}">Supprimer {{ e.nom }}</button>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="fr-card__footer">
-                    <ul class="fr-btns-group fr-btns-group--inline">
-                        <li>
-                            <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--sm fr-btn--secondary fr-btn--icon-left fr-icon-arrow-up-line">Évolution</a>
-                        </li>
-                        <li>
-                            <button class="fr-btn fr-btn--sm fr-btn--tertiary fr-btn--icon-left fr-icon-delete-line"
-                                    aria-controls="modal-delete-{{ e.id }}" data-fr-opened="false">
-                                Supprimer
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-
-    <!-- Modale de confirmation de suppression -->
-    <dialog id="modal-delete-{{ e.id }}" class="fr-modal" role="alertdialog" aria-labelledby="modal-delete-title-{{ e.id }}">
-        <div class="fr-container fr-container--fluid fr-container-md">
-            <div class="fr-grid-row fr-grid-row--center">
-                <div class="fr-col-12 fr-col-md-6">
-                    <div class="fr-modal__body">
-                        <div class="fr-modal__header">
-                            <button class="fr-btn--close fr-btn" aria-controls="modal-delete-{{ e.id }}" title="Fermer">Fermer</button>
-                        </div>
-                        <div class="fr-modal__content">
-                            <h1 id="modal-delete-title-{{ e.id }}" class="fr-modal__title">
-                                Supprimer « {{ e.nom }} » ?
-                            </h1>
-                            <p>Cette action est irréversible. Toutes les évaluations et scores associés à cette entité seront également supprimés.</p>
-                        </div>
-                        <div class="fr-modal__footer">
-                            <ul class="fr-btns-group fr-btns-group--right fr-btns-group--inline">
-                                <li>
-                                    <button class="fr-btn fr-btn--secondary" aria-controls="modal-delete-{{ e.id }}">Annuler</button>
-                                </li>
-                                <li>
-                                    <form method="POST" action="{{ url_for('entite_delete', entite_id=e.id) }}">
-                                        <button type="submit" class="fr-btn fr-btn--icon-left fr-icon-delete-line">Confirmer la suppression</button>
-                                    </form>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </dialog>
-    {% endfor %}
 </div>
+{% else %}
+<div class="fr-callout">
+    <p class="fr-callout__title">Aucune organisation</p>
+    <p class="fr-callout__text">Créez les organisations à évaluer (SIRCOM, bureaux de communication) pour constituer le patrimoine.</p>
+    <a class="fr-btn fr-btn--icon-left fr-icon-add-line fr-mt-2w" href="{{ url_for('entite_form') }}">Créer une organisation</a>
+</div>
+{% endif %}
 {% endblock %}

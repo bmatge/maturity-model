@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs &amp; rôles — Maturité numérique{% endblock %}
+
+{% block content %}
+{% set edit_user = (users | selectattr("id", "equalto", edit_id) | list | first) if edit_id else None %}
+
+<div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
+    <div class="fr-col">
+        <h1 class="fr-mb-1w">Utilisateurs &amp; rôles</h1>
+        <p class="fr-text--lg text-mention fr-mb-0" style="max-width: 680px;">
+            Les rôles conditionnent « mon évaluation », les invitations et la protection des actions destructives.
+            En attendant Authentik, l'identité se choisit dans l'en-tête.
+        </p>
+    </div>
+    <div class="fr-col-auto">
+        <a class="fr-btn fr-btn--icon-left fr-icon-user-add-line" href="#user-form">Ajouter un utilisateur</a>
+    </div>
+</div>
+
+{# ── Cartes de rôles ── #}
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-3">
+        <div class="fr-callout fr-p-2w fr-mb-0" style="height: 100%;">
+            <p class="fr-callout__title fr-text--md">Répondant</p>
+            <p class="fr-callout__text fr-text--xs">Remplit et valide ses propres évaluations.</p>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-3">
+        <div class="panel fr-p-2w" style="height: 100%;">
+            <p class="fr-text--md fr-text--bold fr-mb-1v">Pilote</p>
+            <p class="fr-text--xs text-mention fr-mb-0">Campagnes, suivi, restitution, suppressions.</p>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-3">
+        <div class="panel fr-p-2w" style="height: 100%;">
+            <p class="fr-text--md fr-text--bold fr-mb-1v">Administrateur</p>
+            <p class="fr-text--xs text-mention fr-mb-0">Référentiels, entités/sites, accès.</p>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-3">
+        <div class="panel fr-p-2w" style="height: 100%;">
+            <p class="fr-text--md fr-text--bold fr-mb-1v">Lecteur (public)</p>
+            <p class="fr-text--xs text-mention fr-mb-0">Consulte les restitutions, sans compte.</p>
+        </div>
+    </div>
+</div>
+
+{# ── Tableau des comptes ── #}
+<div class="fr-table" id="table-users">
+    <div class="fr-table__wrapper">
+        <div class="fr-table__container">
+            <div class="fr-table__content">
+                <table>
+                    <caption class="fr-sr-only">Comptes utilisateurs</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Utilisateur</th>
+                            <th scope="col">Rôle</th>
+                            <th scope="col">Droit</th>
+                            <th scope="col"><span class="fr-sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>
+                                <strong>{{ u.nom }}</strong>
+                                <p class="fr-text--xs text-mention fr-mb-0">{{ u.email }}</p>
+                            </td>
+                            <td>
+                                <span class="fr-badge fr-badge--sm fr-badge--no-icon {% if u.role == 'pilote' %}fr-badge--info{% elif u.role == 'admin' %}fr-badge--new{% endif %}">{{ u.role_label }}</span>
+                            </td>
+                            <td>
+                                {{ u.scope_label }}
+                                <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w">{{ u.scope_type }}</span>
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <a class="fr-link fr-text--sm fr-mr-2w" href="{{ url_for('users_list', edit=u.id) }}#user-form">Modifier</a>
+                                <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-delete-line"
+                                        title="Supprimer le compte {{ u.nom }}"
+                                        data-delete-action="{{ url_for('user_delete', user_id=u.id) }}"
+                                        data-delete-name="le compte {{ u.nom }}">Supprimer {{ u.nom }}</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Formulaire ajout / édition ── #}
+<div class="panel fr-mt-3w" id="user-form" style="max-width: 640px;">
+    <p class="panel__title">{{ "Modifier « " ~ edit_user.nom ~ " »" if edit_user else "Ajouter un utilisateur" }}</p>
+    <form method="post" action="{{ url_for('user_save') }}">
+        {% if edit_user %}<input type="hidden" name="user_id" value="{{ edit_user.id }}">{% endif %}
+
+        <div class="fr-grid-row fr-grid-row--gutters fr-mb-1w">
+            <div class="fr-col-12 fr-col-md-6">
+                <div class="fr-input-group">
+                    <label class="fr-label" for="user-nom">Nom</label>
+                    <input class="fr-input" type="text" id="user-nom" name="nom" required
+                           value="{{ edit_user.nom if edit_user else "" }}">
+                </div>
+            </div>
+            <div class="fr-col-12 fr-col-md-6">
+                <div class="fr-input-group">
+                    <label class="fr-label" for="user-email">Email</label>
+                    <input class="fr-input" type="email" id="user-email" name="email" required
+                           value="{{ edit_user.email if edit_user else "" }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="fr-grid-row fr-grid-row--gutters fr-mb-1w">
+            <div class="fr-col-12 fr-col-md-6">
+                <div class="fr-select-group">
+                    <label class="fr-label" for="user-role">Rôle</label>
+                    <select class="fr-select" id="user-role" name="role">
+                        <option value="repondant" {% if edit_user and edit_user.role == "repondant" %}selected{% endif %}>Répondant</option>
+                        <option value="pilote" {% if edit_user and edit_user.role == "pilote" %}selected{% endif %}>Pilote</option>
+                        <option value="admin" {% if edit_user and edit_user.role == "admin" %}selected{% endif %}>Administrateur</option>
+                    </select>
+                </div>
+            </div>
+            <div class="fr-col-12 fr-col-md-6">
+                <div class="fr-select-group">
+                    <label class="fr-label" for="user-scope-type">Droit
+                        <span class="fr-hint-text">Global, ou restreint à une organisation ou un site.</span>
+                    </label>
+                    <select class="fr-select" id="user-scope-type" name="scope_type">
+                        <option value="global" {% if not edit_user or edit_user.scope_type == "global" %}selected{% endif %}>Global (toutes entités)</option>
+                        <option value="entite" {% if edit_user and edit_user.scope_type == "entite" %}selected{% endif %}>Limité à une organisation</option>
+                        <option value="site" {% if edit_user and edit_user.scope_type == "site" %}selected{% endif %}>Limité à un site</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="fr-select-group fr-mb-2w" id="scope-entite-group" hidden>
+            <label class="fr-label" for="user-scope-entite">Organisation</label>
+            <select class="fr-select" id="user-scope-entite" name="scope_entite_id">
+                {% for e in entites %}
+                <option value="{{ e.id }}" {% if edit_user and edit_user.scope_entite_id == e.id %}selected{% endif %}>{{ e.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="fr-select-group fr-mb-2w" id="scope-site-group" hidden>
+            <label class="fr-label" for="user-scope-site">Site</label>
+            <select class="fr-select" id="user-scope-site" name="scope_site_id">
+                {% for s in sites %}
+                <option value="{{ s.id }}" {% if edit_user and edit_user.scope_site_id == s.id %}selected{% endif %}>{{ s.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="fr-btns-group fr-btns-group--inline fr-mt-2w">
+            <button type="submit" class="fr-btn">Enregistrer</button>
+            {% if edit_user %}
+            <a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('users_list') }}">Annuler</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Affiche le sélecteur d'organisation ou de site selon le droit choisi
+(function () {
+    var scopeSel = document.getElementById("user-scope-type");
+    var entiteGroup = document.getElementById("scope-entite-group");
+    var siteGroup = document.getElementById("scope-site-group");
+    function updateScope() {
+        entiteGroup.hidden = scopeSel.value !== "entite";
+        siteGroup.hidden = scopeSel.value !== "site";
+    }
+    scopeSel.addEventListener("change", updateScope);
+    updateScope();
+})();
+</script>
+{% endblock %}

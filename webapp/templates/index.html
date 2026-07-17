@@ -1,156 +1,90 @@
 {% extends "base.html" %}
-{% block title %}Accueil — Maturité ComNum{% endblock %}
+{% block title %}Tableau de bord — Maturité numérique{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
-    <div class="fr-col">
-        <h1 class="fr-h3 fr-mb-1v">Tableau de bord</h1>
-        <p class="fr-text--alt">Suivi de la maturité numérique</p>
-    </div>
-    <div class="fr-col-auto">
-        <a href="{{ url_for('evaluation_new') }}" class="fr-btn fr-btn--icon-left fr-icon-clipboard-line">Lancer une évaluation</a>
+{% if current_user_obj %}
+<p class="fr-text--sm text-mention fr-mb-1v">{{ current_user_obj.nom }} — SIRCOM / MIWEB</p>
+{% endif %}
+<h1 class="fr-mb-1w">Tableau de bord</h1>
+<p class="fr-text--lg text-mention fr-mb-4w">
+    Vue d'ensemble du dispositif.
+    {% if camp_data %}Une campagne est en cours — surveillez l'avancement et relancez les entités en retard.{% endif %}
+</p>
+
+{# ── KPIs ── #}
+{% set score_pct = (kpis.score_moyen / max_niveau * 100) | round if max_niveau else 0 %}
+<div class="kpi-grid fr-mb-4w">
+    <div class="kpi"><div class="kpi__value">{{ kpis.organisations }}</div><div class="kpi__label">Organisations</div></div>
+    <div class="kpi"><div class="kpi__value">{{ kpis.sites }}</div><div class="kpi__label">Sites web</div></div>
+    <div class="kpi"><div class="kpi__value">{{ kpis.referentiels }}</div><div class="kpi__label">Référentiels</div></div>
+    <div class="kpi"><div class="kpi__value">{{ kpis.validees }}</div><div class="kpi__label">Éval. validées</div></div>
+    <div class="kpi"><div class="kpi__value">{{ kpis.campagnes }}</div><div class="kpi__label">Campagnes</div></div>
+    <div class="kpi">
+        <div class="kpi__value{% if score_pct < 66 %} kpi__value--warning{% endif %}">{{ kpis.score_moyen }}</div>
+        <div class="kpi__label">Score moyen /{{ max_niveau }}</div>
     </div>
 </div>
 
-<!-- KPIs via gouv-widgets -->
-<gouv-source id="dashboard-stats" url="/api/dashboard"></gouv-source>
-<gouv-kpi-group cols="6" gap="md">
-    <gouv-kpi source="dashboard-stats" valeur="Organisations" label="Organisations" icone="ri-building-line" couleur="bleu" col="2"></gouv-kpi>
-    <gouv-kpi source="dashboard-stats" valeur="Sites" label="Sites" icone="ri-global-line" couleur="bleu" col="2"></gouv-kpi>
-    <gouv-kpi source="dashboard-stats" valeur="Référentiels" label="Référentiels" icone="ri-book-open-line" couleur="bleu" col="2"></gouv-kpi>
-    <gouv-kpi source="dashboard-stats" valeur="Évaluations validées" label="Évaluations" icone="ri-checkbox-circle-line" couleur="vert" col="2"></gouv-kpi>
-    <gouv-kpi source="dashboard-stats" valeur="Campagnes" label="Campagnes" icone="ri-calendar-line" couleur="bleu" col="2"></gouv-kpi>
-    <gouv-kpi source="dashboard-stats" valeur="Score moyen" label="Score moyen /4" icone="ri-bar-chart-box-line" seuil-vert="3" seuil-orange="2" col="2"></gouv-kpi>
-</gouv-kpi-group>
-
-<!-- Graphiques -->
-{% if has_charts %}
-<div class="fr-grid-row fr-grid-row--gutters fr-mt-4w fr-mb-4w">
-    <div class="fr-col-12 fr-col-md-6">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Profil de maturité global</h2>
-                    <radar-chart
-                        x='{{ radar_x | safe }}'
-                        y='{{ radar_y | safe }}'
-                        name='["Moyenne globale"]'
-                        selected-palette="default">
-                    </radar-chart>
-                </div>
-            </div>
+{# ── Campagne en cours ── #}
+{% if camp_data %}
+{% set campagne = camp_data.campagne %}
+{% set stats = camp_data.stats %}
+<div class="panel fr-mb-3w">
+    <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+        <div class="fr-col">
+            <p class="panel__title fr-mb-0">{{ campagne.label }}</p>
+            <p class="fr-text--sm text-mention fr-mb-0">
+                {{ campagne.referentiel.label if campagne.referentiel else "Sans référentiel" }}
+                · du {{ campagne.date_debut.strftime("%d/%m/%Y") }}{% if campagne.date_fin %} au {{ campagne.date_fin.strftime("%d/%m/%Y") }}{% endif %}
+            </p>
+        </div>
+        <div class="fr-col-auto">
+            <a class="fr-btn fr-btn--icon-right fr-icon-arrow-right-line"
+               href="{{ url_for('campagne_detail', campagne_id=campagne.id) }}">Piloter la campagne</a>
         </div>
     </div>
-    <div class="fr-col-12 fr-col-md-6">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content">
-                    <h2 class="fr-card__title fr-mb-2w">Score moyen par entité</h2>
-                    <bar-chart horizontal
-                        x='{{ bar_x | safe }}'
-                        y='{{ bar_y | safe }}'
-                        name='["Score moyen"]'
-                        selected-palette="categorical">
-                    </bar-chart>
-                </div>
-            </div>
-        </div>
+    <div class="camp-stats">
+        <div class="camp-stat camp-stat--success"><div class="camp-stat__value">{{ stats.valides }}</div><div class="camp-stat__label">Validées</div></div>
+        <div class="camp-stat camp-stat--warning"><div class="camp-stat__value">{{ stats.brouillons }}</div><div class="camp-stat__label">En brouillon</div></div>
+        <div class="camp-stat camp-stat--neutral"><div class="camp-stat__value">{{ stats.manquants }}</div><div class="camp-stat__label">Non commencée</div></div>
+        <div class="camp-stat camp-stat--info"><div class="camp-stat__value">{{ stats.pct }} %</div><div class="camp-stat__label">Participation</div></div>
     </div>
 </div>
 {% endif %}
 
-<!-- Campagnes + Entités + Sites -->
+{# ── Radar moyen + classement ── #}
 <div class="fr-grid-row fr-grid-row--gutters">
-    <!-- Campagnes -->
-    <div class="fr-col-12 fr-col-md-6">
-        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-            <div class="fr-col"><h2 class="fr-h5 fr-mb-0">Campagnes</h2></div>
-            <div class="fr-col-auto">
-                <a href="{{ url_for('campagnes_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
-            </div>
+    <div class="fr-col-12 fr-col-lg-6">
+        <div class="panel chart-card" style="height: 100%;">
+            <p class="panel__title">Profil de maturité moyen</p>
+            {% if radar_rows %}
+            <dsfr-data-source id="home-radar" data='{{ radar_rows|tojson }}'></dsfr-data-source>
+            <dsfr-data-chart source="home-radar" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
+            {% if radar_ref %}<p class="fr-text--xs text-mention fr-mb-0 fr-mt-1w">Référentiel : {{ radar_ref.label }} — dernière évaluation validée par organisation.</p>{% endif %}
+            {% else %}
+            <p class="fr-text--sm text-mention fr-mb-0">Aucune évaluation validée pour l'instant.</p>
+            {% endif %}
         </div>
-        {% if campagnes %}
-        <div class="fr-table">
-            <div class="fr-table__wrapper">
-                <div class="fr-table__container">
-                    <div class="fr-table__content">
-                        <table>
-                            <caption class="fr-sr-only">Campagnes récentes</caption>
-                            <thead><tr>
-                                <th scope="col">Campagne</th>
-                                <th scope="col">Début</th>
-                                <th scope="col">Statut</th>
-                                <th scope="col"></th>
-                            </tr></thead>
-                            <tbody>
-                                {% for c in campagnes[:5] %}
-                                <tr>
-                                    <td class="fr-text--bold">{{ c.label }}</td>
-                                    <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
-                                    <td>
-                                        {% if c.statut == 'en_cours' %}
-                                        <p class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">En cours</p>
-                                        {% else %}
-                                        <p class="fr-badge fr-badge--success fr-badge--sm fr-badge--no-icon">Terminée</p>
-                                        {% endif %}
-                                    </td>
-                                    <td><a href="{{ url_for('campagne_dashboard', campagne_id=c.id) }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-icon-line-chart-line" title="Dashboard"></a></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        <p class="fr-text--alt">Aucune campagne. <a href="{{ url_for('campagne_new') }}">Créez la première.</a></p>
-        {% endif %}
     </div>
-
-    <!-- Entités + Sites -->
-    <div class="fr-col-12 fr-col-md-6">
-        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-            <div class="fr-col"><h2 class="fr-h5 fr-mb-0">Organisations</h2></div>
-            <div class="fr-col-auto">
-                <a href="{{ url_for('entites_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
-            </div>
-        </div>
-        {% if entites %}
-        <ul class="fr-raw-list">
-            {% for e in entites %}
-            <li class="fr-py-1w" style="border-bottom: 1px solid var(--border-default-grey);">
-                <div class="fr-grid-row fr-grid-row--middle">
-                    <div class="fr-col">
-                        <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mr-1w">{{ e.type }}</p>
-                        {{ e.nom }}
+    <div class="fr-col-12 fr-col-lg-6">
+        <div class="panel" style="height: 100%;">
+            <p class="panel__title">Classement des organisations</p>
+            {% if classement %}
+            <div style="display: grid; gap: 10px;">
+                {% for e in classement %}
+                <div class="score-inline">
+                    <span class="fr-text--sm" style="flex: 1;">{{ e.nom }}</span>
+                    <div class="progress" style="width: 160px; flex: none;">
+                        <div class="progress__bar progress__bar--{{ e.color }}" style="width: {{ e.pct }}%;"></div>
                     </div>
-                    <div class="fr-col-auto">
-                        <a href="{{ url_for('entite_evolution', entite_id=e.id) }}" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-right-line" title="Évolution"></a>
-                    </div>
+                    <span class="fr-text--sm fr-text--bold" style="flex: none; width: 40px; text-align: right;">{{ e.score }}</span>
                 </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-
-        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w fr-mt-3w">
-            <div class="fr-col"><h2 class="fr-h5 fr-mb-0">Sites</h2></div>
-            <div class="fr-col-auto">
-                <a href="{{ url_for('sites_list') }}" class="fr-btn fr-btn--sm fr-btn--tertiary-no-outline fr-btn--icon-left fr-icon-arrow-right-line">Voir tout</a>
+                {% endfor %}
             </div>
+            {% else %}
+            <p class="fr-text--sm text-mention fr-mb-0">Le classement apparaîtra dès la première évaluation validée.</p>
+            {% endif %}
         </div>
-        {% if nb_sites > 0 %}
-        <gouv-source id="sites-scores" url="/api/sites/scores"></gouv-source>
-        <gouv-dsfr-chart source="sites-scores" type="bar"
-            label-field="nom" value-field="scores.0.score"
-            horizontal
-            selected-palette="categorical">
-        </gouv-dsfr-chart>
-        {% else %}
-        <p class="fr-text--alt">Aucun site. <a href="{{ url_for('site_new') }}">Ajoutez le premier.</a></p>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
