@@ -68,6 +68,17 @@ fondée sur docs/redesign/01-brief, 02-personas, 03-taches).
       restitution → export
 - [ ] Migrations sur DB existante (seed) sans casse
 
-## Review
+## Review (2026-07-18)
 
-(à compléter en fin de tâche)
+Refonte livrée en 6 commits (`43c3550` → `6d7ea62`), poussée sur main (autorisation explicite).
+Les ~22 écrans de la maquette sont implémentés en DSFR 1.14 natif + dsfr-data ;
+détail complet du mapping et des décisions : `docs/redesign/04-implementation.md`.
+
+- Phases 0–2 : ✅ (socle, backend, 24 templates — 3 sous-agents en parallèle, un par espace)
+- Phase 3 : ✅ fonctionnellement — parcours des 3 personas déroulés de bout en bout en HTTP
+  (Camille : brouillon+NA → récap → validation → résultats ; Nadia : campagne → périmètre →
+  invitation → clôture → import JSON → users ; Marc : restitution/comparaison/plan
+  d'action/exports, guards). Migrations OK sur la DB seed du repo.
+- ⚠️ QA **visuelle** non faite (extension Chrome non connectée) → issue #7.
+- Reste à faire tracé en issues GitHub #2–#7 (Authentik, xlsx, relance groupée,
+  consolidation sites→org, PDF serveur, QA visuelle).
