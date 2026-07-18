@@ -16,11 +16,7 @@
                     <thead>
                         <tr>
                             <th scope="col">Cible</th>
-                            <th scope="col">Référentiel</th>
-                            <th scope="col">Campagne</th>
                             <th scope="col">Statut</th>
-                            <th scope="col">Score</th>
-                            <th scope="col">Évaluateur</th>
                             <th scope="col"><span class="fr-sr-only">Actions</span></th>
                         </tr>
                     </thead>
@@ -28,23 +24,20 @@
                         {% for row in evaluations %}
                         {% set ev = row.eval %}
                         <tr>
-                            <td class="fr-text--bold">{{ ev.cible_nom }}</td>
-                            <td>{{ ev.referentiel.label }}</td>
-                            <td class="fr-text-mention--grey">{{ ev.campagne.label if ev.campagne_id else "Hors campagne" }}</td>
+                            <td>
+                                <span class="fr-text--bold">{{ ev.cible_nom }}</span>
+                                <span class="cell-sub">{{ ev.referentiel.label }}
+                                    · {{ ev.campagne.label if ev.campagne_id else "Hors campagne" }}{% if ev.evaluateur %}
+                                    · {{ ev.evaluateur }}{% endif %}</span>
+                            </td>
                             <td>
                                 {% if ev.statut == "validee" %}
-                                <p class="fr-badge fr-badge--success fr-badge--sm">Validée</p>
+                                <p class="fr-badge fr-badge--success fr-badge--sm fr-mb-0">Validée</p>
+                                <span class="cell-sub">{{ row.score }} / {{ row.max }} ({{ row.pct }} %)</span>
                                 {% else %}
-                                <p class="fr-badge fr-badge--warning fr-badge--sm">Brouillon · {{ row.done }}/{{ row.total }}</p>
+                                <p class="fr-badge fr-badge--warning fr-badge--sm fr-mb-0">Brouillon · {{ row.done }}/{{ row.total }}</p>
                                 {% endif %}
                             </td>
-                            <td>
-                                {% if ev.statut == "validee" %}
-                                <span class="fr-text--bold">{{ row.score }}</span> / {{ row.max }}
-                                <span class="fr-text-mention--grey">({{ row.pct }} %)</span>
-                                {% else %}—{% endif %}
-                            </td>
-                            <td class="fr-text-mention--grey">{{ ev.evaluateur or "—" }}</td>
                             <td>
                                 {% if ev.statut == "validee" %}
                                 <a class="fr-link fr-link--sm" href="{{ url_for('evaluation_results', evaluation_id=ev.id) }}">Résultats</a>

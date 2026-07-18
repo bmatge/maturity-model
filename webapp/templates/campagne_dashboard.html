@@ -55,18 +55,17 @@
                                     <tr>
                                         <th scope="col">Dimension</th>
                                         <th scope="col">Moyenne</th>
-                                        <th scope="col">Écart-type</th>
-                                        <th scope="col">Min–Max</th>
                                         <th scope="col"><span class="fr-sr-only">Jauge</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for d in dim_stats %}
                                     <tr>
-                                        <td>{{ d.numero }}. {{ d.nom }}</td>
+                                        <td>
+                                            {{ d.numero }}. {{ d.nom }}
+                                            <span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min }} – max {{ d.max }}</span>
+                                        </td>
                                         <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
-                                        <td class="text-mention">± {{ d.ecart_type }}</td>
-                                        <td class="text-mention">{{ d.min }} – {{ d.max }}</td>
                                         <td style="width: 120px;">
                                             <div class="progress">
                                                 <div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div>

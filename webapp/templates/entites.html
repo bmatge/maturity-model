@@ -21,10 +21,7 @@
                     <caption class="fr-sr-only">Liste des organisations</caption>
                     <thead>
                         <tr>
-                            <th scope="col">Nom</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">Direction</th>
-                            <th scope="col">Sites</th>
+                            <th scope="col">Organisation</th>
                             <th scope="col">Maturité par référentiel</th>
                             <th scope="col"><span class="fr-sr-only">Actions</span></th>
                         </tr>
@@ -32,10 +29,10 @@
                     <tbody>
                         {% for e in entites %}
                         <tr>
-                            <td><strong>{{ e.nom }}</strong></td>
-                            <td><span class="fr-badge fr-badge--sm fr-badge--no-icon">{{ e.type }}</span></td>
-                            <td class="text-mention">{{ e.direction or "—" }}</td>
-                            <td class="text-mention">{{ e.sites | length }}</td>
+                            <td>
+                                <strong>{{ e.nom }}</strong>
+                                <span class="cell-sub">{{ e.type }}{% if e.direction %} · {{ e.direction }}{% endif %} · {{ e.sites | length }} site{{ "s" if e.sites | length > 1 }}</span>
+                            </td>
                             <td>
                                 {% set cards = entite_scores.get(e.id, []) %}
                                 {% if cards %}

@@ -55,8 +55,7 @@
                     <thead>
                         <tr>
                             <th scope="col">Utilisateur</th>
-                            <th scope="col">Rôle</th>
-                            <th scope="col">Droit</th>
+                            <th scope="col">Rôle &amp; droit</th>
                             <th scope="col"><span class="fr-sr-only">Actions</span></th>
                         </tr>
                     </thead>
@@ -69,10 +68,7 @@
                             </td>
                             <td>
                                 <span class="fr-badge fr-badge--sm fr-badge--no-icon {% if u.role == 'pilote' %}fr-badge--info{% elif u.role == 'admin' %}fr-badge--new{% endif %}">{{ u.role_label }}</span>
-                            </td>
-                            <td>
-                                {{ u.scope_label }}
-                                <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w">{{ u.scope_type }}</span>
+                                <span class="cell-sub">{{ u.scope_label }}{% if u.scope_type != "global" %} ({{ u.scope_type }}){% endif %}</span>
                             </td>
                             <td style="text-align: right; white-space: nowrap;">
                                 <a class="fr-link fr-text--sm fr-mr-2w" href="{{ url_for('users_list', edit=u.id) }}#user-form">Modifier</a>

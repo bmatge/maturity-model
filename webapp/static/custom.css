@@ -97,7 +97,7 @@
 .exec-card--success .exec-card__kicker { color: var(--text-default-success); }
 .exec-card--warning .exec-card__kicker { color: var(--text-default-warning); }
 .exec-card--error .exec-card__kicker { color: var(--text-default-error); }
-.exec-card__value { font-size: 2.5rem; line-height: 3rem; font-weight: 700; margin: 8px 0 4px; }
+.exec-card__value { font-size: 2rem; line-height: 2.5rem; font-weight: 700; margin: 8px 0 4px; overflow-wrap: break-word; hyphens: none; }
 
 /* ── Cartes d'évaluation (mes évaluations) ── */
 .eval-card { display: flex; gap: 1.5rem; align-items: center; }
@@ -162,3 +162,7 @@
 
 /* état « Non applicable » enfoncé (aria-pressed, cf. app.js) */
 [data-na-btn][aria-pressed="true"] { background: var(--background-contrast-grey) !important; box-shadow: inset 0 0 0 1px var(--border-default-grey); }
+
+/* ── Cellules denses : info secondaire en sous-ligne (tables sans scroll) ── */
+.cell-sub { display: block; font-size: 0.75rem; line-height: 1.25rem; color: var(--text-mention-grey); font-weight: 400; }
+.fr-table th, .fr-table td { white-space: normal; }

@@ -112,16 +112,17 @@
                             <thead>
                                 <tr>
                                     <th scope="col">Capacité</th>
-                                    <th scope="col">Portée</th>
                                     <th scope="col">Niveau</th>
-                                    <th scope="col">Justification</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for row in detail %}
                                 <tr>
-                                    <td><strong>{{ row.cap_numero }}</strong> {{ row.capacite }}</td>
-                                    <td><span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(row.portee, row.portee) }}">{{ row.portee }}</span></td>
+                                    <td>
+                                        <strong>{{ row.cap_numero }}</strong> {{ row.capacite }}
+                                        <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w" title="{{ portee_labels.get(row.portee, row.portee) }}">{{ row.portee }}</span>
+                                        {% if row.justification %}<span class="cell-sub">{{ row.justification }}</span>{% endif %}
+                                    </td>
                                     <td>
                                         {% if row.niveau == 0 %}
                                         <span class="fr-badge fr-badge--sm fr-badge--no-icon">Non applicable</span>
@@ -130,7 +131,6 @@
                                         <span class="fr-badge fr-badge--sm fr-badge--{{ lvl_class }} fr-badge--no-icon">{{ row.niveau }} · {{ row.niveau_nom }}</span>
                                         {% endif %}
                                     </td>
-                                    <td class="fr-text--sm text-mention">{{ row.justification or '—' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

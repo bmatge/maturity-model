@@ -22,9 +22,6 @@
                     <thead>
                         <tr>
                             <th scope="col">Campagne</th>
-                            <th scope="col">Période</th>
-                            <th scope="col">Référentiel</th>
-                            <th scope="col">Statut</th>
                             <th scope="col">Avancement</th>
                             <th scope="col"><span class="fr-sr-only">Actions</span></th>
                         </tr>
@@ -34,18 +31,18 @@
                         {% set c = r.campagne %}
                         {% set st = r.stats %}
                         <tr>
-                            <td><strong>{{ c.label }}</strong></td>
-                            <td class="text-mention">{{ c.date_debut.strftime("%d/%m/%Y") }} → {{ c.date_fin.strftime("%d/%m/%Y") if c.date_fin else "…" }}</td>
-                            <td>{{ c.referentiel.label if c.referentiel else "—" }}</td>
+                            <td>
+                                <strong>{{ c.label }}</strong>
+                                <span class="cell-sub">{{ c.date_debut.strftime("%d/%m/%Y") }} → {{ c.date_fin.strftime("%d/%m/%Y") if c.date_fin else "…" }}
+                                    · {{ c.referentiel.label if c.referentiel else "sans référentiel" }}</span>
+                            </td>
                             <td>
                                 {% if c.statut == "en_cours" %}
                                 <span class="fr-badge fr-badge--sm fr-badge--info">En cours</span>
                                 {% else %}
                                 <span class="fr-badge fr-badge--sm fr-badge--no-icon">Terminée</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <div class="score-inline">
+                                <div class="score-inline fr-mt-1v">
                                     <div class="progress">
                                         <div class="progress__bar" style="width: {{ st.pct }}%;"></div>
                                     </div>

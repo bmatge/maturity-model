@@ -55,7 +55,6 @@
                             <thead>
                                 <tr>
                                     <th scope="col">Organisation attendue</th>
-                                    <th scope="col">Évaluateur</th>
                                     <th scope="col">Statut</th>
                                     <th scope="col"><span class="fr-sr-only">Actions</span></th>
                                 </tr>
@@ -64,8 +63,10 @@
                                 {% for r in stats.rows %}
                                 {% set nom_cible = r.entite.nom if r.entite else (r.site.nom if r.site else "—") %}
                                 <tr>
-                                    <td><strong>{{ nom_cible }}</strong></td>
-                                    <td class="text-mention">{{ r.evaluateur or "—" }}</td>
+                                    <td>
+                                        <strong>{{ nom_cible }}</strong>
+                                        {% if r.evaluateur %}<span class="cell-sub">{{ r.evaluateur }}</span>{% endif %}
+                                    </td>
                                     <td>
                                         {% if r.statut == "validee" %}
                                         <span class="fr-badge fr-badge--sm fr-badge--success">Validée</span>

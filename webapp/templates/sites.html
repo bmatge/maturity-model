@@ -21,9 +21,7 @@
                     <caption class="fr-sr-only">Liste des sites web</caption>
                     <thead>
                         <tr>
-                            <th scope="col">Nom</th>
-                            <th scope="col">URL</th>
-                            <th scope="col">Organisation</th>
+                            <th scope="col">Site</th>
                             <th scope="col">Maturité par référentiel</th>
                             <th scope="col"><span class="fr-sr-only">Actions</span></th>
                         </tr>
@@ -31,14 +29,13 @@
                     <tbody>
                         {% for s in sites %}
                         <tr>
-                            <td><strong>{{ s.nom }}</strong></td>
                             <td>
-                                {% if s.url %}
-                                <a class="fr-link fr-text--sm" href="{{ s.url }}" target="_blank" rel="noopener external"
-                                   title="{{ s.nom }} — nouvelle fenêtre">{{ s.url }}</a>
-                                {% else %}<span class="text-mention">—</span>{% endif %}
+                                <strong>{{ s.nom }}</strong>
+                                <span class="cell-sub">
+                                    {% if s.url %}<a class="fr-link fr-text--xs" href="{{ s.url }}" target="_blank" rel="noopener external"
+                                       title="{{ s.nom }} — nouvelle fenêtre">{{ s.url | replace("https://", "") | replace("http://", "") }}</a> · {% endif %}{{ s.organisation.nom }}
+                                </span>
                             </td>
-                            <td class="text-mention">{{ s.organisation.nom }}</td>
                             <td>
                                 {% set cards = site_scores.get(s.id, []) %}
                                 {% if cards %}
