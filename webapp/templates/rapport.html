@@ -121,7 +121,7 @@
     </div>
     {% endif %}
     <dsfr-data-source id="rapport-radar" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-    <dsfr-data-chart id="rapport-radar-chart" data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="rapport-radar" type="radar"
+    <dsfr-data-chart id="rapport-radar-chart" y-min="0" y-max="{{ max_niveau }}" source="rapport-radar" type="radar"
                      label-field="dimension" series-field="serie" value-field="score"
                      databox databox-title="Profils par dimension"
                      databox-source="Auto-évaluations validées — {{ campagne.label }}"

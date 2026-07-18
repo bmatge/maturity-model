@@ -335,11 +335,10 @@
     }
   }
 
-  // ── Échelle fixe des charts (radar/line) ──
-  // dsfr-chart laisse chart.js auto-échelonner : sur un radar, le minimum des
-  // données se retrouve au centre, ce qui est trompeur pour une échelle 0–N.
-  // Les templates posent data-scale-max="N" sur <dsfr-data-chart> ; on
-  // retrouve l'instance chart.js interne du web component et on fige 0–N.
+  // ── Accès à l'instance chart.js interne du web component ──
+  // (nécessaire au focus de série des radars comparatifs ci-dessous ;
+  // l'échelle 0–N des radars est bornée nativement par y-min/y-max
+  // depuis dsfr-data 0.12)
   function findChartInstance(component, canvas) {
     var found = null;
     var seen = new Set();
@@ -353,39 +352,6 @@
       }
     })(component._instance, 0);
     return found;
-  }
-
-  function fixChartScales() {
-    var pending = false;
-    document.querySelectorAll("[data-scale-max]").forEach(function (wrap) {
-      var max = parseFloat(wrap.getAttribute("data-scale-max"));
-      if (!max) return;
-      wrap.querySelectorAll("radar-chart canvas, line-chart canvas").forEach(function (canvas) {
-        var comp = canvas.closest("radar-chart, line-chart");
-        var chart = comp && findChartInstance(comp, canvas);
-        if (!chart) { pending = true; return; }
-        // le composant peut recréer l'instance après l'arrivée des données :
-        // on marque l'instance, pas le canvas, et on continue de surveiller
-        if (chart.__scaleFixed) return;
-        var sc = chart.options.scales || {};
-        if (sc.r) { sc.r.min = 0; sc.r.max = max; sc.r.ticks = Object.assign(sc.r.ticks || {}, { stepSize: 1 }); }
-        if (comp.tagName === "LINE-CHART" && sc.y) { sc.y.min = 0; sc.y.max = max; }
-        // update() seul ne repeint pas toujours ce web component : resize() force le redraw
-        chart.resize();
-        chart.update();
-        chart.__scaleFixed = true;
-      });
-      if (!wrap.querySelector("canvas")) pending = true;
-    });
-    return pending;
-  }
-
-  if (document.querySelector("[data-scale-max]")) {
-    var tries = 0;
-    var timer = setInterval(function () {
-      fixChartScales();
-      if (++tries > 24) clearInterval(timer);  // surveille ~12 s (recréations tardives)
-    }, 500);
   }
 
   // ── Focus de série sur les radars comparatifs (lisibilité) ──

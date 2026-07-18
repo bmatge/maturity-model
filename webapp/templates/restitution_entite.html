@@ -65,7 +65,7 @@
         <div class="panel chart-card" style="height: 100%;">
             <h2 class="fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
             <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-            <dsfr-data-chart id="entite-radar-chart" data-scale-max="{{ radar_max }}" y-min="0" y-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
+            <dsfr-data-chart id="entite-radar-chart" y-min="0" y-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
             <dsfr-data-a11y for="entite-radar-chart" source="r1" table download
                             description="Radar du profil {{ radar_eval.referentiel.label }} de {{ entite.nom }} par dimension, échelle 0 à {{ radar_max }}."></dsfr-data-a11y>
         </div>

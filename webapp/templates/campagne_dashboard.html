@@ -53,7 +53,7 @@
             </div>
             {% endif %}
             <dsfr-data-source id="cmp" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart id="cmp-radar-chart" data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+            <dsfr-data-chart id="cmp-radar-chart" y-min="0" y-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
             <dsfr-data-a11y for="cmp-radar-chart" source="cmp" table download
                             description="Radar comparatif : moyenne de la campagne et profil de chaque organisation, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
             {% if radar_capped %}

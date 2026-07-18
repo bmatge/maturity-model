@@ -78,7 +78,7 @@
                 <h3 class="fr-text--md fr-text--bold fr-mb-2w">Profil radar</h3>
                 {% if radar_rows %}
                 <dsfr-data-source id="radar-src" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-                <dsfr-data-chart data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="radar-src" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
+                <dsfr-data-chart y-min="0" y-max="{{ max_niveau }}" source="radar-src" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
                 {% else %}
                 <p class="fr-text--sm fr-text-mention--grey">Aucune donnée à afficher.</p>
                 {% endif %}
