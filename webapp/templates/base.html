@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/utility/utility.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=6">
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=7">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dsfr-data@0.12/dist/dsfr-data.core.umd.js"></script>
@@ -47,18 +47,6 @@
                     <div class="fr-header__tools">
                         <div class="fr-header__tools-links">
                             <ul class="fr-btns-group">
-                                {% if spaces | length > 1 %}
-                                {% set space_icons = {"pilote": "fr-icon-dashboard-3-line",
-                                                      "repondant": "fr-icon-edit-line",
-                                                      "lecteur": "fr-icon-pie-chart-2-line"} %}
-                                {% for key, label in spaces %}
-                                <li>
-                                    <a class="fr-btn {{ space_icons.get(key, 'fr-icon-arrow-right-line') }}"
-                                       href="{{ url_for('switch_space', space=key) }}"
-                                       {% if key == current_space %}aria-current="true"{% endif %}>{{ label }}</a>
-                                </li>
-                                {% endfor %}
-                                {% endif %}
                                 {% if sso_mode %}
                                 <li>
                                     {# Compte géré par l'IdP du lab (SSO Authentik, ADR-058) #}
@@ -92,11 +80,24 @@
                 </div>
             </div>
         </div>
-        {# Modale mobile : le member HeaderLinks du DSFR y clone les liens d'accès rapide #}
+        {# Menu principal (desktop : barre sous le bandeau ; mobile : modale ouverte
+           par le burger, où HeaderLinks clone aussi les liens d'accès rapide) #}
         <div class="fr-header__menu fr-modal" id="header-menu" aria-labelledby="header-menu-btn">
             <div class="fr-container">
                 <button class="fr-btn--close fr-btn" aria-controls="header-menu" title="Fermer">Fermer</button>
                 <div class="fr-header__menu-links"></div>
+                {% if spaces | length > 1 %}
+                <nav class="fr-nav" id="header-navigation" role="navigation" aria-label="Menu principal">
+                    <ul class="fr-nav__list">
+                        {% for key, label in spaces %}
+                        <li class="fr-nav__item">
+                            <a class="fr-nav__link" href="{{ url_for('switch_space', space=key) }}"
+                               {% if key == current_space %}aria-current="true"{% endif %}>{{ label }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </nav>
+                {% endif %}
             </div>
         </div>
     </header>

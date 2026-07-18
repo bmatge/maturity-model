@@ -205,11 +205,13 @@ ROLE_HIERARCHY = {
     "lecteur": ("lecteur",),
 }
 
-# Espaces de navigation, du plus outillé au plus consultatif.
+# Espaces de navigation (menu principal), dans l'ordre d'affichage :
+# Évaluations (saisie), Pilotage (restitutions métier), Gestion (administration).
+# Le premier espace accessible est l'espace par défaut.
 SPACES = [
-    ("pilote", "Pilotage", ("pilote", "admin")),
-    ("repondant", "Mon espace", ("repondant", "pilote", "admin")),
-    ("lecteur", "Restitution", ("lecteur", "repondant", "pilote", "admin")),
+    ("repondant", "Évaluations", ("repondant", "pilote", "admin")),
+    ("lecteur", "Pilotage", ("lecteur", "repondant", "pilote", "admin")),
+    ("pilote", "Gestion", ("pilote", "admin")),
 ]
 
 
@@ -559,8 +561,8 @@ def inject_layout():
         "nb_campagnes_en_cours": nb_campagnes_en_cours,
         "spaces": accessible_spaces(),
         "current_space": space,
-        "nav_heading": {"repondant": "Mon espace", "pilote": "Pilotage",
-                        "lecteur": "Restitution"}[space],
+        "nav_heading": {"repondant": "Évaluations", "pilote": "Gestion",
+                        "lecteur": "Pilotage"}[space],
     }
 
 

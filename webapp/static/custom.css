@@ -142,10 +142,8 @@
 .camp-stat--neutral { background: var(--background-contrast-grey); color: var(--text-mention-grey); }
 .camp-stat--info { background: var(--background-alt-blue-france); color: var(--text-title-blue-france); }
 
-/* ── Header : simulateur d'identité (dev, hors SSO) + espace actif ── */
+/* ── Header : simulateur d'identité (dev, hors SSO) ── */
 .identity-form select { max-width: 220px; }
-.fr-header__tools-links .fr-btn[aria-current],
-.fr-header__menu-links .fr-btn[aria-current] { background: var(--background-alt-blue-france); font-weight: 700; }
 
 /* ── Divers ── */
 .text-mention { color: var(--text-mention-grey); }
