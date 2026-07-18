@@ -46,8 +46,8 @@
 
 {% if items %}
 {% for item in items %}
-<div class="fr-card fr-mb-2w">
-    <div class="fr-card__body fr-p-0">
+<div class="panel fr-p-0 fr-mb-2w">
+    <div>
         <div class="eval-card">
             <div class="eval-card__stripe eval-card__stripe--{{ 'error' if item.niveau == 1 else 'warning' }}"></div>
             <div class="eval-card__body fr-py-2w fr-pr-2w">
