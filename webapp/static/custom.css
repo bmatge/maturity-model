@@ -142,9 +142,10 @@
 .camp-stat--neutral { background: var(--background-contrast-grey); color: var(--text-mention-grey); }
 .camp-stat--info { background: var(--background-alt-blue-france); color: var(--text-title-blue-france); }
 
-/* ── Identité (header) — hors .fr-header__tools, visible à toutes largeurs ── */
-.identity-tools { display: flex; align-items: center; align-self: center; margin-left: auto; padding: 0.5rem 0 0.5rem 1rem; }
+/* ── Header : simulateur d'identité (dev, hors SSO) + espace actif ── */
 .identity-form select { max-width: 220px; }
+.fr-header__tools-links .fr-btn[aria-current],
+.fr-header__menu-links .fr-btn[aria-current] { background: var(--background-alt-blue-france); font-weight: 700; }
 
 /* ── Divers ── */
 .text-mention { color: var(--text-mention-grey); }
@@ -192,17 +193,7 @@
   #app-layout.side-collapsed .side-collapse-btn [class^="fr-icon-"]::before { transform: rotate(180deg); }
 }
 
-/* ── Switcher d'espaces (rôles cumulatifs, header) ── */
-.space-tabs { display: flex; background: var(--background-alt-grey); padding: 3px; gap: 2px; }
-.space-tab { padding: 6px 12px; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 500;
-  color: var(--text-default-grey); text-decoration: none; background: none; white-space: nowrap; }
-.space-tab:hover { background: var(--background-contrast-grey); }
-.space-tab.is-active { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
-.space-tab.is-active:hover { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
-@media (max-width: 47.99em) { .identity-tools { flex-wrap: wrap; justify-content: flex-end; gap: 4px; } }
-
 /* ── Focus visible des contrôles maison (le DSFR ne les connaît pas) ── */
 .level-option:focus-visible,
-.space-tab:focus-visible,
 .sidemenu-toggle:focus-visible,
 .side-collapse-btn:focus-visible { outline: 2px solid var(--focus, #0a76f6); outline-offset: 2px; }

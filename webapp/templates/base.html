@@ -8,10 +8,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/utility/utility.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=6">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dsfr-data@0/dist/dsfr-data.core.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dsfr-data@0.12/dist/dsfr-data.core.umd.js"></script>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -32,6 +32,10 @@
                             <div class="fr-header__logo">
                                 <p class="fr-logo">République<br>Française</p>
                             </div>
+                            <div class="fr-header__navbar">
+                                <button class="fr-header__menu-btn fr-btn" data-fr-opened="false"
+                                        aria-controls="header-menu" title="Menu" id="header-menu-btn">Menu</button>
+                            </div>
                         </div>
                         <div class="fr-header__service">
                             <a href="{{ url_for('home') }}" title="Accueil — Maturité numérique">
@@ -40,25 +44,35 @@
                             <p class="fr-header__service-tagline">Auto-évaluation des pratiques — SIRCOM / MIWEB</p>
                         </div>
                     </div>
-                    {# Volontairement hors de .fr-header__tools : le member DSFR
-                       HeaderLinks exige un menu mobile qu'on n'utilise pas (le
-                       sidemenu porte la navigation) et masque les tools sous lg. #}
-                    <div class="identity-tools">
-                        {% if spaces | length > 1 %}
-                        <nav class="space-tabs fr-mr-2w" aria-label="Espaces">
-                            {% for key, label in spaces %}
-                            <a class="space-tab{% if key == current_space %} is-active{% endif %}"
-                               href="{{ url_for('switch_space', space=key) }}"
-                               {% if key == current_space %}aria-current="true"{% endif %}>{{ label }}</a>
-                            {% endfor %}
-                        </nav>
-                        {% endif %}
-                        {% if sso_mode %}
-                        <p class="fr-text--sm fr-mb-0"
-                           title="Identité fournie par le SSO Authentik — rôle géré par les groupes maturity-*">
-                            {{ current_user_obj.nom if current_user_obj else "Lecteur" }} · {{ role_label }}
-                        </p>
-                        {% else %}
+                    <div class="fr-header__tools">
+                        <div class="fr-header__tools-links">
+                            <ul class="fr-btns-group">
+                                {% if spaces | length > 1 %}
+                                {% set space_icons = {"pilote": "fr-icon-dashboard-3-line",
+                                                      "repondant": "fr-icon-edit-line",
+                                                      "lecteur": "fr-icon-pie-chart-2-line"} %}
+                                {% for key, label in spaces %}
+                                <li>
+                                    <a class="fr-btn {{ space_icons.get(key, 'fr-icon-arrow-right-line') }}"
+                                       href="{{ url_for('switch_space', space=key) }}"
+                                       {% if key == current_space %}aria-current="true"{% endif %}>{{ label }}</a>
+                                </li>
+                                {% endfor %}
+                                {% endif %}
+                                {% if sso_mode %}
+                                <li>
+                                    {# Compte géré par l'IdP du lab (SSO Authentik, ADR-058) #}
+                                    <a class="fr-btn fr-icon-account-line" href="https://authentik.lab.miweb.run/if/user/"
+                                       target="_blank" rel="noopener"
+                                       title="Gérer mon compte (SSO Authentik — rôle : {{ role_label }}) — nouvelle fenêtre">
+                                        {{ current_user_obj.nom if current_user_obj else "Mon compte" }} · {{ role_label }}</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% if not sso_mode %}
+                        {# Dev uniquement : simulateur d'identité (en prod, l'identité vient d'Authentik).
+                           Hors de .fr-header__tools-links pour ne pas être cloné dans la modale mobile. #}
                         <form class="identity-form" method="post" action="{{ url_for('login_as') }}">
                             <input type="hidden" name="next" value="{{ request.path }}">
                             <div class="fr-select-group fr-mb-0">
@@ -76,6 +90,13 @@
                         {% endif %}
                     </div>
                 </div>
+            </div>
+        </div>
+        {# Modale mobile : le member HeaderLinks du DSFR y clone les liens d'accès rapide #}
+        <div class="fr-header__menu fr-modal" id="header-menu" aria-labelledby="header-menu-btn">
+            <div class="fr-container">
+                <button class="fr-btn--close fr-btn" aria-controls="header-menu" title="Fermer">Fermer</button>
+                <div class="fr-header__menu-links"></div>
             </div>
         </div>
     </header>
@@ -222,7 +243,7 @@
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.module.min.js"></script>
     <script type="text/javascript" nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.nomodule.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=6"></script>
     <p id="live-region" class="fr-sr-only" aria-live="polite"></p>
     {% block extra_js %}{% endblock %}
 </body>
