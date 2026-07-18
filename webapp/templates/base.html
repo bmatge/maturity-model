@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/utility/utility.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dsfr-data@0/dist/dsfr-data.core.umd.js"></script>
@@ -73,8 +73,16 @@
     </header>
 
     <main class="fr-container app-main" id="content">
-        <div class="fr-grid-row">
-            <div class="fr-col-12 fr-col-md-3">
+        <div class="fr-grid-row" id="app-layout">
+            <script>/* restaure l'état replié avant le rendu des colonnes (évite le flash) */
+            try { if (localStorage.getItem("side-collapsed") === "1") document.getElementById("app-layout").classList.add("side-collapsed"); } catch (e) {}
+            </script>
+            <div class="fr-col-12 fr-col-md-3" id="layout-side">
+                <button type="button" class="side-collapse-btn" id="side-collapse-btn"
+                        aria-controls="layout-side" aria-expanded="true" title="Replier le menu">
+                    <span class="fr-icon-arrow-left-s-line" aria-hidden="true"></span>
+                    <span class="fr-sr-only">Replier le menu latéral</span>
+                </button>
                 {# Accordéon mobile maison (sidemenu-toggle/sidemenu-content, cf. app.js) :
                    le member Collapse du DSFR restait bloqué dans notre layout. #}
                 <nav class="fr-sidemenu fr-sidemenu--sticky" aria-labelledby="sidemenu-title" role="navigation">
@@ -105,7 +113,7 @@
                     </div>
                 </nav>
             </div>
-            <div class="fr-col-12 fr-col-md-9 fr-py-4w fr-px-2w fr-pl-md-4w">
+            <div class="fr-col-12 fr-col-md-9 fr-py-4w fr-px-2w fr-pl-md-4w" id="layout-main">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                     <div class="fr-mb-3w no-print">
@@ -189,7 +197,7 @@
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.module.min.js"></script>
     <script type="text/javascript" nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.nomodule.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=3"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

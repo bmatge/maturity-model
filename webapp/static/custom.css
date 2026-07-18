@@ -47,13 +47,18 @@
 .cap-card { background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 1.25rem; margin-bottom: 0.875rem; }
 .cap-card.is-answered { box-shadow: inset 3px 0 0 0 var(--background-action-high-blue-france); }
 .cap-card.is-na { opacity: 0.6; }
-.level-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.level-picker--4 { grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 62em) { .level-picker--4 { grid-template-columns: repeat(4, 1fr); } }
-.level-option { text-align: left; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 12px; cursor: pointer; font-family: inherit; }
+/* Propositions de niveau empilées : pastille + nom à gauche, critère à droite */
+.level-picker { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.level-option { display: flex; gap: 12px; align-items: flex-start; width: 100%;
+  text-align: left; background: var(--background-default-grey); border: 1px solid var(--border-default-grey); padding: 12px; cursor: pointer; font-family: inherit; }
 .level-option:hover { background: var(--background-alt-grey); }
 .level-option.is-selected { background: var(--background-alt-blue-france); border: 2px solid var(--border-action-high-blue-france); padding: 11px; }
-.level-option__head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.level-option__head { display: flex; align-items: center; gap: 8px; flex: none; width: 150px; }
+.level-option__crit { flex: 1; min-width: 0; }
+@media (max-width: 47.99em) {
+  .level-option { flex-direction: column; gap: 6px; }
+  .level-option__head { width: auto; }
+}
 .level-option__name { font-weight: 700; font-size: 0.875rem; line-height: 1.125rem; }
 .level-option__crit { font-size: 0.8125rem; line-height: 1.125rem; }
 
@@ -166,6 +171,21 @@
 /* ── Cellules denses : info secondaire en sous-ligne (tables sans scroll) ── */
 .cell-sub { display: block; font-size: 0.75rem; line-height: 1.25rem; color: var(--text-mention-grey); font-weight: 400; }
 .fr-table th, .fr-table td { white-space: normal; }
+
+/* ── Menu latéral repliable (desktop) : rail étroit, zone centrale élargie ── */
+.side-collapse-btn { display: none; }
+@media (min-width: 48em) {
+  .side-collapse-btn { display: inline-flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; margin: 0.5rem 0 0 0.25rem; padding: 0;
+    background: transparent; border: 1px solid var(--border-default-grey);
+    color: var(--text-mention-grey); cursor: pointer; }
+  .side-collapse-btn:hover { background: var(--background-alt-grey); color: var(--text-default-grey); }
+  .side-collapse-btn [class^="fr-icon-"]::before { transition: transform 0.2s; }
+  #app-layout.side-collapsed #layout-side { flex: 0 0 3rem; width: 3rem; max-width: 3rem; }
+  #app-layout.side-collapsed #layout-side .fr-sidemenu { display: none; }
+  #app-layout.side-collapsed #layout-main { flex: 1 1 0; width: calc(100% - 3rem); max-width: calc(100% - 3rem); }
+  #app-layout.side-collapsed .side-collapse-btn [class^="fr-icon-"]::before { transform: rotate(180deg); }
+}
 
 /* ── Switcher d'espaces (rôles cumulatifs, header) ── */
 .space-tabs { display: flex; background: var(--background-alt-grey); padding: 3px; gap: 2px; }

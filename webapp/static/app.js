@@ -33,6 +33,24 @@
     }
   });
 
+  // ── Menu latéral repliable (desktop, état mémorisé) ──
+  var layout = document.getElementById("app-layout");
+  var sideBtn = document.getElementById("side-collapse-btn");
+  if (layout && sideBtn) {
+    var syncSideBtn = function () {
+      var collapsed = layout.classList.contains("side-collapsed");
+      sideBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      sideBtn.title = collapsed ? "Déplier le menu" : "Replier le menu";
+    };
+    sideBtn.addEventListener("click", function () {
+      layout.classList.toggle("side-collapsed");
+      try { localStorage.setItem("side-collapsed", layout.classList.contains("side-collapsed") ? "1" : "0"); } catch (e) {}
+      syncSideBtn();
+      window.dispatchEvent(new Event("resize")); // les charts se réadaptent à la nouvelle largeur
+    });
+    syncSideBtn();
+  }
+
   // ── Accordéon mobile du sidemenu ──
   var smToggle = document.querySelector(".sidemenu-toggle");
   if (smToggle) {
