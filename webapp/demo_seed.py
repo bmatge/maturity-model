@@ -6,9 +6,10 @@ organisations, sites, utilisateurs) puis recrée un scénario cohérent :
 - 6 organisations + 6 sites rattachés, avec leurs répondants (faux comptes) ;
 - 4 campagnes semestrielles Design-org-v1 (S1 2025 → S2 2026, la dernière en
   cours avec brouillons et retardataire — pour la démo du suivi/relances) ;
-- 1 campagne ComNum 2026 (multi-référentiel sur 3 organisations) + une
-  évaluation ComNum antérieure hors campagne (évolution multi-ref) ;
-- 3 vagues d'évaluations Design-site-v1 pour chaque site (évolution) ;
+- pour CHAQUE autre référentiel (ComNum, Design-site, Accessibilité org/site,
+  Data org/site) : au moins 2 campagnes terminées couvrant TOUTES les cibles
+  (organisations ou sites selon la cible du référentiel), avec progression
+  entre les vagues — la data en point faible, l'accessibilité moyenne ;
 - justifications réalistes (~2 réponses sur 3), quelques non-applicables.
 
 L'histoire racontée : la maturité progresse semestre après semestre, la
@@ -222,33 +223,57 @@ def run():
         db.session.commit()
         print("4 campagnes Design-org (3 terminées + 1 en cours)")
 
-        # ── Campagne ComNum (multi-référentiel) + antériorité hors campagne ──
-        c_comnum = Campagne(label="Campagne ComNum 2026", date_debut=date(2026, 2, 1),
-                            date_fin=date(2026, 3, 31), statut="terminee",
-                            referentiel_id=comnum.id)
-        db.session.add(c_comnum)
-        db.session.flush()
-        for j, nom in enumerate(("SIRCOM", "Bureau com — Santé", "Délégation numérique")):
-            e, base, resp = orgs[nom]
-            db.session.add(CampagneParticipant(campagne_id=c_comnum.id, entite_id=e.id, evaluateur=resp))
-            make_eval(comnum, c_comnum, entite=e, evaluateur=resp, base=base + 0.06,
-                      dt=datetime(2026, 3, 10 + j, 10))
-        e, base, resp = orgs["SIRCOM"]
-        make_eval(comnum, None, entite=e, evaluateur=resp, base=base - 0.06,
-                  dt=datetime(2025, 3, 12, 10))
-        db.session.commit()
-        print("campagne ComNum 2026 (3 orgs) + 1 évaluation ComNum 2025 hors campagne")
-
-        # ── 3 vagues d'évaluations de sites (Design-site) ──
-        site_waves = [datetime(2025, 6, 16, 14), datetime(2025, 12, 10, 14), datetime(2026, 6, 15, 14)]
-        for w, wdate in enumerate(site_waves):
-            for k, (nom, (s, base, resp)) in enumerate(sites.items()):
-                na = ("2.4", "2.5") if "intranet" in nom.lower() else ()
-                make_eval(design_site, None, site=s, evaluateur=resp,
-                          base=base + 0.06 * w, dt=wdate + timedelta(days=k),
-                          na_caps=na)
-        db.session.commit()
-        print(f"{len(sites)} sites × 3 vagues Design-site")
+        # ── Tous les autres référentiels : ≥ 2 campagnes, toutes les cibles ──
+        # (label de campagne, référentiel, dates début/fin, décalage de maturité)
+        autres = ReferentielVersion.query.filter(
+            ~ReferentielVersion.label.in_(("Design-org-v1",))).order_by(ReferentielVersion.label).all()
+        # écart de maturité par famille : la data est le point faible, l'accessibilité moyenne
+        FAMILY_OFFSET = {"v2.0": 0.02, "Design-site-v1": 0.0,
+                         "Accessibilité-org-v1": -0.05, "Accessibilité-site-v1": -0.03,
+                         "Data-org-v1": -0.13, "Data-site-v1": -0.11}
+        # fenêtres semestrielles des vagues (Design-site en a 3 pour l'évolution fine)
+        WAVES = {
+            "v2.0": [("ComNum S1 2025", date(2025, 3, 1), date(2025, 4, 30), datetime(2025, 4, 7, 10)),
+                     ("ComNum S1 2026", date(2026, 2, 1), date(2026, 3, 31), datetime(2026, 3, 10, 10))],
+            "Design-site-v1": [("Sites S1 2025 — Design", date(2025, 5, 1), date(2025, 6, 30), datetime(2025, 6, 16, 14)),
+                               ("Sites S2 2025 — Design", date(2025, 11, 1), date(2025, 12, 31), datetime(2025, 12, 10, 14)),
+                               ("Sites S1 2026 — Design", date(2026, 5, 1), date(2026, 6, 30), datetime(2026, 6, 15, 14))],
+            "Accessibilité-org-v1": [("Accessibilité orgs 2025", date(2025, 9, 15), date(2025, 10, 31), datetime(2025, 10, 13, 9)),
+                                     ("Accessibilité orgs 2026", date(2026, 4, 1), date(2026, 5, 15), datetime(2026, 5, 4, 9))],
+            "Accessibilité-site-v1": [("Accessibilité sites 2025", date(2025, 9, 15), date(2025, 10, 31), datetime(2025, 10, 20, 9)),
+                                      ("Accessibilité sites 2026", date(2026, 4, 1), date(2026, 5, 15), datetime(2026, 5, 11, 9))],
+            "Data-org-v1": [("Data orgs 2025", date(2025, 10, 1), date(2025, 11, 15), datetime(2025, 11, 3, 11)),
+                            ("Data orgs 2026", date(2026, 5, 15), date(2026, 6, 30), datetime(2026, 6, 8, 11))],
+            "Data-site-v1": [("Data sites 2025", date(2025, 10, 1), date(2025, 11, 15), datetime(2025, 11, 10, 11)),
+                             ("Data sites 2026", date(2026, 5, 15), date(2026, 6, 30), datetime(2026, 6, 22, 11))],
+        }
+        for ref in autres:
+            ref.is_active = True
+            offset = FAMILY_OFFSET.get(ref.label, 0.0)
+            cibles_org = ref.cible == "organisation"
+            for w, (label, deb, fin, vdate) in enumerate(WAVES[ref.label]):
+                camp = Campagne(label=label, date_debut=deb, date_fin=fin,
+                                statut="terminee", referentiel_id=ref.id)
+                db.session.add(camp)
+                db.session.flush()
+                if cibles_org:
+                    for i, (nom, (e, base, resp)) in enumerate(orgs.items()):
+                        db.session.add(CampagneParticipant(campagne_id=camp.id, entite_id=e.id,
+                                                           evaluateur=resp))
+                        make_eval(ref, camp, entite=e, evaluateur=resp,
+                                  base=base + offset + 0.06 * w,
+                                  dt=vdate + timedelta(days=i))
+                else:
+                    for k, (nom, (s, base, resp)) in enumerate(sites.items()):
+                        na = ("2.4", "2.5") if ("intranet" in nom.lower()
+                                                and ref.label == "Design-site-v1") else ()
+                        make_eval(ref, camp, site=s, evaluateur=resp,
+                                  base=base + offset + 0.06 * w,
+                                  dt=vdate + timedelta(days=k), na_caps=na)
+            db.session.commit()
+            nb_vagues = len(WAVES[ref.label])
+            nb_cibles = len(orgs) if cibles_org else len(sites)
+            print(f"{ref.label} : {nb_vagues} campagnes × {nb_cibles} cibles")
 
         nb = {m.__name__: m.query.count() for m in (Entite, Site, Campagne, Evaluation, Score, User)}
         print("état final :", nb)
