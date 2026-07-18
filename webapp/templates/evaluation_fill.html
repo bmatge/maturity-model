@@ -84,9 +84,13 @@
             {% endfor %}
 
             {# Navigation pas-à-pas (mode stepper) #}
-            <div id="stepper-nav" class="fr-mt-2w" hidden>
-                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--between">
+            {# Deux groupes : la position d'icône se déclare au niveau du groupe DSFR
+               (un seul côté par groupe), or précédent = flèche à gauche, suivant = à droite. #}
+            <div id="stepper-nav" class="fr-mt-2w stepper-nav" hidden>
+                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--icon-left">
                     <li><button type="button" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-line" id="step-prev">Dimension précédente</button></li>
+                </ul>
+                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--icon-right">
                     <li><button type="button" class="fr-btn fr-btn--icon-right fr-icon-arrow-right-line" id="step-next">Dimension suivante</button></li>
                     <li hidden id="step-finish"><button type="submit" name="action" value="recap" class="fr-btn fr-btn--icon-right fr-icon-check-line">Vérifier &amp; valider</button></li>
                 </ul>

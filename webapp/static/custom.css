@@ -145,6 +145,9 @@
 /* ── Header : simulateur d'identité (dev, hors SSO) ── */
 .identity-form select { max-width: 220px; }
 
+/* ── Navigation du stepper : précédent à gauche, suivant/valider à droite ── */
+.stepper-nav { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; }
+
 /* ── Divers ── */
 .text-mention { color: var(--text-mention-grey); }
 .dropzone { border: 2px dashed var(--border-default-grey); padding: 2.5rem; text-align: center; }
