@@ -36,6 +36,15 @@
                        HeaderLinks exige un menu mobile qu'on n'utilise pas (le
                        sidemenu porte la navigation) et masque les tools sous lg. #}
                     <div class="identity-tools">
+                        {% if spaces | length > 1 %}
+                        <nav class="space-tabs fr-mr-2w" aria-label="Espaces">
+                            {% for key, label in spaces %}
+                            <a class="space-tab{% if key == current_space %} is-active{% endif %}"
+                               href="{{ url_for('switch_space', space=key) }}"
+                               {% if key == current_space %}aria-current="true"{% endif %}>{{ label }}</a>
+                            {% endfor %}
+                        </nav>
+                        {% endif %}
                         {% if sso_mode %}
                         <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mb-0"
                            title="Identité fournie par le SSO Authentik — rôle géré par les groupes maturity-*">

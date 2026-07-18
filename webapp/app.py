@@ -186,18 +186,59 @@ def current_role():
     return user.role if user else "lecteur"
 
 
+# Rôles cumulatifs : admin ⊃ pilote ⊃ répondant ⊃ lecteur.
+ROLE_HIERARCHY = {
+    "admin": ("admin", "pilote", "repondant", "lecteur"),
+    "pilote": ("pilote", "repondant", "lecteur"),
+    "repondant": ("repondant", "lecteur"),
+    "lecteur": ("lecteur",),
+}
+
+# Espaces de navigation, du plus outillé au plus consultatif.
+SPACES = [
+    ("pilote", "Pilotage", ("pilote", "admin")),
+    ("repondant", "Mon espace", ("repondant", "pilote", "admin")),
+    ("lecteur", "Restitution", ("lecteur", "repondant", "pilote", "admin")),
+]
+
+
+def effective_roles():
+    return ROLE_HIERARCHY.get(current_role(), ("lecteur",))
+
+
+def accessible_spaces():
+    role = current_role()
+    return [(key, label) for key, label, roles in SPACES if role in roles]
+
+
+def current_space():
+    """Espace de navigation courant (choisi en session, borné aux espaces accessibles)."""
+    spaces = [k for k, _ in accessible_spaces()]
+    chosen = session.get("space")
+    return chosen if chosen in spaces else spaces[0]
+
+
 def require_roles(*roles):
-    """Guard léger : redirige si le rôle courant n'est pas autorisé."""
+    """Guard cumulatif : un rôle supérieur accède aux pages des rôles inférieurs."""
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
-            if current_role() not in roles:
+            if not set(effective_roles()) & set(roles):
                 flash("Cette page est réservée au rôle "
-                      + " / ".join(roles) + ". Changez d'identité pour y accéder.", "warning")
+                      + " / ".join(roles) + ".", "warning")
                 return redirect(url_for("home"))
             return fn(*args, **kwargs)
         return wrapper
     return decorator
+
+
+@app.route("/espace/<space>")
+def switch_space(space):
+    """Bascule d'espace de navigation (rôles cumulatifs)."""
+    if space in [k for k, _ in accessible_spaces()]:
+        session["space"] = space
+    return redirect({"repondant": url_for("mes_evaluations"),
+                     "lecteur": url_for("restitution")}.get(space, url_for("home")))
 
 
 @app.route("/login-as", methods=["POST"])
@@ -459,10 +500,11 @@ SIDE_CARDS = {
 def inject_layout():
     role = current_role()
     user = current_user()
-    nav = list(NAVS.get(role, NAVS["lecteur"]))
+    space = current_space()
+    nav = list(NAVS.get(space, NAVS["lecteur"]))
 
     extra_nav = []
-    if role == "repondant":
+    if space == "repondant":
         draft = scoped_evaluations_query().filter_by(statut="brouillon") \
             .order_by(Evaluation.date_evaluation.desc()).first()
         if draft:
@@ -479,7 +521,7 @@ def inject_layout():
         nav = nav[:1] + extra_nav[:1] + nav[1:2] + extra_nav[1:] + nav[2:]
 
     # Carte contextuelle sidebar
-    if role in ("pilote", "admin"):
+    if space == "pilote":
         camp = Campagne.query.filter_by(statut="en_cours").order_by(Campagne.date_debut.desc()).first()
         if camp:
             st = campagne_stats(camp)
@@ -490,7 +532,7 @@ def inject_layout():
             side_card = ("Aucune campagne en cours",
                          "Créez une campagne pour lancer une vague d'évaluations.")
     else:
-        side_card = SIDE_CARDS.get(role, SIDE_CARDS["lecteur"])
+        side_card = SIDE_CARDS.get(space, SIDE_CARDS["lecteur"])
 
     nb_campagnes_en_cours = Campagne.query.filter_by(statut="en_cours").count()
     return {
@@ -503,8 +545,10 @@ def inject_layout():
         "side_card": side_card,
         "all_users": User.query.order_by(User.nom).all(),
         "nb_campagnes_en_cours": nb_campagnes_en_cours,
+        "spaces": accessible_spaces(),
+        "current_space": space,
         "nav_heading": {"repondant": "Mon espace", "pilote": "Pilotage",
-                        "admin": "Pilotage", "lecteur": "Restitution"}[role],
+                        "lecteur": "Restitution"}[space],
     }
 
 
@@ -514,10 +558,10 @@ def inject_layout():
 
 @app.route("/")
 def home():
-    role = current_role()
-    if role == "repondant":
+    space = current_space()
+    if space == "repondant":
         return redirect(url_for("mes_evaluations"))
-    if role == "lecteur":
+    if space == "lecteur":
         return redirect(url_for("restitution"))
     return pilote_dashboard()
 

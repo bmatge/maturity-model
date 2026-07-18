@@ -166,3 +166,12 @@
 /* ── Cellules denses : info secondaire en sous-ligne (tables sans scroll) ── */
 .cell-sub { display: block; font-size: 0.75rem; line-height: 1.25rem; color: var(--text-mention-grey); font-weight: 400; }
 .fr-table th, .fr-table td { white-space: normal; }
+
+/* ── Switcher d'espaces (rôles cumulatifs, header) ── */
+.space-tabs { display: flex; background: var(--background-alt-grey); padding: 3px; gap: 2px; }
+.space-tab { padding: 6px 12px; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 500;
+  color: var(--text-default-grey); text-decoration: none; background: none; white-space: nowrap; }
+.space-tab:hover { background: var(--background-contrast-grey); }
+.space-tab.is-active { background: var(--background-action-high-blue-france); color: var(--text-inverted-grey); }
+.space-tab.is-active:hover { background: var(--background-action-high-blue-france); color: var(--text-inverted-grey); }
+@media (max-width: 47.99em) { .identity-tools { flex-wrap: wrap; justify-content: flex-end; gap: 4px; } }
