@@ -59,7 +59,7 @@
             <h2 class="panel__title">Profil de maturité moyen</h2>
             {% if radar_rows %}
             <dsfr-data-source id="home-radar" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart id="home-radar-chart" data-scale-max="{{ max_niveau }}" source="home-radar" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
+            <dsfr-data-chart id="home-radar-chart" data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="home-radar" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
             <dsfr-data-a11y for="home-radar-chart" source="home-radar" table download
                             description="Radar du profil de maturité moyen par dimension, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
             {% if radar_ref %}<p class="fr-text--xs text-mention fr-mb-0 fr-mt-1w">Référentiel : {{ radar_ref.label }} — dernière évaluation validée par organisation.</p>{% endif %}
@@ -79,7 +79,7 @@
                     <div class="progress" style="width: 160px; flex: none;" aria-hidden="true">
                         <div class="progress__bar progress__bar--{{ e.color }}" style="width: {{ e.pct }}%;"></div>
                     </div>
-                    <span class="fr-text--sm fr-text--bold" style="flex: none; width: 40px; text-align: right;">{{ e.score }}</span>
+                    <span class="fr-text--sm fr-text--bold" style="flex: none; width: 40px; text-align: right;">{{ e.score | round(1) }}</span>
                 </div>
                 {% endfor %}
             </div>

@@ -56,7 +56,7 @@
                 <div class="fr-col-12 fr-col-lg-5">
                     <p class="fr-text--sm fr-text--bold fr-mb-1w">Dernière évaluation</p>
                     <dsfr-data-source id="r{{ loop.index }}" data='{{ chart.radar_rows | tojson }}'></dsfr-data-source>
-                    <dsfr-data-chart id="evo-radar-chart-{{ loop.index }}" data-scale-max="{{ chart.max_niveau }}" source="r{{ loop.index }}" type="radar"
+                    <dsfr-data-chart id="evo-radar-chart-{{ loop.index }}" data-scale-max="{{ chart.max_niveau }}" y-min="0" y-max="{{ chart.max_niveau }}" source="r{{ loop.index }}" type="radar"
                                      label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
                     <dsfr-data-a11y for="evo-radar-chart-{{ loop.index }}" source="r{{ loop.index }}" table download
                                     description="Radar de la dernière évaluation par dimension ({{ chart.ref.label }}), échelle 0 à {{ chart.max_niveau }}."></dsfr-data-a11y>

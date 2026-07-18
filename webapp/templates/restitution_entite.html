@@ -45,7 +45,7 @@
         <div class="panel" style="height: 100%;">
             <p class="fr-text--sm text-mention fr-mb-0">{{ card.ref.label }}</p>
             <p class="kpi__value score-hero__pct--{{ card.color }} fr-mb-0">{{ card.pct }} %</p>
-            <p class="fr-text--xs text-mention fr-mb-1w">Score {{ card.score }} / {{ card.max }}</p>
+            <p class="fr-text--xs text-mention fr-mb-1w">Score {{ card.score | round(1) }} / {{ card.max }}</p>
             <div class="progress" aria-hidden="true">
                 <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
             </div>
@@ -65,7 +65,7 @@
         <div class="panel chart-card" style="height: 100%;">
             <h2 class="fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
             <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-            <dsfr-data-chart id="entite-radar-chart" data-scale-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
+            <dsfr-data-chart id="entite-radar-chart" data-scale-max="{{ radar_max }}" y-min="0" y-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
             <dsfr-data-a11y for="entite-radar-chart" source="r1" table download
                             description="Radar du profil {{ radar_eval.referentiel.label }} de {{ entite.nom }} par dimension, échelle 0 à {{ radar_max }}."></dsfr-data-a11y>
         </div>
@@ -98,7 +98,7 @@
                                                         <div class="progress" aria-hidden="true">
                                                             <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
                                                         </div>
-                                                        <strong class="fr-text--sm">{{ card.score }}/{{ card.max }}</strong>
+                                                        <strong class="fr-text--sm">{{ card.score | round(1) }}/{{ card.max }}</strong>
                                                         <a class="fr-link fr-link--sm fr-link--icon-right fr-icon-arrow-right-line" href="{{ url_for('evaluation_results', evaluation_id=card.eval.id) }}">Détail</a>
                                                     </div>
                                                     {% else %}
@@ -126,7 +126,7 @@
                             <div class="progress progress--sm" aria-hidden="true">
                                 <div class="progress__bar progress__bar--{{ c.color }}" style="width: {{ c.pct }}%;"></div>
                             </div>
-                            <span class="fr-text--sm fr-text--bold">{{ c.score }}/{{ c.max }}</span>
+                            <span class="fr-text--sm fr-text--bold">{{ c.score | round(1) }}/{{ c.max }}</span>
                             <span class="fr-text--xs text-mention">({{ c.nb_sites }} site{{ "s" if c.nb_sites > 1 }})</span>
                         </div>
                         {% endfor %}

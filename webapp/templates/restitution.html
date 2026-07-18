@@ -46,7 +46,7 @@
                     </p>
                     <p class="exec-card__value fr-mb-0">{{ pct_moyen }} %</p>
                     <p class="fr-text--sm text-mention fr-mb-0">
-                        Score moyen {{ score_moyen }}/{{ max_niveau }} ({{ pct_moyen }} %).
+                        Score moyen {{ score_moyen | round(1) }}/{{ max_niveau }} ({{ pct_moyen }} %).
                         Première mesure : la référence pour les prochaines campagnes.
                     </p>
                     {% else %}
@@ -56,7 +56,7 @@
                     </p>
                     <p class="exec-card__value fr-mb-0">{{ '%+d' | format(delta) }} pts</p>
                     <p class="fr-text--sm text-mention fr-mb-0">
-                        Score moyen {{ score_moyen }}/{{ max_niveau }} ({{ pct_moyen }} %),
+                        Score moyen {{ score_moyen | round(1) }}/{{ max_niveau }} ({{ pct_moyen }} %),
                         contre {{ pct_moyen - delta }} % à {{ prev_label }}.
                     </p>
                     {% endif %}
@@ -70,7 +70,7 @@
                     </p>
                     <p class="exec-card__value fr-mb-0">{{ weakest_dim.nom }}</p>
                     <p class="fr-text--sm text-mention fr-mb-0">
-                        Dimension la plus faible ({{ weakest_dim.moyenne }}/{{ max_niveau }}) : priorité collective.
+                        Dimension la plus faible ({{ weakest_dim.moyenne | round(1) }}/{{ max_niveau }}) : priorité collective.
                     </p>
         </div>
     </div>
@@ -83,7 +83,7 @@
                     </p>
                     <p class="exec-card__value fr-mb-0">{{ weakest_entity.nom }}</p>
                     <p class="fr-text--sm text-mention fr-mb-0">
-                        {{ weakest_entity.score }}/{{ max_niveau }} ({{ weakest_entity.pct }} %), sous la moyenne.
+                        {{ weakest_entity.score | round(1) }}/{{ max_niveau }} ({{ weakest_entity.pct }} %), sous la moyenne.
                         Accompagnement ciblé.
                     </p>
         </div>
@@ -109,7 +109,7 @@
                         <div class="progress progress--lg" style="width: 160px;" aria-hidden="true">
                             <div class="progress__bar progress__bar--{{ row.color }}" style="width: {{ row.pct }}%;"></div>
                         </div>
-                        <strong class="fr-text--sm" style="width: 3.5rem; text-align: right;">{{ row.score }}/{{ max_niveau }}</strong>
+                        <strong class="fr-text--sm" style="width: 3.5rem; text-align: right;">{{ row.score | round(1) }}/{{ max_niveau }}</strong>
                     </div>
                     {% endfor %}
                     <p class="fr-text--xs text-mention fr-mb-0 fr-mt-2w">

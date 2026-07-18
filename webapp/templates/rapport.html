@@ -38,7 +38,7 @@
                 {% if s.delta is none %}Le point de départ{% elif s.delta >= 0 %}La démarche progresse{% else %}La démarche recule{% endif %}
             </p>
             <p class="exec-card__value fr-mb-1v">{% if s.delta is not none %}{{ "%+d"|format(s.delta) }} pts{% else %}{{ s.pct_moyen }} %{% endif %}</p>
-            <p class="fr-text--sm text-mention fr-mb-0">Score moyen {{ s.score_moyen }}/{{ s.max_niveau }} ({{ s.pct_moyen }} %){% if s.prev_label %}, vs {{ s.prev_label }}{% endif %}.</p>
+            <p class="fr-text--sm text-mention fr-mb-0">Score moyen {{ s.score_moyen | round(1) }}/{{ s.max_niveau }} ({{ s.pct_moyen }} %){% if s.prev_label %}, vs {{ s.prev_label }}{% endif %}.</p>
         </div>
     </div>
     {% if s.weakest_dim %}
@@ -46,7 +46,7 @@
         <div class="panel exec-card exec-card--warning" style="height: 100%;">
             <p class="exec-card__kicker fr-mb-0">Un chantier transverse</p>
             <p class="exec-card__value fr-mb-1v">{{ s.weakest_dim.nom }}</p>
-            <p class="fr-text--sm text-mention fr-mb-0">Dimension la plus faible ({{ s.weakest_dim.moyenne }}/{{ s.max_niveau }}) : priorité collective.</p>
+            <p class="fr-text--sm text-mention fr-mb-0">Dimension la plus faible ({{ s.weakest_dim.moyenne | round(1) }}/{{ s.max_niveau }}) : priorité collective.</p>
         </div>
     </div>
     {% endif %}
@@ -55,7 +55,7 @@
         <div class="panel exec-card exec-card--error" style="height: 100%;">
             <p class="exec-card__kicker fr-mb-0">Une organisation décroche</p>
             <p class="exec-card__value fr-mb-1v">{{ s.weakest_entity.nom }}</p>
-            <p class="fr-text--sm text-mention fr-mb-0">{{ s.weakest_entity.score }}/{{ s.max_niveau }} ({{ s.weakest_entity.pct }} %), sous la moyenne. Accompagnement ciblé.</p>
+            <p class="fr-text--sm text-mention fr-mb-0">{{ s.weakest_entity.score | round(1) }}/{{ s.max_niveau }} ({{ s.weakest_entity.pct }} %), sous la moyenne. Accompagnement ciblé.</p>
         </div>
     </div>
     {% endif %}
@@ -72,7 +72,7 @@
                 <div class="progress" aria-hidden="true">
                     <div class="progress__bar progress__bar--{{ row.color }}" style="width: {{ row.pct }}%;"></div>
                 </div>
-                <span class="fr-text--sm fr-text--bold" style="width: 52px; text-align: right;">{{ row.score }}/{{ s.max_niveau }}</span>
+                <span class="fr-text--sm fr-text--bold" style="width: 52px; text-align: right;">{{ row.score | round(1) }}/{{ s.max_niveau }}</span>
             </div>
             {% endfor %}
             <p class="fr-text--xs text-mention fr-mb-0">Repères : &lt; 50 % alerte · 50–75 % en progrès · &gt; 75 % solide.
@@ -90,8 +90,8 @@
                         <tbody>
                             {% for d in dim_stats %}
                             <tr>
-                                <td>{{ d.numero }}. {{ d.nom }}<span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min }} – max {{ d.max }}</span></td>
-                                <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
+                                <td>{{ d.numero }}. {{ d.nom }}<span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min | round(1) }} – max {{ d.max | round(1) }}</span></td>
+                                <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne | round(1) }}</strong></td>
                                 <td style="width: 110px;"><div class="progress" aria-hidden="true"><div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div></div></td>
                             </tr>
                             {% endfor %}
@@ -106,8 +106,22 @@
 {# ── Radar comparatif ── #}
 <div class="panel fr-mb-3w chart-card">
     <h2 class="panel__title">Profils par dimension</h2>
+    {% if radar_series | length > 2 %}
+    <div class="fr-select-group fr-mb-1w no-print" style="max-width: 24rem;">
+        <label class="fr-label fr-text--sm" for="radar-focus">Mettre en évidence
+            <span class="fr-hint-text">Isole une organisation face à la moyenne.</span>
+        </label>
+        <select class="fr-select" id="radar-focus" data-radar-focus
+                data-keep-index="{{ radar_series.index('Moyenne') if 'Moyenne' in radar_series else -1 }}">
+            <option value="" selected>Toutes les organisations</option>
+            {% for serie in radar_series %}{% if serie != "Moyenne" %}
+            <option value="{{ loop.index0 }}">{{ serie }}</option>
+            {% endif %}{% endfor %}
+        </select>
+    </div>
+    {% endif %}
     <dsfr-data-source id="rapport-radar" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-    <dsfr-data-chart id="rapport-radar-chart" data-scale-max="{{ max_niveau }}" source="rapport-radar" type="radar"
+    <dsfr-data-chart id="rapport-radar-chart" data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="rapport-radar" type="radar"
                      label-field="dimension" series-field="serie" value-field="score"
                      databox databox-title="Profils par dimension"
                      databox-source="Auto-évaluations validées — {{ campagne.label }}"

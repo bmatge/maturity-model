@@ -16,6 +16,20 @@
             <p class="fr-text--sm fr-text-mention--grey fr-mb-1w">Pour chaque capacité, lisez les descriptions et choisissez le niveau qui décrit le mieux votre situation. Une capacité qui ne vous concerne pas peut être marquée « non applicable ».</p>
             <p class="fr-text--xs fr-text-mention--grey fr-mb-3w">Portée des capacités : C = pilotée par le SIRCOM · D = exercée par votre bureau · P = partagée / coordination.</p>
 
+            {# Stepper « une dimension à la fois » (issue #8) — géré par app.js,
+               visible seulement quand le mode pas-à-pas est actif #}
+            <div class="fr-stepper fr-mb-3w" id="dim-stepper" hidden
+                 data-total-steps="{{ dimensions | length }}">
+                <h2 class="fr-stepper__title">
+                    <span class="fr-stepper__state">Dimension <span data-step-cur>1</span> sur {{ dimensions | length }}</span>
+                    <span data-step-title>{{ dimensions[0].nom if dimensions }}</span>
+                </h2>
+                <div class="fr-stepper__steps" data-fr-current-step="1" data-fr-steps="{{ dimensions | length }}"></div>
+                <p class="fr-stepper__details" data-step-details>
+                    <span class="fr-text--bold">Dimension suivante :</span> <span data-step-next></span>
+                </p>
+            </div>
+
             {% for dim in dimensions %}
             <section id="dim-{{ dim.id }}" class="fr-mb-5w">
                 <div class="fr-mb-2w" style="display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border-action-high-blue-france);">
@@ -68,6 +82,15 @@
                 {% endfor %}
             </section>
             {% endfor %}
+
+            {# Navigation pas-à-pas (mode stepper) #}
+            <div id="stepper-nav" class="fr-mt-2w" hidden>
+                <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--between">
+                    <li><button type="button" class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-arrow-left-line" id="step-prev">Dimension précédente</button></li>
+                    <li><button type="button" class="fr-btn fr-btn--icon-right fr-icon-arrow-right-line" id="step-next">Dimension suivante</button></li>
+                    <li hidden id="step-finish"><button type="submit" name="action" value="recap" class="fr-btn fr-btn--icon-right fr-icon-check-line">Vérifier &amp; valider</button></li>
+                </ul>
+            </div>
         </div>
 
         <aside class="fill-aside">
@@ -88,6 +111,10 @@
             </div>
 
             <div class="fr-p-2w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
+                <div class="fr-toggle fr-mb-2w no-print" id="stepper-toggle-box" hidden>
+                    <input type="checkbox" class="fr-toggle__input" id="stepper-toggle">
+                    <label class="fr-toggle__label" for="stepper-toggle">Une dimension à la fois</label>
+                </div>
                 <p class="fr-text--xs fr-text--bold fr-text-mention--grey fr-mb-1w" style="text-transform: uppercase; letter-spacing: 0.05em;">Dimensions</p>
                 {% for dim in dimensions %}
                 <a href="#dim-{{ dim.id }}" class="fr-text--sm" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; background: none;">

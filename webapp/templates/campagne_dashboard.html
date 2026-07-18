@@ -35,11 +35,25 @@
 {% else %}
 
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
-    <div class="fr-col-12 fr-col-lg-5">
+    <div class="fr-col-12 fr-col-lg-6">
         <div class="panel chart-card" style="height: 100%;">
             <h2 class="panel__title">Radar comparatif</h2>
+            {% if radar_series | length > 2 %}
+            <div class="fr-select-group fr-mb-1w no-print">
+                <label class="fr-label fr-text--sm" for="radar-focus">Mettre en évidence
+                    <span class="fr-hint-text">Isole une organisation face à la moyenne — les profils proches se superposent.</span>
+                </label>
+                <select class="fr-select" id="radar-focus" data-radar-focus
+                        data-keep-index="{{ radar_series.index('Moyenne') if 'Moyenne' in radar_series else -1 }}">
+                    <option value="" selected>Toutes les organisations</option>
+                    {% for serie in radar_series %}{% if serie != "Moyenne" %}
+                    <option value="{{ loop.index0 }}">{{ serie }}</option>
+                    {% endif %}{% endfor %}
+                </select>
+            </div>
+            {% endif %}
             <dsfr-data-source id="cmp" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart id="cmp-radar-chart" data-scale-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+            <dsfr-data-chart id="cmp-radar-chart" data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
             <dsfr-data-a11y for="cmp-radar-chart" source="cmp" table download
                             description="Radar comparatif : moyenne de la campagne et profil de chaque organisation, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
             {% if radar_capped %}
@@ -47,7 +61,7 @@
             {% endif %}
         </div>
     </div>
-    <div class="fr-col-12 fr-col-lg-7">
+    <div class="fr-col-12 fr-col-lg-6">
         <div class="panel" style="height: 100%;">
             <h2 class="panel__title">Statistiques par dimension</h2>
             <div class="fr-table fr-table--sm fr-mb-0" id="table-dim-stats">
@@ -68,9 +82,9 @@
                                     <tr>
                                         <td>
                                             {{ d.numero }}. {{ d.nom }}
-                                            <span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min }} – max {{ d.max }}</span>
+                                            <span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min | round(1) }} – max {{ d.max | round(1) }}</span>
                                         </td>
-                                        <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
+                                        <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne | round(1) }}</strong></td>
                                         <td style="width: 120px;">
                                             <div class="progress" aria-hidden="true">
                                                 <div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div>

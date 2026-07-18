@@ -258,6 +258,81 @@
     });
 
     updateProgress();
+
+    // ── Mode « une dimension à la fois » (stepper, issue #8) ──
+    var sections = Array.prototype.slice.call(fill.querySelectorAll('section[id^="dim-"]'));
+    var stepper = document.getElementById("dim-stepper");
+    var stepperNav = document.getElementById("stepper-nav");
+    var toggleBox = document.getElementById("stepper-toggle-box");
+    var toggle = document.getElementById("stepper-toggle");
+    if (stepper && stepperNav && toggle && sections.length > 1) {
+      toggleBox.hidden = false;
+      var totalCaps = fill.querySelectorAll(".cap-card").length;
+      var stored = null;
+      try { stored = localStorage.getItem("fill-stepper"); } catch (e) {}
+      // défaut : pas-à-pas pour les longs questionnaires (> 15 capacités)
+      var stepperOn = stored !== null ? stored === "1" : totalCaps > 15;
+      // démarrer sur la première dimension incomplète
+      var current = 0;
+      for (var i = 0; i < sections.length; i++) {
+        var incomplete = Array.prototype.some.call(
+          sections[i].querySelectorAll("input[data-cap-input]"),
+          function (inp) { return inp.value === ""; });
+        if (incomplete) { current = i; break; }
+      }
+
+      var renderStep = function (focusTitle) {
+        sections.forEach(function (s, i) { s.hidden = stepperOn && i !== current; });
+        stepper.hidden = !stepperOn;
+        stepperNav.hidden = !stepperOn;
+        toggle.checked = stepperOn;
+        if (!stepperOn) return;
+        var titleEl = sections[current].querySelector("h2");
+        stepper.querySelector("[data-step-cur]").textContent = current + 1;
+        stepper.querySelector("[data-step-title]").textContent = titleEl ? titleEl.textContent : "";
+        stepper.querySelector(".fr-stepper__steps").setAttribute("data-fr-current-step", current + 1);
+        var details = stepper.querySelector("[data-step-details]");
+        if (current + 1 < sections.length) {
+          var nextTitle = sections[current + 1].querySelector("h2");
+          details.hidden = false;
+          stepper.querySelector("[data-step-next]").textContent = nextTitle ? nextTitle.textContent : "";
+        } else {
+          details.hidden = true;
+        }
+        document.getElementById("step-prev").disabled = current === 0;
+        var last = current === sections.length - 1;
+        document.getElementById("step-next").hidden = last;
+        document.getElementById("step-finish").hidden = !last;
+        if (focusTitle && titleEl) {
+          titleEl.setAttribute("tabindex", "-1");
+          titleEl.focus({ preventScroll: false });
+          window.scrollTo({ top: 0 });
+        }
+      };
+
+      toggle.addEventListener("change", function () {
+        stepperOn = toggle.checked;
+        try { localStorage.setItem("fill-stepper", stepperOn ? "1" : "0"); } catch (e) {}
+        renderStep(false);
+      });
+      document.getElementById("step-prev").addEventListener("click", function () {
+        if (current > 0) { current--; renderStep(true); }
+      });
+      document.getElementById("step-next").addEventListener("click", function () {
+        if (current < sections.length - 1) { current++; renderStep(true); }
+      });
+      // les liens « Dimensions » de l'aside pilotent l'étape en mode pas-à-pas
+      document.querySelectorAll('a[href^="#dim-"]').forEach(function (a) {
+        a.addEventListener("click", function (e) {
+          if (!stepperOn) return;
+          e.preventDefault();
+          var idx = sections.findIndex(function (s) { return "#" + s.id === a.getAttribute("href"); });
+          if (idx >= 0) { current = idx; renderStep(true); }
+        });
+      });
+
+      renderStep(false);
+    }
   }
 
   // ── Échelle fixe des charts (radar/line) ──
@@ -312,6 +387,26 @@
       if (++tries > 24) clearInterval(timer);  // surveille ~12 s (recréations tardives)
     }, 500);
   }
+
+  // ── Focus de série sur les radars comparatifs (lisibilité) ──
+  // Les profils proches se superposent : le select [data-radar-focus] isole
+  // une organisation (dataset) face à la moyenne, via l'instance chart.js.
+  document.addEventListener("change", function (e) {
+    var sel = e.target.closest("[data-radar-focus]");
+    if (!sel) return;
+    var wrap = sel.closest(".panel, .chart-card") || document;
+    var canvas = wrap.querySelector("radar-chart canvas");
+    var comp = canvas && canvas.closest("radar-chart");
+    if (!comp) return;
+    var chart = findChartInstance(comp, canvas);
+    if (!chart) return;
+    var keep = parseInt(sel.getAttribute("data-keep-index"), 10);
+    var chosen = sel.value === "" ? null : parseInt(sel.value, 10);
+    chart.data.datasets.forEach(function (_, i) {
+      chart.setDatasetVisibility(i, chosen === null || i === chosen || i === keep);
+    });
+    chart.update();
+  });
 
   // ── Impression automatique (?print=1) ──
   if (new URLSearchParams(window.location.search).get("print") === "1") {

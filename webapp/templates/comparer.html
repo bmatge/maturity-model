@@ -72,7 +72,7 @@
     <div class="fr-col-12 fr-col-md-5">
         <div class="panel chart-card" style="height: 100%;">
             <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-            <dsfr-data-chart id="cmp-radar-chart" data-scale-max="{{ max_niveau }}" source="r1" type="radar"
+            <dsfr-data-chart id="cmp-radar-chart" data-scale-max="{{ max_niveau }}" y-min="0" y-max="{{ max_niveau }}" source="r1" type="radar"
                              label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
             <dsfr-data-a11y for="cmp-radar-chart" source="r1" table download
                             description="Radar comparatif de {{ a_label }} et {{ b_label }} par dimension, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
@@ -100,12 +100,12 @@
                                             {% for row in table_rows %}
                                             <tr>
                                                 <td>{{ row.dimension }}</td>
-                                                <td><strong>{{ row.a if row.a is not none else '—' }}</strong></td>
-                                                <td><strong>{{ row.b if row.b is not none else '—' }}</strong></td>
+                                                <td><strong>{{ row.a | round(1) if row.a is not none else '—' }}</strong></td>
+                                                <td><strong>{{ row.b | round(1) if row.b is not none else '—' }}</strong></td>
                                                 <td>
                                                     {% if row.delta is not none %}
                                                     <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--{{ 'success' if row.delta >= 0 else 'error' }}">
-                                                        {{ '+' if row.delta >= 0 }}{{ row.delta }}
+                                                        {{ '+' if row.delta >= 0 }}{{ row.delta | round(1) }}
                                                     </span>
                                                     {% else %}
                                                     <span class="text-mention">—</span>

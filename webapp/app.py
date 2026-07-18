@@ -1214,6 +1214,8 @@ def campagne_dashboard_data(campagne):
             radar_rows.append({"dimension": f"{d['numero']}. {d['nom']}",
                                "serie": ev.cible_nom, "score": d["moyenne"]})
     radar_capped = len(validated) > len(top)
+    # ordre des séries = ordre des datasets chart.js (pour le focus de série côté client)
+    radar_series = (["Moyenne"] if stats else []) + [ev.cible_nom for ev in top]
 
     # Stats enrichies pour le tableau
     dim_stats = []
@@ -1234,6 +1236,7 @@ def campagne_dashboard_data(campagne):
         "campagne": campagne, "stats_campagne": campagne_stats(campagne),
         "referentiel": ref, "dimensions": dimensions, "all_capacites": all_capacites,
         "radar_rows": radar_rows, "radar_capped": radar_capped,
+        "radar_series": radar_series,
         "dim_stats": dim_stats, "heatmap": heatmap,
         "max_niveau": max_niveau, "nb_validees": len(validated),
     }
