@@ -5,14 +5,14 @@
 <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('campagnes_list') }}">Campagnes</a>
 <div class="fr-grid-row fr-grid-row--middle fr-mt-1w fr-mb-3w">
     <div class="fr-col-12 fr-col-md">
-        <h1 class="fr-mb-1v">{{ campagne.label }}</h1>
+        <h1 class="fr-h3 fr-mb-1v">{{ campagne.label }}</h1>
         <p class="fr-text--sm text-mention fr-mb-0">
             {{ campagne.referentiel.label if campagne.referentiel else "Sans référentiel" }}
             · {{ "en cours" if campagne.statut == "en_cours" else "terminée" }}
             · {{ stats.pct }} % de participation
         </p>
     </div>
-    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
+    <div class="fr-col-12 col-md-auto fr-mt-2w fr-mt-md-0">
         <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-bar-chart-box-line"
            href="{{ url_for('campagne_dashboard', campagne_id=campagne.id) }}">Restitution</a>
     </div>
@@ -66,6 +66,9 @@
                                     <td>
                                         <strong>{{ nom_cible }}</strong>
                                         {% if r.evaluateur %}<span class="cell-sub">{{ r.evaluateur }}</span>{% endif %}
+                                        {% if r.statut != "validee" and r.entite and not r.entite.email_contact %}
+                                        <span class="cell-sub fr-hint-text">Pas d'email de contact — renseignez-le sur la fiche de l'organisation pour relancer.</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if r.statut == "validee" %}
@@ -73,7 +76,7 @@
                                         {% elif r.statut == "brouillon" %}
                                         <span class="fr-badge fr-badge--sm fr-badge--warning">Brouillon{% if r.eval %} · {{ r.done }}/{{ r.total }}{% endif %}</span>
                                         {% else %}
-                                        <span class="fr-badge fr-badge--sm fr-badge--no-icon">Non commencée</span>
+                                        <span class="fr-badge fr-badge--sm">Non commencée</span>
                                         {% endif %}
                                     </td>
                                     <td style="text-align: right; white-space: nowrap;">
@@ -90,13 +93,13 @@
                                         {% if campagne.referentiel %}
                                         {% set relance_body = relance_body ~ "\n\nLien direct : " ~ url_for("invitation", campagne_id=campagne.id, entite_id=r.entite.id, _external=True) %}
                                         {% endif %}
-                                        <a class="fr-link fr-text--sm fr-icon-mail-send-line fr-link--icon-left fr-mr-2w"
+                                        <a class="fr-link fr-link--sm fr-icon-mail-send-line fr-link--icon-left fr-mr-2w"
                                            href="mailto:{{ r.entite.email_contact or '' }}?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ relance_body|urlencode }}">Relancer</a>
                                         {% endif %}
                                         {% endif %}
                                         {% if r.eval %}
-                                        <a class="fr-link fr-text--sm"
-                                           href="{{ url_for("evaluation_results", evaluation_id=r.eval.id) if r.statut == "validee" else url_for("evaluation_fill", evaluation_id=r.eval.id) }}">Ouvrir →</a>
+                                        <a class="fr-link fr-link--sm fr-link--icon-right fr-icon-arrow-right-line"
+                                           href="{{ url_for("evaluation_results", evaluation_id=r.eval.id) if r.statut == "validee" else url_for("evaluation_fill", evaluation_id=r.eval.id) }}">Ouvrir</a>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -119,7 +122,8 @@
             {% endif %}
         {% endfor %}
         {% set liste_retard = ns.lines | join("\n") %}
-        <div class="fr-btns-group fr-btns-group--inline-md fr-mt-2w no-print">
+        <ul class="fr-btns-group fr-btns-group--inline-md fr-mt-2w no-print">
+            <li>
             {% if mail_enabled %}
             <form method="post" action="{{ url_for('campagne_relancer_tous', campagne_id=campagne.id) }}" style="display: inline;">
                 <button type="submit" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line">
@@ -130,9 +134,12 @@
                href="mailto:?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ ("Bonjour,\n\nVotre évaluation est attendue pour la campagne « " ~ campagne.label ~ " » :\n\n" ~ liste_retard ~ "\n\nMerci !")|urlencode }}">
                 Relancer les {{ retard | length }} retardataires</a>
             {% endif %}
-            <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-file-copy-line"
+            </li>
+            <li>
+            <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-clipboard-line"
                     data-copy-text="{{ liste_retard }}">Copier la liste</button>
-        </div>
+            </li>
+        </ul>
         {% endif %}
         {% else %}
         <div class="fr-callout">
@@ -189,14 +196,18 @@
                 {% set inv_body = "Bonjour,\n\nVous êtes invité·e à évaluer « " ~ r.entite.nom ~ " » dans le cadre de la campagne « " ~ campagne.label ~ " ».\n\nLien direct (référentiel et cible pré-remplis) : " ~ inv_url %}
                 <div class="fr-grid-row fr-grid-row--middle" style="gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-default-grey);">
                     <span class="fr-col fr-text--bold">{{ r.entite.nom }}
-                        <span class="cell-sub">{{ r.entite.email_contact or "pas d'email de contact" }}</span>
+                        {% if r.entite.email_contact %}
+                        <span class="cell-sub">{{ r.entite.email_contact }}</span>
+                        {% else %}
+                        <span class="cell-sub fr-hint-text">Pas d'email de contact — renseignez-le sur la fiche de l'organisation pour inviter.</span>
+                        {% endif %}
                     </span>
-                    <span class="fr-col-auto fr-text--sm text-mention">{{ campagne.referentiel.label if campagne.referentiel else "—" }}</span>
-                    <span class="fr-col-auto">
+                    <span class="col-auto fr-text--sm text-mention">{{ campagne.referentiel.label if campagne.referentiel else "—" }}</span>
+                    <span class="col-auto">
                         <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-links-line"
-                                data-copy-link="{{ inv_url }}">Copier le lien</button>
+                                data-copy-text="{{ inv_url }}">Copier le lien</button>
                     </span>
-                    <span class="fr-col-auto">
+                    <span class="col-auto">
                         {% if mail_enabled %}
                         <form method="post" action="{{ url_for('campagne_relancer', campagne_id=campagne.id, entite_id=r.entite.id) }}" style="display: inline;">
                             <input type="hidden" name="mode" value="invitation">
@@ -227,7 +238,7 @@
          role="tabpanel" aria-labelledby="tab-reglages" tabindex="0">
         <div style="max-width: 640px; display: grid; gap: 20px;">
             <div class="panel">
-                <p class="panel__title">Renommer / ajuster</p>
+                <h2 class="panel__title">Renommer / ajuster</h2>
                 <form method="post" action="{{ url_for('campagne_update', campagne_id=campagne.id) }}">
                     <div class="fr-input-group fr-mb-2w">
                         <label class="fr-label" for="reglage-label">Nom</label>
@@ -265,7 +276,7 @@
             </div>
 
             <div class="panel">
-                <p class="panel__title fr-mb-1v">Clôturer la campagne</p>
+                <h2 class="panel__title fr-mb-1v">Clôturer la campagne</h2>
                 <p class="fr-text--sm text-mention fr-mb-2w">Fige les résultats et retire la campagne des choix proposés aux répondants. Réversible.</p>
                 <form method="post" action="{{ url_for('campagne_statut', campagne_id=campagne.id) }}">
                     {% if campagne.statut == "en_cours" %}
@@ -277,7 +288,7 @@
             </div>
 
             <div class="panel panel--danger">
-                <p class="panel__title fr-mb-1v">Supprimer la campagne</p>
+                <h2 class="panel__title fr-mb-1v">Supprimer la campagne</h2>
                 <p class="fr-text--sm fr-mb-2w">Supprime la campagne et, en cascade, toutes ses évaluations et scores. Action irréversible.</p>
                 <button type="button" class="fr-btn fr-btn--icon-left fr-icon-delete-line"
                         data-delete-action="{{ url_for('campagne_delete', campagne_id=campagne.id) }}"
@@ -286,19 +297,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Copie du lien d'invitation dans le presse-papiers
-document.querySelectorAll("[data-copy-link]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-        navigator.clipboard.writeText(btn.getAttribute("data-copy-link")).then(function () {
-            var label = btn.textContent;
-            btn.textContent = "Copié ✓";
-            setTimeout(function () { btn.textContent = label; }, 2000);
-        });
-    });
-});
-</script>
 {% endblock %}

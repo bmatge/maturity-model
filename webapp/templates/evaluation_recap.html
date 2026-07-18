@@ -9,7 +9,7 @@
 
     {% if missing %}
     <div class="fr-alert fr-alert--warning fr-mb-3w">
-        <h3 class="fr-alert__title">{{ done }} / {{ total }} capacités renseignées — {{ missing|length }} capacité(s) manquante(s)</h3>
+        <h2 class="fr-alert__title">{{ done }} / {{ total }} capacités renseignées — {{ missing|length }} capacité(s) manquante(s)</h2>
         <ul class="fr-mb-0">
             {% for cap in missing %}
             <li><a href="{{ url_for('evaluation_fill', evaluation_id=evaluation.id) }}#dim-{{ cap.dimension_id }}">{{ cap.numero }} — {{ cap.nom }}</a></li>
@@ -29,7 +29,7 @@
             <div class="fr-col-6 fr-col-md-3">
                 <p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ rd.nom }}</p>
                 <p class="fr-h5 fr-mb-0">{{ rd.moyenne }}<span class="fr-text--sm fr-text-mention--grey"> / {{ max_niveau }}</span></p>
-                <div class="progress progress--sm fr-mt-1v">
+                <div class="progress progress--sm fr-mt-1v" aria-hidden="true">
                     <div class="progress__bar progress__bar--{{ rd.color }}" style="width: {{ rd.pct }}%;"></div>
                 </div>
             </div>

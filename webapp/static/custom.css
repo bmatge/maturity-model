@@ -5,6 +5,12 @@
    progression, cartes exécutives, impression.
    ───────────────────────────────────────────────────────────────── */
 
+/* ── Utilitaires de colonne : la grille DSFR n'a pas de -auto ── */
+.col-auto { flex: 0 0 auto; width: auto; }
+@media (min-width: 48em) {
+  .col-md-auto { flex: 0 0 auto; width: auto; }
+}
+
 /* ── Layout : sidemenu collé + main aéré ── */
 .app-main { padding-bottom: 4rem; }
 .fr-sidemenu { height: 100%; }
@@ -27,9 +33,9 @@
 .progress--sm { height: 6px; }
 .progress--lg { height: 12px; }
 .progress__bar { height: 100%; background: var(--background-action-high-blue-france); }
-.progress__bar--success { background: var(--text-default-success); }
-.progress__bar--warning { background: var(--text-default-warning); }
-.progress__bar--error { background: var(--text-default-error); }
+.progress__bar--success { background: var(--background-flat-success); }
+.progress__bar--warning { background: var(--background-flat-warning); }
+.progress__bar--error { background: var(--background-flat-error); }
 .score-inline { display: flex; align-items: center; gap: 8px; }
 .score-inline .progress { width: 90px; flex: none; }
 
@@ -64,20 +70,20 @@
 
 /* pastille ronde de niveau — couleurs par échelle (3 ou 4 niveaux) */
 .level-dot { flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; color: #fff; }
-.level-dot--0 { background: var(--text-mention-grey); }
-.level-dot--1 { background: var(--text-default-error); }
-.level-dot--2 { background: var(--text-default-warning); }
-.level-dot--3 { background: var(--text-default-success); }
-.levels-4 .level-dot--3 { background: var(--text-default-info); }
-.level-dot--4 { background: var(--text-default-success); }
+.level-dot--0 { background: var(--background-flat-grey); }
+.level-dot--1 { background: var(--background-flat-error); }
+.level-dot--2 { background: var(--background-flat-warning); }
+.level-dot--3 { background: var(--background-flat-success); }
+.levels-4 .level-dot--3 { background: var(--background-flat-info); }
+.level-dot--4 { background: var(--background-flat-success); }
 
 /* fiches niveau (consultation référentiel) */
-.level-card { border: 1px solid var(--border-default-grey); border-top: 3px solid var(--text-mention-grey); padding: 10px 12px; }
-.level-card--1 { border-top-color: var(--text-default-error); }
-.level-card--2 { border-top-color: var(--text-default-warning); }
-.level-card--3 { border-top-color: var(--text-default-success); }
-.levels-4 .level-card--3 { border-top-color: var(--text-default-info); }
-.level-card--4 { border-top-color: var(--text-default-success); }
+.level-card { border: 1px solid var(--border-default-grey); border-top: 3px solid var(--border-plain-grey); padding: 10px 12px; }
+.level-card--1 { border-top-color: var(--border-plain-error); }
+.level-card--2 { border-top-color: var(--border-plain-warning); }
+.level-card--3 { border-top-color: var(--border-plain-success); }
+.levels-4 .level-card--3 { border-top-color: var(--border-plain-info); }
+.level-card--4 { border-top-color: var(--border-plain-success); }
 
 /* ── Heatmap entités × capacités ── */
 .heatmap-scroll { overflow-x: auto; }
@@ -95,9 +101,9 @@
 
 /* ── Cartes exécutives (restitution) ── */
 .exec-card { border-top: 4px solid var(--border-default-grey); }
-.exec-card--success { border-top-color: var(--border-default-success); }
-.exec-card--warning { border-top-color: var(--border-default-warning); }
-.exec-card--error { border-top-color: var(--border-default-error); }
+.exec-card--success { border-top-color: var(--border-plain-success); }
+.exec-card--warning { border-top-color: var(--border-plain-warning); }
+.exec-card--error { border-top-color: var(--border-plain-error); }
 .exec-card__kicker { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.875rem; }
 .exec-card--success .exec-card__kicker { color: var(--text-default-success); }
 .exec-card--warning .exec-card__kicker { color: var(--text-default-warning); }
@@ -107,10 +113,10 @@
 /* ── Cartes d'évaluation (mes évaluations) ── */
 .eval-card { display: flex; gap: 1.5rem; align-items: center; }
 .eval-card__stripe { flex: none; width: 4px; align-self: stretch; }
-.eval-card__stripe--error { background: var(--text-default-error); }
-.eval-card__stripe--warning { background: var(--text-default-warning); }
-.eval-card__stripe--info { background: var(--text-default-info); }
-.eval-card__stripe--success { background: var(--text-default-success); }
+.eval-card__stripe--error { background: var(--background-flat-error); }
+.eval-card__stripe--warning { background: var(--background-flat-warning); }
+.eval-card__stripe--info { background: var(--background-flat-info); }
+.eval-card__stripe--success { background: var(--background-flat-success); }
 .eval-card__body { flex: 1; min-width: 0; }
 
 /* ── Score « hero » des résultats ── */
@@ -153,7 +159,6 @@
 }
 @media (max-width: 47.99em) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .level-picker { grid-template-columns: 1fr; }
   .eval-card { flex-direction: column; align-items: stretch; }
 }
 
@@ -166,11 +171,11 @@
 }
 
 /* état « Non applicable » enfoncé (aria-pressed, cf. app.js) */
-[data-na-btn][aria-pressed="true"] { background: var(--background-contrast-grey) !important; box-shadow: inset 0 0 0 1px var(--border-default-grey); }
+.fr-btn[data-na-btn][aria-pressed="true"] { background: var(--background-contrast-grey); box-shadow: inset 0 0 0 1px var(--border-default-grey); }
 
 /* ── Cellules denses : info secondaire en sous-ligne (tables sans scroll) ── */
 .cell-sub { display: block; font-size: 0.75rem; line-height: 1.25rem; color: var(--text-mention-grey); font-weight: 400; }
-.fr-table th, .fr-table td { white-space: normal; }
+.fr-table .cell-sub { white-space: normal; }
 
 /* ── Menu latéral repliable (desktop) : rail étroit, zone centrale élargie ── */
 .side-collapse-btn { display: none; }
@@ -192,6 +197,12 @@
 .space-tab { padding: 6px 12px; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 500;
   color: var(--text-default-grey); text-decoration: none; background: none; white-space: nowrap; }
 .space-tab:hover { background: var(--background-contrast-grey); }
-.space-tab.is-active { background: var(--background-action-high-blue-france); color: var(--text-inverted-grey); }
-.space-tab.is-active:hover { background: var(--background-action-high-blue-france); color: var(--text-inverted-grey); }
+.space-tab.is-active { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
+.space-tab.is-active:hover { background: var(--background-action-high-blue-france); color: var(--text-inverted-blue-france); }
 @media (max-width: 47.99em) { .identity-tools { flex-wrap: wrap; justify-content: flex-end; gap: 4px; } }
+
+/* ── Focus visible des contrôles maison (le DSFR ne les connaît pas) ── */
+.level-option:focus-visible,
+.space-tab:focus-visible,
+.sidemenu-toggle:focus-visible,
+.side-collapse-btn:focus-visible { outline: 2px solid var(--focus, #0a76f6); outline-offset: 2px; }

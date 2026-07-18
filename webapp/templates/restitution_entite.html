@@ -11,15 +11,24 @@
 {% else %}
 
 {% if entites | length > 1 %}
-<div class="fr-select-group fr-mb-3w" style="max-width: 320px;">
-    <label class="fr-label" for="entite-select">Organisation</label>
-    <select class="fr-select" id="entite-select"
-            onchange="location.href = '{{ url_for('restitution_orgs') }}/' + this.value;">
-        {% for e in entites %}
-        <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
-        {% endfor %}
-    </select>
-</div>
+<form id="entite-select-form" method="get" action="{{ url_for('restitution_orgs', entite_id=entite.id) }}" class="fr-mb-3w"
+      data-base-url="{{ url_for('restitution_orgs') }}">
+    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+        <div class="fr-col-12 fr-col-md-4">
+            <div class="fr-select-group fr-mb-0">
+                <label class="fr-label" for="entite-select">Organisation</label>
+                <select class="fr-select" id="entite-select" name="entite_id">
+                    {% for e in entites %}
+                    <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="fr-btn fr-btn--sm">Afficher</button>
+        </div>
+    </div>
+</form>
 {% endif %}
 
 <h1 class="fr-h3 fr-mb-1v">{{ entite.nom }}</h1>
@@ -33,16 +42,12 @@
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
     {% for card in ref_cards %}
     <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content fr-py-3w">
-                    <p class="fr-text--sm text-mention fr-mb-0">{{ card.ref.label }}</p>
-                    <p class="kpi__value score-hero__pct--{{ card.color }} fr-mb-0">{{ card.pct }} %</p>
-                    <p class="fr-text--xs text-mention fr-mb-1w">Score {{ card.score }} / {{ card.max }}</p>
-                    <div class="progress">
-                        <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
-                    </div>
-                </div>
+        <div class="panel" style="height: 100%;">
+            <p class="fr-text--sm text-mention fr-mb-0">{{ card.ref.label }}</p>
+            <p class="kpi__value score-hero__pct--{{ card.color }} fr-mb-0">{{ card.pct }} %</p>
+            <p class="fr-text--xs text-mention fr-mb-1w">Score {{ card.score }} / {{ card.max }}</p>
+            <div class="progress" aria-hidden="true">
+                <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
             </div>
         </div>
     </div>
@@ -57,21 +62,17 @@
 <div class="fr-grid-row fr-grid-row--gutters">
     {% if radar_eval %}
     <div class="fr-col-12 fr-col-md-5">
-        <div class="fr-card chart-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content fr-py-3w">
-                    <h2 class="fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
-                    <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-                    <dsfr-data-chart data-scale-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
-                </div>
-            </div>
+        <div class="panel chart-card" style="height: 100%;">
+            <h2 class="fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
+            <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
+            <dsfr-data-chart id="entite-radar-chart" data-scale-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
+            <dsfr-data-a11y for="entite-radar-chart" source="r1" table download
+                            description="Radar du profil {{ radar_eval.referentiel.label }} de {{ entite.nom }} par dimension, échelle 0 à {{ radar_max }}."></dsfr-data-a11y>
         </div>
     </div>
     {% endif %}
     <div class="fr-col-12 fr-col-md-{{ '7' if radar_eval else '12' }}">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content fr-py-3w">
+        <div class="panel" style="height: 100%;">
                     <h2 class="fr-h6 fr-mb-2w">Sites rattachés</h2>
                     {% if sites_rows %}
                     <div class="fr-table fr-table--sm fr-mb-2w">
@@ -79,6 +80,7 @@
                             <div class="fr-table__container">
                                 <div class="fr-table__content">
                                     <table>
+                                        <caption class="fr-sr-only">Maturité des sites rattachés à {{ entite.nom }}</caption>
                                         <thead>
                                             <tr>
                                                 <th scope="col">Site</th>
@@ -93,11 +95,11 @@
                                                     {% for card in row.cards %}
                                                     <div class="score-inline{% if not loop.last %} fr-mb-1v{% endif %}">
                                                         <span class="fr-text--xs text-mention" style="width: 7rem;">{{ card.ref.label }}</span>
-                                                        <div class="progress">
+                                                        <div class="progress" aria-hidden="true">
                                                             <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
                                                         </div>
                                                         <strong class="fr-text--sm">{{ card.score }}/{{ card.max }}</strong>
-                                                        <a class="fr-link fr-text--sm" href="{{ url_for('evaluation_results', evaluation_id=card.eval.id) }}">Détail →</a>
+                                                        <a class="fr-link fr-link--sm fr-link--icon-right fr-icon-arrow-right-line" href="{{ url_for('evaluation_results', evaluation_id=card.eval.id) }}">Détail</a>
                                                     </div>
                                                     {% else %}
                                                     <span class="fr-text--sm text-mention">Pas encore évalué</span>
@@ -121,7 +123,7 @@
                         <div class="score-inline fr-mb-1w">
                             <span class="fr-text--xs text-mention" style="width: 130px; flex: none;"
                                   title="{{ c.ref.label }}">{{ c.ref.label }}</span>
-                            <div class="progress progress--sm">
+                            <div class="progress progress--sm" aria-hidden="true">
                                 <div class="progress__bar progress__bar--{{ c.color }}" style="width: {{ c.pct }}%;"></div>
                             </div>
                             <span class="fr-text--sm fr-text--bold">{{ c.score }}/{{ c.max }}</span>
@@ -132,10 +134,23 @@
                             validées des sites rattachés, par référentiel.</p>
                     </div>
                     {% endif %}
-                </div>
-            </div>
         </div>
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Navigation explicite vers la fiche de l'organisation choisie (route en /<id>, pas en query)
+(function () {
+    var form = document.getElementById("entite-select-form");
+    if (!form) return;
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var select = document.getElementById("entite-select");
+        location.href = form.getAttribute("data-base-url") + "/" + select.value;
+    });
+})();
+</script>
 {% endblock %}

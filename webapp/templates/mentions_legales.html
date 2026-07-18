@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Mentions légales — Maturité numérique{% endblock %}
+
+{% block content %}
+<h1 class="fr-h3 fr-mb-2w">Mentions légales</h1>
+
+<h2 class="fr-h6">Éditeur</h2>
+<p style="max-width: 45rem;">
+    Service d'information et de communication (SIRCOM) — mission MIWEB,
+    ministère de l'Économie, des Finances et de la Souveraineté industrielle et numérique.
+    Prototype d'expérimentation hébergé sur l'infrastructure du lab VibeLab (miweb.run).
+</p>
+
+<h2 class="fr-h6">Données personnelles</h2>
+<p style="max-width: 45rem;">
+    L'application traite des données professionnelles minimales : nom, adresse
+    professionnelle et rôle des agents participant aux campagnes d'auto-évaluation,
+    ainsi que les réponses aux questionnaires (données déclaratives d'organisation,
+    non personnelles). L'authentification est assurée par le fournisseur d'identité
+    du lab (Authentik). Aucun cookie de mesure d'audience n'est déposé.
+</p>
+
+<h2 class="fr-h6">Accessibilité</h2>
+<p style="max-width: 45rem;">
+    Voir la <a class="fr-link" href="{{ url_for('accessibilite') }}">déclaration d'accessibilité</a>.
+</p>
+{% endblock %}

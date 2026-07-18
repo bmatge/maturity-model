@@ -15,34 +15,42 @@
     Voici les capacités les plus faibles et l'action pour gagner un niveau.
 </p>
 
-<div class="fr-grid-row fr-grid-row--gutters fr-mb-2w">
-    {% if entites | length > 1 %}
-    <div class="fr-col-12 fr-col-md-5">
-        <div class="fr-select-group">
-            <label class="fr-label" for="pa-entite">Organisation</label>
-            <select class="fr-select" id="pa-entite"
-                    onchange="location.href = '{{ url_for('plan_action') }}/' + this.value;">
-                {% for e in entites %}
-                <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
-                {% endfor %}
-            </select>
+{% set has_entite_select = entites | length > 1 %}
+{% set has_ref_select = ref_cards is defined and ref_cards | length > 1 %}
+{% if has_entite_select or has_ref_select %}
+<form id="pa-form" method="get" action="{{ url_for('plan_action', entite_id=entite.id) }}" class="fr-mb-2w"
+      data-base-url="{{ url_for('plan_action') }}">
+    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+        {% if has_entite_select %}
+        <div class="fr-col-12 fr-col-md-5">
+            <div class="fr-select-group fr-mb-0">
+                <label class="fr-label" for="pa-entite">Organisation</label>
+                <select class="fr-select" id="pa-entite">
+                    {% for e in entites %}
+                    <option value="{{ e.id }}" {% if e.id == entite.id %}selected{% endif %}>{{ e.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endif %}
+        {% if has_ref_select %}
+        <div class="fr-col-12 fr-col-md-4">
+            <div class="fr-select-group fr-mb-0">
+                <label class="fr-label" for="pa-ref">Référentiel</label>
+                <select class="fr-select" id="pa-ref" name="ref_id">
+                    {% for card in ref_cards %}
+                    <option value="{{ card.ref.id }}" {% if ref and card.ref.id == ref.id %}selected{% endif %}>{{ card.ref.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endif %}
+        <div class="col-auto">
+            <button type="submit" class="fr-btn fr-btn--sm">Afficher</button>
         </div>
     </div>
-    {% endif %}
-    {% if ref_cards is defined and ref_cards | length > 1 %}
-    <div class="fr-col-12 fr-col-md-4">
-        <div class="fr-select-group">
-            <label class="fr-label" for="pa-ref">Référentiel</label>
-            <select class="fr-select" id="pa-ref"
-                    onchange="location.href = '?ref_id=' + this.value;">
-                {% for card in ref_cards %}
-                <option value="{{ card.ref.id }}" {% if ref and card.ref.id == ref.id %}selected{% endif %}>{{ card.ref.label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </div>
-    {% endif %}
-</div>
+</form>
+{% endif %}
 
 {% if items %}
 {% for item in items %}
@@ -54,7 +62,7 @@
                 <p class="fr-mb-1v">
                     <span class="fr-text--lg fr-text--bold fr-mr-1w">{{ item.cap.numero }} {{ item.cap.nom }}</span>
                     <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-mr-1w">{{ item.dim.nom }}</span>
-                    <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-badge--{{ 'error' if item.prio == 'Haute' else 'warning' }}">Priorité {{ item.prio }}</span>
+                    <span class="fr-badge fr-badge--sm fr-badge--{{ 'error' if item.prio == 'Haute' else 'warning' }}">Priorité {{ item.prio }}</span>
                 </p>
                 <p class="fr-text--sm text-mention fr-mb-1w">
                     Niveau actuel : <strong>{{ item.cur_nom }}</strong>
@@ -86,4 +94,23 @@
 </div>
 {% endif %}
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Navigation explicite au clic « Afficher » : construit /plan-action/<organisation>?ref_id=<référentiel>
+(function () {
+    var form = document.getElementById("pa-form");
+    if (!form) return;
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var entiteSel = document.getElementById("pa-entite");
+        var refSel = document.getElementById("pa-ref");
+        var url = form.getAttribute("data-base-url") +
+            "/" + (entiteSel ? entiteSel.value : "{{ entite.id if entite else '' }}");
+        if (refSel) url += "?ref_id=" + refSel.value;
+        location.href = url;
+    });
+})();
+</script>
 {% endblock %}

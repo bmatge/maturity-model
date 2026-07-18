@@ -34,10 +34,10 @@
 <!-- Contrôles : référentiel, recherche, portée -->
 <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom fr-mb-3w">
     <div class="fr-col-12 fr-col-md-5">
-        <form method="get" action="{{ url_for('referentiel_view') }}">
-            <div class="fr-select-group fr-mb-0">
+        <form method="get" action="{{ url_for('referentiel_view') }}" style="display: flex; align-items: flex-end; gap: 8px;">
+            <div class="fr-select-group fr-mb-0" style="flex: 1; min-width: 0;">
                 <label class="fr-label" for="select-ref">Référentiel</label>
-                <select class="fr-select" id="select-ref" name="ref_id" onchange="this.form.submit()">
+                <select class="fr-select" id="select-ref" name="ref_id">
                     {% for r in all_refs %}
                     {% set ns = namespace(caps=0, niv=0) %}
                     {% for d in r.dimensions %}
@@ -50,23 +50,26 @@
                     {% endfor %}
                 </select>
             </div>
+            <button type="submit" class="fr-btn fr-btn--sm" style="flex: none;">Afficher</button>
         </form>
     </div>
     <div class="fr-col-12 fr-col-md-4">
         <label class="fr-label fr-mb-1v" for="ref-search">Rechercher une capacité</label>
         <div class="fr-search-bar" role="search">
             <input class="fr-input" placeholder="numéro, nom, mot-clé…" type="search" id="ref-search">
-            <button type="button" class="fr-btn" title="Rechercher">Rechercher</button>
+            <button type="button" class="fr-btn" id="ref-search-btn" title="Rechercher">Rechercher</button>
         </div>
     </div>
     <div class="fr-col-12 fr-col-md-3">
-        <p class="fr-label fr-mb-1v">Portée</p>
-        <ul class="fr-tags-group fr-mb-0">
-            <li><button type="button" class="fr-tag" data-portee-filter="" aria-pressed="true" title="Toutes les capacités">Toutes</button></li>
-            <li><button type="button" class="fr-tag" data-portee-filter="C" aria-pressed="false" title="{{ portee_labels['C'] }}">C</button></li>
-            <li><button type="button" class="fr-tag" data-portee-filter="D" aria-pressed="false" title="{{ portee_labels['D'] }}">D</button></li>
-            <li><button type="button" class="fr-tag" data-portee-filter="P" aria-pressed="false" title="{{ portee_labels['P'] }}">P</button></li>
-        </ul>
+        <fieldset class="fr-fieldset__element" style="border: 0; padding: 0; margin: 0;">
+            <legend class="fr-label fr-mb-1v">Portée</legend>
+            <ul class="fr-tags-group fr-mb-0">
+                <li><button type="button" class="fr-tag" data-portee-filter="" aria-pressed="true" title="Toutes les capacités">Toutes</button></li>
+                <li><button type="button" class="fr-tag" data-portee-filter="C" aria-pressed="false" title="{{ portee_labels['C'] }}">C</button></li>
+                <li><button type="button" class="fr-tag" data-portee-filter="D" aria-pressed="false" title="{{ portee_labels['D'] }}">D</button></li>
+                <li><button type="button" class="fr-tag" data-portee-filter="P" aria-pressed="false" title="{{ portee_labels['P'] }}">P</button></li>
+            </ul>
+        </fieldset>
     </div>
 </div>
 
@@ -90,7 +93,7 @@
                         <p class="fr-text--md fr-text--bold fr-mb-0">{{ cap.nom }}</p>
                         {% if cap.description %}<p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ cap.description }}</p>{% endif %}
                     </div>
-                    <span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(cap.portee, cap.portee) }}">{{ cap.portee }}</span>
+                    <span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(cap.portee, cap.portee) }}">{{ cap.portee }}<span class="fr-sr-only"> — {{ portee_labels.get(cap.portee, cap.portee) }}</span></span>
                     {% if cap.id in cap_averages %}
                     <span class="fr-badge fr-badge--sm fr-badge--info fr-badge--no-icon" title="Score moyen constaté sur les évaluations validées">Moy. {{ cap_averages[cap.id] }}/{{ max_niveau }}</span>
                     {% endif %}
@@ -127,6 +130,8 @@
     });
   }
   input.addEventListener("input", apply);
+  var searchBtn = document.getElementById("ref-search-btn");
+  if (searchBtn) { searchBtn.addEventListener("click", apply); }
   tags.forEach(function (t) {
     t.addEventListener("click", function () {
       portee = t.getAttribute("data-portee-filter");

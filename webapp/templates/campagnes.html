@@ -4,10 +4,10 @@
 {% block content %}
 <div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
     <div class="fr-col-12 fr-col-md">
-        <h1 class="fr-mb-1w">Campagnes</h1>
+        <h1 class="fr-h3 fr-mb-1w">Campagnes</h1>
         <p class="fr-text--lg text-mention fr-mb-0">Organisez et suivez les vagues d'évaluation.</p>
     </div>
-    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
+    <div class="fr-col-12 col-md-auto fr-mt-2w fr-mt-md-0">
         <a class="fr-btn fr-btn--icon-left fr-icon-add-line" href="{{ url_for('campagne_new') }}">Créer une campagne</a>
     </div>
 </div>
@@ -40,17 +40,17 @@
                                 {% if c.statut == "en_cours" %}
                                 <span class="fr-badge fr-badge--sm fr-badge--info">En cours</span>
                                 {% else %}
-                                <span class="fr-badge fr-badge--sm fr-badge--no-icon">Terminée</span>
+                                <span class="fr-badge fr-badge--sm">Terminée</span>
                                 {% endif %}
                                 <div class="score-inline fr-mt-1v">
-                                    <div class="progress">
+                                    <div class="progress" aria-hidden="true">
                                         <div class="progress__bar" style="width: {{ st.pct }}%;"></div>
                                     </div>
                                     <span class="fr-text--sm text-mention">{{ st.valides }}/{{ st.attendus }}</span>
                                 </div>
                             </td>
                             <td style="text-align: right;">
-                                <a class="fr-link fr-text--sm" href="{{ url_for('campagne_detail', campagne_id=c.id) }}">Ouvrir →</a>
+                                <a class="fr-link fr-link--sm fr-link--icon-right fr-icon-arrow-right-line" href="{{ url_for('campagne_detail', campagne_id=c.id) }}">Ouvrir</a>
                             </td>
                         </tr>
                         {% endfor %}

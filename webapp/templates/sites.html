@@ -4,10 +4,10 @@
 {% block content %}
 <div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
     <div class="fr-col-12 fr-col-md">
-        <h1 class="fr-mb-1w">Sites web</h1>
+        <h1 class="fr-h3 fr-mb-1w">Sites web</h1>
         <p class="fr-text--lg text-mention fr-mb-0">Chaque site est rattaché à une organisation.</p>
     </div>
-    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
+    <div class="fr-col-12 col-md-auto fr-mt-2w fr-mt-md-0">
         <a class="fr-btn fr-btn--icon-left fr-icon-add-line" href="{{ url_for('site_form') }}">Créer un site</a>
     </div>
 </div>
@@ -44,7 +44,7 @@
                                     <div class="score-inline">
                                         <span class="fr-text--xs text-mention" style="width: 130px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                                               title="{{ card.ref.label }}">{{ card.ref.label }}</span>
-                                        <div class="progress progress--sm">
+                                        <div class="progress progress--sm" aria-hidden="true">
                                             <div class="progress__bar progress__bar--{{ card.color }}" style="width: {{ card.pct }}%;"></div>
                                         </div>
                                         <span class="fr-text--sm fr-text--bold">{{ card.score }}/{{ card.max }}</span>
@@ -56,7 +56,7 @@
                                 {% endif %}
                             </td>
                             <td style="text-align: right; white-space: nowrap;">
-                                <a class="fr-link fr-text--sm fr-mr-2w" href="{{ url_for('site_form', site_id=s.id) }}">Modifier</a>
+                                <a class="fr-link fr-link--sm fr-mr-2w" href="{{ url_for('site_form', site_id=s.id) }}">Modifier</a>
                                 <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-delete-line"
                                         title="Supprimer {{ s.nom }}"
                                         data-delete-action="{{ url_for('site_delete', site_id=s.id) }}"

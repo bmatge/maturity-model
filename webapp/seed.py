@@ -509,11 +509,11 @@ DIMENSIONS = [
 
 def seed_referentiel():
     """Insère le référentiel v2 dans la base de données si absent."""
-    if ReferentielVersion.query.filter_by(label="v2.0").first():
+    if ReferentielVersion.query.filter_by(label="ComNum v2.0").first():
         return False  # Déjà présent
 
     ref = ReferentielVersion(
-        label="v2.0",
+        label="ComNum v2.0",
         description="Référentiel de maturité de la communication numérique ministérielle — version 2.0",
         cible="organisation",
         is_active=True,

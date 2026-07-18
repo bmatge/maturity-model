@@ -5,6 +5,14 @@
 (function () {
   "use strict";
 
+  // ── Annonces pour lecteurs d'écran (#live-region, cf. base.html) ──
+  function announce(msg) {
+    var region = document.getElementById("live-region");
+    if (!region) return;
+    region.textContent = "";
+    setTimeout(function () { region.textContent = msg; }, 50);
+  }
+
   // ── Modale de suppression partagée ──
   // Tout bouton [data-delete-action] ouvre #delete-modal en pointant le
   // formulaire vers l'action donnée. data-delete-name alimente le texte.
@@ -41,6 +49,8 @@
       var collapsed = layout.classList.contains("side-collapsed");
       sideBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
       sideBtn.title = collapsed ? "Déplier le menu" : "Replier le menu";
+      var srLabel = sideBtn.querySelector(".fr-sr-only");
+      if (srLabel) srLabel.textContent = collapsed ? "Déplier le menu latéral" : "Replier le menu latéral";
     };
     sideBtn.addEventListener("click", function () {
       layout.classList.toggle("side-collapsed");
@@ -61,14 +71,17 @@
     });
   }
 
-  // ── Copie presse-papier générique (data-copy-text) ──
+  // ── Copie presse-papier générique (data-copy-text / data-copy-link) ──
   document.addEventListener("click", function (e) {
-    var btn = e.target.closest("[data-copy-text]");
+    var btn = e.target.closest("[data-copy-text], [data-copy-link]");
     if (!btn) return;
     e.preventDefault();
-    navigator.clipboard.writeText(btn.getAttribute("data-copy-text")).then(function () {
+    var isLink = btn.hasAttribute("data-copy-link");
+    var value = isLink ? btn.getAttribute("data-copy-link") : btn.getAttribute("data-copy-text");
+    navigator.clipboard.writeText(value).then(function () {
       var initial = btn.textContent;
       btn.textContent = "Copié ✓";
+      announce(isLink ? "Lien copié" : "Copié dans le presse-papier");
       setTimeout(function () { btn.textContent = initial; }, 2000);
     });
   });
@@ -76,6 +89,85 @@
   // ── Questionnaire (evaluation_fill) ──
   var fill = document.getElementById("fill-form");
   if (fill) {
+    // ── Autosave : le brouillon est réellement conservé en continu ──
+    // NB : fill.action est shadowé par les boutons name="action" (RadioNodeList),
+    // on construit donc l'URL depuis le pathname.
+    var autosaveUrl = window.location.pathname.replace(/\/fill\/?$/, "/autosave");
+    var statusEl = document.getElementById("autosave-status");
+    if (!statusEl) {
+      var progressBar = document.querySelector("[data-progress-bar]");
+      if (progressBar) {
+        statusEl = document.createElement("p");
+        statusEl.id = "autosave-status";
+        statusEl.className = "fr-text--xs fr-mb-0";
+        var barBox = progressBar.closest(".progress") || progressBar;
+        barBox.parentNode.insertBefore(statusEl, barBox.nextSibling);
+      }
+    }
+    var dirty = false;          // interaction non (encore) persistée côté serveur
+    var inflight = 0;           // requêtes autosave en cours
+    var debounceTimers = {};    // capId → timer (saisie de justification)
+    var anchorInput = fill.querySelector('input[name="anchor"]');
+
+    var setStatus = function (text) { if (statusEl) statusEl.textContent = text; };
+    var maybeClean = function () {
+      if (inflight === 0 && Object.keys(debounceTimers).length === 0) dirty = false;
+    };
+
+    var sendAutosave = function (card) {
+      var input = card.querySelector("input[data-cap-input]");
+      var capId = input.name.replace("cap_", "");
+      delete debounceTimers[capId];
+      var body = new URLSearchParams();
+      body.set(input.name, input.value);
+      var area = card.querySelector('textarea[name="just_' + capId + '"]');
+      if (area) body.set(area.name, area.value);
+      inflight++;
+      setStatus("Enregistrement…");
+      var failed = false;
+      fetch(autosaveUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      }).then(function (r) {
+        return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status));
+      }).then(function (data) {
+        if (!data.ok) return Promise.reject(new Error(data.error || "réponse invalide"));
+        var now = new Date();
+        var hh = String(now.getHours()).padStart(2, "0");
+        var mm = String(now.getMinutes()).padStart(2, "0");
+        setStatus("✓ Enregistré à " + hh + ":" + mm);
+        announce("Brouillon enregistré");
+      }).catch(function () {
+        failed = true;
+        setStatus("⚠ Non enregistré — vérifiez votre connexion");
+        announce("Échec de l'enregistrement automatique — vérifiez votre connexion");
+      }).finally(function () {
+        inflight--;
+        if (!failed) maybeClean();
+      });
+    };
+
+    // marque l'interaction : dirty, ancre de la dimension, autosave (debounce optionnel)
+    var touch = function (card, immediate) {
+      dirty = true;
+      if (anchorInput) {
+        var section = card.closest('section[id^="dim-"]');
+        if (section) anchorInput.value = section.id;
+      }
+      var capId = card.querySelector("input[data-cap-input]").name.replace("cap_", "");
+      if (debounceTimers[capId]) { clearTimeout(debounceTimers[capId]); delete debounceTimers[capId]; }
+      if (immediate) sendAutosave(card);
+      else debounceTimers[capId] = setTimeout(function () { sendAutosave(card); }, 1200);
+    };
+
+    window.addEventListener("beforeunload", function (e) {
+      if (!dirty) return;   // rien en attente : ne pas gêner la navigation
+      e.preventDefault();
+      e.returnValue = "";
+    });
+    fill.addEventListener("submit", function () { dirty = false; });
+
     var updateProgress = function () {
       var cards = fill.querySelectorAll(".cap-card");
       var done = 0;
@@ -119,10 +211,13 @@
         var already = input.value === opt.getAttribute("data-niveau");
         input.value = already ? "" : opt.getAttribute("data-niveau");
         card.querySelectorAll(".level-option").forEach(function (o) {
-          o.classList.toggle("is-selected", o === opt && !already);
+          var selected = o === opt && !already;
+          o.classList.toggle("is-selected", selected);
+          o.setAttribute("aria-pressed", selected ? "true" : "false");
         });
         card.querySelector("[data-na-btn]").setAttribute("aria-pressed", "false");
         updateProgress();
+        touch(card, true);
         return;
       }
       // non applicable
@@ -134,8 +229,12 @@
         var active = input2.value === "na";
         input2.value = active ? "" : "na";
         na.setAttribute("aria-pressed", active ? "false" : "true");
-        card2.querySelectorAll(".level-option").forEach(function (o) { o.classList.remove("is-selected"); });
+        card2.querySelectorAll(".level-option").forEach(function (o) {
+          o.classList.remove("is-selected");
+          o.setAttribute("aria-pressed", "false");
+        });
         updateProgress();
+        touch(card2, true);
         return;
       }
       // justification
@@ -144,10 +243,18 @@
         e.preventDefault();
         var area = jbtn.closest(".cap-card").querySelector("textarea");
         area.hidden = !area.hidden;
+        jbtn.setAttribute("aria-expanded", area.hidden ? "false" : "true");
         jbtn.querySelector("span[data-label]").textContent =
           area.hidden ? "Ajouter une justification" : "Masquer la justification";
         if (!area.hidden) area.focus();
       }
+    });
+
+    // saisie de justification : autosave débouncé (1,2 s)
+    fill.addEventListener("input", function (e) {
+      var area = e.target.closest('textarea[name^="just_"]');
+      if (!area) return;
+      touch(area.closest(".cap-card"), false);
     });
 
     updateProgress();

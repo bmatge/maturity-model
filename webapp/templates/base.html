@@ -8,13 +8,21 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/utility/utility.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}?v=4">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr-chart@2.1.1/dist/DSFRChart/DSFRChart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dsfr-data@0/dist/dsfr-data.core.umd.js"></script>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <div class="fr-skiplinks">
+        <nav class="fr-container" role="navigation" aria-label="Accès rapide">
+            <ul class="fr-skiplinks__list">
+                <li><a class="fr-skiplink" href="#content">Contenu</a></li>
+                <li><a class="fr-skiplink" href="#sidemenu-wrapper">Menu</a></li>
+            </ul>
+        </nav>
+    </div>
     <header role="banner" class="fr-header">
         <div class="fr-header__body">
             <div class="fr-container">
@@ -46,7 +54,7 @@
                         </nav>
                         {% endif %}
                         {% if sso_mode %}
-                        <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mb-0"
+                        <p class="fr-text--sm fr-mb-0"
                            title="Identité fournie par le SSO Authentik — rôle géré par les groupes maturity-*">
                             {{ current_user_obj.nom if current_user_obj else "Lecteur" }} · {{ role_label }}
                         </p>
@@ -79,13 +87,13 @@
             </script>
             <div class="fr-col-12 fr-col-md-3" id="layout-side">
                 <button type="button" class="side-collapse-btn" id="side-collapse-btn"
-                        aria-controls="layout-side" aria-expanded="true" title="Replier le menu">
+                        aria-controls="sidemenu-wrapper" aria-expanded="true" title="Replier le menu">
                     <span class="fr-icon-arrow-left-s-line" aria-hidden="true"></span>
                     <span class="fr-sr-only">Replier le menu latéral</span>
                 </button>
                 {# Accordéon mobile maison (sidemenu-toggle/sidemenu-content, cf. app.js) :
                    le member Collapse du DSFR restait bloqué dans notre layout. #}
-                <nav class="fr-sidemenu fr-sidemenu--sticky" aria-labelledby="sidemenu-title" role="navigation">
+                <nav class="fr-sidemenu fr-sidemenu--sticky" aria-labelledby="sidemenu-title">
                     <div class="fr-sidemenu__inner">
                         <button class="sidemenu-toggle" type="button" aria-controls="sidemenu-wrapper" aria-expanded="false">
                             {{ nav_heading }}<span class="fr-icon-arrow-down-s-line" aria-hidden="true"></span>
@@ -94,7 +102,7 @@
                             <p class="fr-sidemenu__title" id="sidemenu-title">{{ nav_heading }}</p>
                             <ul class="fr-sidemenu__list">
                                 {% for item in nav_items %}
-                                <li class="fr-sidemenu__item{% if request.endpoint == item.endpoint %} fr-sidemenu__item--active{% endif %}">
+                                <li class="fr-sidemenu__item">
                                     <a class="fr-sidemenu__link" href="{{ item.url if item.url is defined else url_for(item.endpoint) }}"
                                        {% if request.endpoint == item.endpoint %}aria-current="page"{% endif %}>
                                         <span class="{{ item.icon }} fr-icon--sm fr-mr-1w" aria-hidden="true"></span>{{ item.label }}
@@ -116,7 +124,7 @@
             <div class="fr-col-12 fr-col-md-9 fr-py-4w fr-px-2w fr-pl-md-4w" id="layout-main">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
-                    <div class="fr-mb-3w no-print">
+                    <div class="fr-mb-3w no-print" role="alert">
                         {% for category, message in messages %}
                         <div class="fr-alert fr-alert--{{ {'success':'success','error':'error','warning':'warning','danger':'error'}.get(category, 'info') }} fr-alert--sm fr-mb-1w">
                             <p>{{ message }}</p>
@@ -158,6 +166,23 @@
                     </ul>
                 </div>
             </div>
+            <div class="fr-footer__bottom">
+                <ul class="fr-footer__bottom-list">
+                    <li class="fr-footer__bottom-item">
+                        <a class="fr-footer__bottom-link" href="{{ url_for('accessibilite') }}">Accessibilité : non conforme</a>
+                    </li>
+                    <li class="fr-footer__bottom-item">
+                        <a class="fr-footer__bottom-link" href="{{ url_for('mentions_legales') }}">Mentions légales</a>
+                    </li>
+                </ul>
+                <div class="fr-footer__bottom-copy">
+                    <p>Sauf mention contraire, tous les contenus de ce site sont sous
+                        <a href="https://github.com/etalab/licence-ouverte/blob/master/LO.md"
+                           target="_blank" rel="noopener external"
+                           title="Licence etalab-2.0 — nouvelle fenêtre">licence etalab-2.0</a>
+                    </p>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -197,7 +222,8 @@
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.module.min.js"></script>
     <script type="text/javascript" nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.nomodule.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=4"></script>
+    <p id="live-region" class="fr-sr-only" aria-live="polite"></p>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

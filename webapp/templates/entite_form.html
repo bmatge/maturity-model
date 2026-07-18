@@ -4,7 +4,7 @@
 {% block content %}
 <div style="max-width: 640px;">
     <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('entites_list') }}">Organisations</a>
-    <h1 class="fr-mt-1w fr-mb-3w">{{ "Modifier une organisation" if entite else "Créer une organisation" }}</h1>
+    <h1 class="fr-h3 fr-mt-1w fr-mb-3w">{{ "Modifier une organisation" if entite else "Créer une organisation" }}</h1>
 
     <div class="panel">
         <form method="post">
@@ -45,10 +45,10 @@
                 <textarea class="fr-input" id="entite-description" name="description" rows="3">{{ entite.description or "" if entite else "" }}</textarea>
             </div>
 
-            <div class="fr-btns-group fr-btns-group--inline">
-                <button type="submit" class="fr-btn">Enregistrer</button>
-                <a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('entites_list') }}">Annuler</a>
-            </div>
+            <ul class="fr-btns-group fr-btns-group--inline">
+                <li><button type="submit" class="fr-btn">Enregistrer</button></li>
+                <li><a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('entites_list') }}">Annuler</a></li>
+            </ul>
         </form>
     </div>
 </div>

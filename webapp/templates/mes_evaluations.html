@@ -16,14 +16,14 @@
         <div class="eval-card__stripe eval-card__stripe--warning"></div>
         <div class="eval-card__body">
             <p class="fr-mb-1v">
-                <span class="fr-badge fr-badge--warning fr-badge--sm fr-badge--no-icon">Brouillon · {{ s.done }}/{{ s.total }}</span>
+                <span class="fr-badge fr-badge--warning fr-badge--sm">Brouillon · {{ s.done }}/{{ s.total }}</span>
                 <span class="fr-text--xs fr-text-mention--grey fr-ml-1w">{{ s.eval.campagne.label if s.eval.campagne_id else 'Hors campagne' }}</span>
             </p>
             <p class="fr-text--lg fr-text--bold fr-mb-0">{{ s.eval.referentiel.label }} — {{ s.eval.cible_nom }}</p>
             <p class="fr-text--sm fr-text-mention--grey fr-mb-0">
                 {% if s.eval.campagne_id and s.eval.campagne.date_fin %}Échéance le {{ s.eval.campagne.date_fin.strftime('%d/%m/%Y') }} · {% endif %}reprise là où vous vous êtes arrêté·e
             </p>
-            <div class="progress fr-mt-1w" style="max-width: 360px;">
+            <div class="progress fr-mt-1w" style="max-width: 360px;" aria-hidden="true">
                 <div class="progress__bar" style="width: {{ s.pct_progress }}%;"></div>
             </div>
         </div>
@@ -36,7 +36,7 @@
         <div class="eval-card__stripe eval-card__stripe--info"></div>
         <div class="eval-card__body">
             <p class="fr-mb-1v">
-                <span class="fr-badge fr-badge--info fr-badge--sm fr-badge--no-icon">Invitation · non commencée</span>
+                <span class="fr-badge fr-badge--info fr-badge--sm">Invitation · non commencée</span>
                 <span class="fr-text--xs fr-text-mention--grey fr-ml-1w">{{ p.campagne.label }}</span>
             </p>
             <p class="fr-text--lg fr-text--bold fr-mb-0">

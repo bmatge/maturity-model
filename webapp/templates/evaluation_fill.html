@@ -6,13 +6,15 @@
                         'P': 'Partagée — coordination nécessaire'} %}
 
 {% block content %}
-<a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('mes_evaluations') }}">Quitter (le brouillon est conservé)</a>
+<a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('mes_evaluations') }}">Quitter — votre saisie est enregistrée automatiquement</a>
 
 <form method="post" id="fill-form" class="fr-mt-2w">
+    <input type="hidden" name="anchor" value="">
     <div class="fill-layout">
         <div class="fill-form">
-            <h1 class="fr-h4 fr-mb-1v">{{ evaluation.referentiel.label }} — {{ evaluation.cible_nom }}</h1>
-            <p class="fr-text--sm fr-text-mention--grey fr-mb-3w">Pour chaque capacité, lisez les descriptions et choisissez le niveau qui décrit le mieux votre situation. Une capacité qui ne vous concerne pas peut être marquée « non applicable ».</p>
+            <h1 class="fr-h3 fr-mb-1v">{{ evaluation.referentiel.label }} — {{ evaluation.cible_nom }}</h1>
+            <p class="fr-text--sm fr-text-mention--grey fr-mb-1w">Pour chaque capacité, lisez les descriptions et choisissez le niveau qui décrit le mieux votre situation. Une capacité qui ne vous concerne pas peut être marquée « non applicable ».</p>
+            <p class="fr-text--xs fr-text-mention--grey fr-mb-3w">Portée des capacités : C = pilotée par le SIRCOM · D = exercée par votre bureau · P = partagée / coordination.</p>
 
             {% for dim in dimensions %}
             <section id="dim-{{ dim.id }}" class="fr-mb-5w">
@@ -30,7 +32,7 @@
                             <p class="fr-text--md fr-text--bold fr-mb-0">{{ cap.nom }}</p>
                             {% if cap.description %}<p class="fr-text--sm fr-text-mention--grey fr-mb-0">{{ cap.description }}</p>{% endif %}
                         </div>
-                        <span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(cap.portee, cap.portee) }}">{{ cap.portee }}</span>
+                        <span class="fr-badge fr-badge--sm fr-badge--no-icon" title="{{ portee_labels.get(cap.portee, cap.portee) }}">{{ cap.portee }}<span class="fr-sr-only"> — {{ portee_labels.get(cap.portee, cap.portee) }}</span></span>
                     </div>
 
                     <input type="hidden" name="cap_{{ cap.id }}" data-cap-input
@@ -38,7 +40,8 @@
 
                     <div class="level-picker{% if max_niveau == 4 %} level-picker--4{% endif %}">
                         {% for niv in cap.niveaux %}
-                        <button type="button" class="level-option{% if sc and sc.niveau == niv.niveau %} is-selected{% endif %}" data-niveau="{{ niv.niveau }}">
+                        <button type="button" class="level-option{% if sc and sc.niveau == niv.niveau %} is-selected{% endif %}" data-niveau="{{ niv.niveau }}"
+                                aria-pressed="{% if sc and sc.niveau == niv.niveau %}true{% else %}false{% endif %}">
                             <span class="level-option__head">
                                 <span class="level-dot level-dot--{{ niv.niveau }}">{{ niv.niveau }}</span>
                                 <span class="level-option__name">{{ niv.nom }}</span>
@@ -49,14 +52,16 @@
                     </div>
 
                     <div class="fr-mt-2w" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-                        <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-chat-3-line fr-btn--icon-left" data-justif-btn>
+                        <button type="button" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-chat-3-line fr-btn--icon-left" data-justif-btn
+                                aria-controls="just-{{ cap.id }}" aria-expanded="{% if sc and sc.justification %}true{% else %}false{% endif %}">
                             <span data-label>{% if sc and sc.justification %}Masquer la justification{% else %}Ajouter une justification{% endif %}</span>
                         </button>
                         <button type="button" class="fr-btn fr-btn--tertiary fr-btn--sm" data-na-btn
                                 aria-pressed="{% if sc and sc.niveau == 0 %}true{% else %}false{% endif %}">Non applicable</button>
                     </div>
 
-                    <textarea name="just_{{ cap.id }}" class="fr-input fr-mt-1w"
+                    <label class="fr-label fr-sr-only" for="just-{{ cap.id }}">Justification — {{ cap.nom }}</label>
+                    <textarea name="just_{{ cap.id }}" id="just-{{ cap.id }}" class="fr-input fr-mt-1w"
                               placeholder="Signaux observés qui justifient ce niveau (facultatif mais recommandé)…"
                               {% if not (sc and sc.justification) %}hidden{% endif %}>{{ sc.justification if sc and sc.justification else '' }}</textarea>
                 </div>
@@ -70,10 +75,11 @@
             <div class="fr-p-3w fr-mb-2w" style="background: var(--background-default-grey); border: 1px solid var(--border-default-grey);">
                 <p class="fr-text--sm fr-text--bold fr-mb-1v">Progression</p>
                 <p class="fr-h3 fr-mb-0" style="color: var(--text-title-blue-france);"><span data-progress-done>{{ done }}</span><span class="fr-text--md fr-text-mention--grey"> / {{ total }}</span></p>
-                <div class="progress fr-my-1w">
+                <div class="progress fr-my-1w" aria-hidden="true">
                     <div class="progress__bar" data-progress-bar style="width: {{ pct0 }}%;"></div>
                 </div>
                 <p class="fr-text--xs fr-text-mention--grey fr-mb-0"><span data-progress-pct>{{ pct0 }} %</span> des capacités renseignées</p>
+                <p id="autosave-status" class="fr-text--xs fr-text-mention--grey fr-mb-0" aria-hidden="false">Sauvegarde automatique activée</p>
                 <div class="fr-mt-2w" style="display: grid; gap: 8px;">
                     <button type="submit" name="action" value="save" class="fr-btn fr-btn--secondary" style="width: 100%; justify-content: center;">Sauvegarder le brouillon</button>
                     <button type="submit" name="action" value="recap" id="btn-recap" class="fr-btn" style="width: 100%; justify-content: center;" {% if done < total %}disabled{% endif %}>Vérifier &amp; valider</button>

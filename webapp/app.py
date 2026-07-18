@@ -79,6 +79,10 @@ def migrate_db():
         conn.execute(text("ALTER TABLE evaluation_new RENAME TO evaluation"))
         conn.commit()
 
+    # Migration 6 : label lisible pour le référentiel historique « v2.0 »
+    conn.execute(text("UPDATE referentiel_version SET label='ComNum v2.0' WHERE label='v2.0'"))
+    conn.commit()
+
     # Migration 5 : email de contact des entités (relances/invitations par mail)
     ent_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(entite)"))]
     if "email_contact" not in ent_cols:
@@ -634,6 +638,7 @@ def pilote_dashboard():
 # ──────────────────────────────────────────────
 
 @app.route("/mes-evaluations")
+@require_roles("repondant", "pilote", "admin")
 def mes_evaluations():
     evals = scoped_evaluations_query().order_by(Evaluation.date_evaluation.desc()).all()
     drafts = [eval_summary(e) for e in evals if e.statut == "brouillon"]
@@ -657,6 +662,7 @@ def mes_evaluations():
 
 
 @app.route("/evaluation/new", methods=["GET", "POST"])
+@require_roles("repondant", "pilote", "admin")
 def evaluation_new():
     referentiels = ReferentielVersion.query.order_by(ReferentielVersion.label).all()
     campagnes = Campagne.query.filter_by(statut="en_cours").order_by(Campagne.date_debut.desc()).all()
@@ -720,6 +726,7 @@ def evaluation_new():
 
 
 @app.route("/invitation/<int:campagne_id>/<int:entite_id>")
+@require_roles("repondant", "pilote", "admin")
 def invitation(campagne_id, entite_id):
     """Lien d'invitation : pré-remplit le triplet et ouvre le questionnaire."""
     campagne = Campagne.query.get_or_404(campagne_id)
@@ -748,6 +755,7 @@ def invitation(campagne_id, entite_id):
 
 
 @app.route("/evaluations")
+@require_roles("pilote", "admin")
 def evaluations_list():
     evaluations = Evaluation.query.order_by(Evaluation.date_evaluation.desc()).all()
     return render_template("evaluations.html",
@@ -755,6 +763,7 @@ def evaluations_list():
 
 
 @app.route("/evaluations/<int:evaluation_id>/delete", methods=["POST"])
+@require_roles("pilote", "admin")
 def evaluation_delete(evaluation_id):
     evaluation = Evaluation.query.get_or_404(evaluation_id)
     cible_nom = evaluation.cible_nom
@@ -765,39 +774,51 @@ def evaluation_delete(evaluation_id):
     return redirect(request.form.get("next") or url_for("evaluations_list"))
 
 
+def save_scores_from_form(evaluation, form):
+    """Enregistre les réponses du questionnaire depuis un formulaire (fill/autosave)."""
+    existing_scores = {s.capacite_id: s for s in evaluation.scores}
+    dimensions = Dimension.query.filter_by(referentiel_id=evaluation.referentiel_id) \
+        .order_by(Dimension.numero).all()
+    for dim in dimensions:
+        for cap in dim.capacites:
+            if f"cap_{cap.id}" not in form:
+                continue  # autosave partiel : ne toucher qu'aux champs transmis
+            raw = form.get(f"cap_{cap.id}", "")
+            justification = form.get(f"just_{cap.id}", "").strip()
+            if raw == "":
+                if cap.id in existing_scores:
+                    db.session.delete(existing_scores[cap.id])
+                continue
+            niveau_val = 0 if raw == "na" else int(raw)
+            if cap.id in existing_scores:
+                existing_scores[cap.id].niveau = niveau_val
+                existing_scores[cap.id].justification = justification
+            else:
+                db.session.add(Score(evaluation_id=evaluation.id, capacite_id=cap.id,
+                                     niveau=niveau_val, justification=justification))
+    db.session.commit()
+
+
 @app.route("/evaluation/<int:evaluation_id>/fill", methods=["GET", "POST"])
+@require_roles("repondant", "pilote", "admin")
 def evaluation_fill(evaluation_id):
     """Questionnaire — niveau par capacité, non-applicable, justification."""
     evaluation = Evaluation.query.get_or_404(evaluation_id)
     ref = evaluation.referentiel
     dimensions = Dimension.query.filter_by(referentiel_id=ref.id).order_by(Dimension.numero).all()
-    existing_scores = {s.capacite_id: s for s in evaluation.scores}
 
     if request.method == "POST":
-        for dim in dimensions:
-            for cap in dim.capacites:
-                raw = request.form.get(f"cap_{cap.id}", "")
-                justification = request.form.get(f"just_{cap.id}", "").strip()
-                if raw == "":
-                    # Réponse retirée → supprimer le score existant
-                    if cap.id in existing_scores:
-                        db.session.delete(existing_scores[cap.id])
-                    continue
-                niveau_val = 0 if raw == "na" else int(raw)
-                if cap.id in existing_scores:
-                    existing_scores[cap.id].niveau = niveau_val
-                    existing_scores[cap.id].justification = justification
-                else:
-                    db.session.add(Score(evaluation_id=evaluation.id, capacite_id=cap.id,
-                                         niveau=niveau_val, justification=justification))
-        db.session.commit()
-
+        save_scores_from_form(evaluation, request.form)
         action = request.form.get("action", "save")
         if action == "recap":
             return redirect(url_for("evaluation_recap", evaluation_id=evaluation.id))
         flash("Brouillon sauvegardé.", "info")
-        return redirect(url_for("evaluation_fill", evaluation_id=evaluation.id))
+        # conserver l'ancre de la dimension courante (pas de retour en haut de page)
+        anchor = request.form.get("anchor", "")
+        return redirect(url_for("evaluation_fill", evaluation_id=evaluation.id)
+                        + (f"#{anchor}" if anchor else ""))
 
+    existing_scores = {s.capacite_id: s for s in evaluation.scores}
     done, total = eval_progress(evaluation)
     return render_template("evaluation_fill.html",
         evaluation=evaluation, dimensions=dimensions,
@@ -807,7 +828,21 @@ def evaluation_fill(evaluation_id):
     )
 
 
+@app.route("/evaluation/<int:evaluation_id>/autosave", methods=["POST"])
+@require_roles("repondant", "pilote", "admin")
+def evaluation_autosave(evaluation_id):
+    """Sauvegarde automatique du questionnaire (AJAX) — le brouillon est
+    réellement conservé en continu, comme le promet l'UI."""
+    evaluation = Evaluation.query.get_or_404(evaluation_id)
+    if evaluation.statut == "validee":
+        return jsonify({"ok": False, "error": "évaluation déjà validée"}), 409
+    save_scores_from_form(evaluation, request.form)
+    done, total = eval_progress(evaluation)
+    return jsonify({"ok": True, "done": done, "total": total})
+
+
 @app.route("/evaluation/<int:evaluation_id>/recap")
+@require_roles("repondant", "pilote", "admin")
 def evaluation_recap(evaluation_id):
     """Vérification avant validation (R_RECAP)."""
     evaluation = Evaluation.query.get_or_404(evaluation_id)
@@ -834,6 +869,7 @@ def evaluation_recap(evaluation_id):
 
 
 @app.route("/evaluation/<int:evaluation_id>/validate", methods=["POST"])
+@require_roles("repondant", "pilote", "admin")
 def evaluation_validate(evaluation_id):
     evaluation = Evaluation.query.get_or_404(evaluation_id)
     done, total = eval_progress(evaluation)
@@ -848,6 +884,7 @@ def evaluation_validate(evaluation_id):
 
 
 @app.route("/evaluation/<int:evaluation_id>/reopen", methods=["POST"])
+@require_roles("pilote", "admin")
 def evaluation_reopen(evaluation_id):
     """Réouverture d'une évaluation validée (action pilote)."""
     evaluation = Evaluation.query.get_or_404(evaluation_id)
@@ -935,6 +972,16 @@ def evaluation_results(evaluation_id):
 # ──────────────────────────────────────────────
 # Référentiel (consultation partagée)
 # ──────────────────────────────────────────────
+
+@app.route("/accessibilite")
+def accessibilite():
+    return render_template("accessibilite.html")
+
+
+@app.route("/mentions-legales")
+def mentions_legales():
+    return render_template("mentions_legales.html")
+
 
 @app.route("/referentiel")
 def referentiel_view():
@@ -1160,10 +1207,13 @@ def campagne_dashboard_data(campagne):
         for s in stats.values():
             radar_rows.append({"dimension": f"{s['numero']}. {s['nom']}",
                                "serie": "Moyenne", "score": s["moyenne"]})
-    for ev in validated:
+    # au-delà de ~5 entités le radar devient illisible : Moyenne + top 5
+    top = sorted(validated, key=lambda ev: -global_score(ev))[:5]
+    for ev in top:
         for d in compute_scores_by_dimension(ev).values():
             radar_rows.append({"dimension": f"{d['numero']}. {d['nom']}",
                                "serie": ev.cible_nom, "score": d["moyenne"]})
+    radar_capped = len(validated) > len(top)
 
     # Stats enrichies pour le tableau
     dim_stats = []
@@ -1183,7 +1233,8 @@ def campagne_dashboard_data(campagne):
     return {
         "campagne": campagne, "stats_campagne": campagne_stats(campagne),
         "referentiel": ref, "dimensions": dimensions, "all_capacites": all_capacites,
-        "radar_rows": radar_rows, "dim_stats": dim_stats, "heatmap": heatmap,
+        "radar_rows": radar_rows, "radar_capped": radar_capped,
+        "dim_stats": dim_stats, "heatmap": heatmap,
         "max_niveau": max_niveau, "nb_validees": len(validated),
     }
 

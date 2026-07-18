@@ -1,5 +1,9 @@
 # 06 — Revue de conformité DSFR / dsfr-data & appropriation par profils (2026-07-18)
 
+> **État : corrigé le 2026-07-18** — lots 1 et 2 appliqués intégralement, lot 3 appliqué
+> sauf deux chantiers tracés en issues (mode « une dimension à la fois » ; `y-min/y-max`
+> radar dans la lib dsfr-data upstream). Voir le commit de correction.
+
 Trois audits croisés (conformité DSFR 1.14 vérifiée contre le CSS réel du CDN,
 conformité dsfr-data vérifiée contre la spec officielle, audit UX par personas —
 rapport détaillé : `05-audit-ux.md`) + contrôle visuel navigateur.

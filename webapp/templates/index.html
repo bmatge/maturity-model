@@ -5,10 +5,10 @@
 {% if current_user_obj %}
 <p class="fr-text--sm text-mention fr-mb-1v">{{ current_user_obj.nom }} — SIRCOM / MIWEB</p>
 {% endif %}
-<h1 class="fr-mb-1w">Tableau de bord</h1>
+<h1 class="fr-h3 fr-mb-1w">Tableau de bord</h1>
 <p class="fr-text--lg text-mention fr-mb-4w">
     Vue d'ensemble du dispositif.
-    {% if camp_data %}Une campagne est en cours — surveillez l'avancement et relancez les entités en retard.{% endif %}
+    {% if camp_data %}Une campagne est en cours — surveillez l'avancement et relancez les organisations en retard.{% endif %}
 </p>
 
 {# ── KPIs ── #}
@@ -32,13 +32,13 @@
 <div class="panel fr-mb-3w">
     <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
         <div class="fr-col-12 fr-col-md">
-            <p class="panel__title fr-mb-0">{{ campagne.label }}</p>
+            <h2 class="panel__title fr-mb-0">{{ campagne.label }}</h2>
             <p class="fr-text--sm text-mention fr-mb-0">
                 {{ campagne.referentiel.label if campagne.referentiel else "Sans référentiel" }}
                 · du {{ campagne.date_debut.strftime("%d/%m/%Y") }}{% if campagne.date_fin %} au {{ campagne.date_fin.strftime("%d/%m/%Y") }}{% endif %}
             </p>
         </div>
-        <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
+        <div class="fr-col-12 col-md-auto fr-mt-2w fr-mt-md-0">
             <a class="fr-btn fr-btn--icon-right fr-icon-arrow-right-line"
                href="{{ url_for('campagne_detail', campagne_id=campagne.id) }}">Piloter la campagne</a>
         </div>
@@ -56,10 +56,12 @@
 <div class="fr-grid-row fr-grid-row--gutters">
     <div class="fr-col-12 fr-col-lg-6">
         <div class="panel chart-card" style="height: 100%;">
-            <p class="panel__title">Profil de maturité moyen</p>
+            <h2 class="panel__title">Profil de maturité moyen</h2>
             {% if radar_rows %}
             <dsfr-data-source id="home-radar" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart data-scale-max="{{ max_niveau }}" source="home-radar" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
+            <dsfr-data-chart id="home-radar-chart" data-scale-max="{{ max_niveau }}" source="home-radar" type="radar" label-field="dimension" value-field="score" selected-palette="default"></dsfr-data-chart>
+            <dsfr-data-a11y for="home-radar-chart" source="home-radar" table download
+                            description="Radar du profil de maturité moyen par dimension, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
             {% if radar_ref %}<p class="fr-text--xs text-mention fr-mb-0 fr-mt-1w">Référentiel : {{ radar_ref.label }} — dernière évaluation validée par organisation.</p>{% endif %}
             {% else %}
             <p class="fr-text--sm text-mention fr-mb-0">Aucune évaluation validée pour l'instant.</p>
@@ -68,13 +70,13 @@
     </div>
     <div class="fr-col-12 fr-col-lg-6">
         <div class="panel" style="height: 100%;">
-            <p class="panel__title">Classement des organisations</p>
+            <h2 class="panel__title">Classement des organisations</h2>
             {% if classement %}
             <div style="display: grid; gap: 10px;">
                 {% for e in classement %}
                 <div class="score-inline">
                     <span class="fr-text--sm" style="flex: 1;">{{ e.nom }}</span>
-                    <div class="progress" style="width: 160px; flex: none;">
+                    <div class="progress" style="width: 160px; flex: none;" aria-hidden="true">
                         <div class="progress__bar progress__bar--{{ e.color }}" style="width: {{ e.pct }}%;"></div>
                     </div>
                     <span class="fr-text--sm fr-text--bold" style="flex: none; width: 40px; text-align: right;">{{ e.score }}</span>

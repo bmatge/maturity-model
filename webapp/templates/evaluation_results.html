@@ -23,7 +23,7 @@
         </p>
     </div>
     <a class="fr-btn fr-btn--secondary fr-icon-printer-line fr-btn--icon-left no-print"
-       href="{{ url_for('evaluation_results', evaluation_id=evaluation.id) }}?print=1">Exporter (PDF)</a>
+       href="{{ url_for('evaluation_results', evaluation_id=evaluation.id) }}?print=1">Imprimer / PDF</a>
 </div>
 
 <!-- Lecture simple -->
@@ -47,13 +47,13 @@
                 {% if takeaways.fort %}
                 <li style="display: flex; gap: 10px;">
                     <span class="fr-icon-arrow-up-circle-fill" style="color: var(--text-default-success);" aria-hidden="true"></span>
-                    <span><strong>Point fort :</strong> {{ takeaways.fort.nom }} ({{ takeaways.fort.moyenne }}/{{ max_niveau }}).</span>
+                    <span><strong>Point fort :</strong> {{ takeaways.fort.nom }} ({{ takeaways.fort.moyenne|round(1) }}/{{ max_niveau }}).</span>
                 </li>
                 {% endif %}
                 {% if takeaways.faible %}
                 <li style="display: flex; gap: 10px;">
                     <span class="fr-icon-arrow-down-circle-fill" style="color: var(--text-default-warning);" aria-hidden="true"></span>
-                    <span><strong>À renforcer :</strong> {{ takeaways.faible.nom }} ({{ takeaways.faible.moyenne }}/{{ max_niveau }}).</span>
+                    <span><strong>À renforcer :</strong> {{ takeaways.faible.nom }} ({{ takeaways.faible.moyenne|round(1) }}/{{ max_niveau }}).</span>
                 </li>
                 {% endif %}
                 {% if takeaways.next %}
@@ -94,7 +94,7 @@
                             <span>{{ d.numero }}. {{ d.nom }}</span>
                             <span class="fr-text--bold">{{ d.moyenne }} / {{ max_niveau }}</span>
                         </p>
-                        <div class="progress progress--lg">
+                        <div class="progress progress--lg" aria-hidden="true">
                             <div class="progress__bar progress__bar--{{ dcolor }}" style="width: {{ dpct }}%;"></div>
                         </div>
                     </div>
@@ -109,6 +109,7 @@
                 <div class="fr-table__container">
                     <div class="fr-table__content">
                         <table>
+                            <caption class="fr-sr-only">Détail des niveaux par capacité</caption>
                             <thead>
                                 <tr>
                                     <th scope="col">Capacité</th>
@@ -120,7 +121,7 @@
                                 <tr>
                                     <td>
                                         <strong>{{ row.cap_numero }}</strong> {{ row.capacite }}
-                                        <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w" title="{{ portee_labels.get(row.portee, row.portee) }}">{{ row.portee }}</span>
+                                        <span class="fr-badge fr-badge--sm fr-badge--no-icon fr-ml-1w" title="{{ portee_labels.get(row.portee, row.portee) }}">{{ row.portee }}<span class="fr-sr-only"> — {{ portee_labels.get(row.portee, row.portee) }}</span></span>
                                         {% if row.justification %}<span class="cell-sub">{{ row.justification }}</span>{% endif %}
                                     </td>
                                     <td>

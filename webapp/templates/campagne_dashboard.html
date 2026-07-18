@@ -5,21 +5,21 @@
 <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left no-print" href="{{ url_for('campagne_detail', campagne_id=campagne.id) }}">{{ campagne.label }}</a>
 <div class="fr-grid-row fr-grid-row--middle fr-mt-1w fr-mb-2w">
     <div class="fr-col-12 fr-col-md">
-        <h1 class="fr-mb-1w">Restitution — {{ campagne.label }}</h1>
+        <h1 class="fr-h3 fr-mb-1w">Restitution — {{ campagne.label }}</h1>
         <p class="fr-text--lg text-mention fr-mb-0">
-            Comparaison inter-entités sur les évaluations validées. Repérez les capacités faibles partout
-            (chantier transverse) et les entités faibles partout (accompagnement ciblé).
+            Comparaison inter-organisations sur les évaluations validées. Repérez les capacités faibles partout
+            (chantier transverse) et les organisations faibles partout (accompagnement ciblé).
         </p>
     </div>
-    <div class="fr-col-auto no-print">
+    <div class="col-auto no-print">
         <ul class="fr-btns-group fr-btns-group--inline fr-btns-group--sm">
             <li>
                 <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-printer-line"
-                   href="{{ url_for('campagne_rapport', campagne_id=campagne.id) }}">Rapport (PDF)</a>
+                   href="{{ url_for('campagne_rapport', campagne_id=campagne.id) }}">Imprimer / PDF</a>
             </li>
             <li>
                 <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-download-line"
-                   href="{{ url_for('export_campagne_csv', campagne_id=campagne.id) }}">Scores (CSV)</a>
+                   href="{{ url_for('export_campagne_csv', campagne_id=campagne.id) }}">Exporter (CSV)</a>
             </li>
         </ul>
     </div>
@@ -37,14 +37,19 @@
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
     <div class="fr-col-12 fr-col-lg-5">
         <div class="panel chart-card" style="height: 100%;">
-            <p class="panel__title">Radar comparatif</p>
+            <h2 class="panel__title">Radar comparatif</h2>
             <dsfr-data-source id="cmp" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart data-scale-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+            <dsfr-data-chart id="cmp-radar-chart" data-scale-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+            <dsfr-data-a11y for="cmp-radar-chart" source="cmp" table download
+                            description="Radar comparatif : moyenne de la campagne et profil de chaque organisation, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
+            {% if radar_capped %}
+            <p class="fr-text--xs text-mention">Radar limité aux 5 organisations les mieux notées + moyenne — le tableau et la carte thermique couvrent tout le périmètre.</p>
+            {% endif %}
         </div>
     </div>
     <div class="fr-col-12 fr-col-lg-7">
         <div class="panel" style="height: 100%;">
-            <p class="panel__title">Statistiques par dimension</p>
+            <h2 class="panel__title">Statistiques par dimension</h2>
             <div class="fr-table fr-table--sm fr-mb-0" id="table-dim-stats">
                 <div class="fr-table__wrapper">
                     <div class="fr-table__container">
@@ -67,7 +72,7 @@
                                         </td>
                                         <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
                                         <td style="width: 120px;">
-                                            <div class="progress">
+                                            <div class="progress" aria-hidden="true">
                                                 <div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div>
                                             </div>
                                         </td>
@@ -83,11 +88,11 @@
     </div>
 </div>
 
-{# ── Heatmap entités × capacités ── #}
+{# ── Carte thermique organisations × capacités ── #}
 <div class="panel">
     <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-        <div class="fr-col-12 fr-col-md"><p class="panel__title fr-mb-0">Heatmap — entités × capacités</p></div>
-        <div class="fr-col-auto fr-text--sm text-mention">
+        <div class="fr-col-12 fr-col-md"><h2 class="panel__title fr-mb-0">Carte thermique — organisations × capacités</h2></div>
+        <div class="col-auto fr-text--sm text-mention">
             Survol : détail ·
             {% if all_capacites and all_capacites[0].niveaux %}
             {% for niv in all_capacites[0].niveaux %}
@@ -99,10 +104,10 @@
     </div>
     <div class="heatmap-scroll">
         <table class="heatmap{% if max_niveau == 4 %} levels-4{% endif %}">
-            <caption class="fr-sr-only">Niveaux atteints par entité et par capacité</caption>
+            <caption class="fr-sr-only">Niveaux atteints par organisation et par capacité</caption>
             <thead>
                 <tr>
-                    <th class="row-label" scope="col"><span class="fr-sr-only">Entité</span></th>
+                    <th class="row-label" scope="col"><span class="fr-sr-only">Organisation</span></th>
                     {% for cap in all_capacites %}
                     <th class="rot" scope="col" title="{{ cap.numero }} {{ cap.nom }}">{{ cap.numero }}</th>
                     {% endfor %}

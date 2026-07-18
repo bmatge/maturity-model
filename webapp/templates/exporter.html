@@ -16,106 +16,113 @@
 <div class="fr-grid-row fr-grid-row--gutters">
     <!-- Rapport PDF -->
     <div class="fr-col-12">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content fr-py-3w">
-                    <h2 class="fr-h6 fr-mb-1v">
-                        <span class="fr-icon-file-pdf-line fr-mr-1w" aria-hidden="true"></span>Rapport de restitution (PDF)
-                    </h2>
-                    <p class="fr-text--sm text-mention fr-mb-2w">
-                        Rapport dédié : messages clés, classement, statistiques, radar, heatmap — prêt pour le COPIL.
-                    </p>
-                    {% if campagnes %}
-                    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
-                        <div class="fr-col-12 fr-col-md-6">
-                            <div class="fr-select-group fr-mb-0">
-                                <label class="fr-label" for="pdf-campagne">Campagne</label>
-                                <select class="fr-select" id="pdf-campagne">
-                                    {% for c in campagnes %}
-                                    <option value="{{ c.id }}">{{ c.label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="fr-col-12 fr-col-md-6">
-                            <button type="button" class="fr-btn fr-icon-printer-line fr-btn--icon-left"
-                                    onclick="location.href = '{{ url_for('campagne_rapport', campagne_id=0) }}'.replace('/0/', '/' + document.getElementById('pdf-campagne').value + '/') + '?print=1';">
-                                Imprimer / PDF
-                            </button>
-                        </div>
+        <div class="panel">
+            <h2 class="fr-h6 fr-mb-1v">
+                <span class="fr-icon-file-pdf-line fr-mr-1w" aria-hidden="true"></span>Rapport de restitution (PDF)
+            </h2>
+            <p class="fr-text--sm text-mention fr-mb-2w">
+                Rapport dédié : messages clés, classement, statistiques, radar, carte thermique — prêt pour le COPIL.
+            </p>
+            {% if campagnes %}
+            <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom">
+                <div class="fr-col-12 fr-col-md-6">
+                    <div class="fr-select-group fr-mb-0">
+                        <label class="fr-label" for="pdf-campagne">Campagne</label>
+                        <select class="fr-select" id="pdf-campagne" data-export-select="pdf-link">
+                            {% for c in campagnes %}
+                            <option value="{{ c.id }}">{{ c.label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    {% endif %}
+                </div>
+                <div class="fr-col-12 col-md-auto">
+                    <a class="fr-btn fr-icon-printer-line fr-btn--icon-left" id="pdf-link"
+                       href="{{ url_for('campagne_rapport', campagne_id=campagnes[0].id) }}?print=1"
+                       data-url-template="{{ url_for('campagne_rapport', campagne_id=0) }}?print=1"
+                       data-url-placeholder="/0/">
+                        Imprimer / PDF
+                    </a>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 
     <!-- Scores bruts -->
     <div class="fr-col-12">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content fr-py-3w">
-                    <h2 class="fr-h6 fr-mb-1v">
-                        <span class="fr-icon-table-line fr-mr-1w" aria-hidden="true"></span>Scores bruts (tableur)
-                    </h2>
-                    <p class="fr-text--sm text-mention fr-mb-2w">
-                        Entités × capacités, niveaux et justifications — pour retraitement libre.
-                    </p>
-                    {% if campagnes %}
-                    <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom fr-mb-2w">
-                        <div class="fr-col-12 fr-col-md-6">
-                            <div class="fr-select-group fr-mb-0">
-                                <label class="fr-label" for="csv-campagne">Campagne</label>
-                                <select class="fr-select" id="csv-campagne">
-                                    {% for c in campagnes %}
-                                    <option value="{{ c.id }}">{{ c.label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="fr-col-12 fr-col-md-6">
-                            <button type="button" class="fr-btn fr-btn--secondary fr-icon-download-line fr-btn--icon-left"
-                                    onclick="location.href = '{{ url_for('export_campagne_csv', campagne_id=0) }}'.replace('/0.csv', '/' + document.getElementById('csv-campagne').value + '.csv');">
-                                Exporter (CSV)
-                            </button>
-                        </div>
-                    </div>
-                    {% endif %}
-                    <div class="fr-download fr-mb-0">
-                        <p class="fr-mb-0">
-                            <a class="fr-download__link" href="{{ url_for('export_entites_csv') }}" download>
-                                Scores par organisation (tous référentiels)
-                                <span class="fr-download__detail">CSV</span>
-                            </a>
-                        </p>
+        <div class="panel">
+            <h2 class="fr-h6 fr-mb-1v">
+                <span class="fr-icon-table-line fr-mr-1w" aria-hidden="true"></span>Scores bruts (tableur)
+            </h2>
+            <p class="fr-text--sm text-mention fr-mb-2w">
+                Organisations × capacités, niveaux et justifications — pour retraitement libre.
+            </p>
+            {% if campagnes %}
+            <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--bottom fr-mb-2w">
+                <div class="fr-col-12 fr-col-md-6">
+                    <div class="fr-select-group fr-mb-0">
+                        <label class="fr-label" for="csv-campagne">Campagne</label>
+                        <select class="fr-select" id="csv-campagne" data-export-select="csv-link">
+                            {% for c in campagnes %}
+                            <option value="{{ c.id }}">{{ c.label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
+                <div class="fr-col-12 col-md-auto">
+                    <a class="fr-btn fr-btn--secondary fr-icon-download-line fr-btn--icon-left" id="csv-link"
+                       href="{{ url_for('export_campagne_csv', campagne_id=campagnes[0].id) }}"
+                       data-url-template="{{ url_for('export_campagne_csv', campagne_id=0) }}"
+                       data-url-placeholder="/0.csv">
+                        Exporter (CSV)
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            <div class="fr-download fr-mb-0">
+                <p class="fr-mb-0">
+                    <a class="fr-download__link" href="{{ url_for('export_entites_csv') }}" download>
+                        Scores par organisation (tous référentiels)
+                        <span class="fr-download__detail">CSV</span>
+                    </a>
+                </p>
             </div>
         </div>
     </div>
 
     <!-- Lien de partage -->
     <div class="fr-col-12">
-        <div class="fr-card">
-            <div class="fr-card__body">
-                <div class="fr-card__content fr-py-3w">
-                    <h2 class="fr-h6 fr-mb-1v">
-                        <span class="fr-icon-links-line fr-mr-1w" aria-hidden="true"></span>Lien de partage en lecture
-                    </h2>
-                    <p class="fr-text--sm text-mention fr-mb-2w">
-                        Donnez accès à la restitution sans droit de saisie — c'est l'espace public.
-                    </p>
-                    <button type="button" class="fr-btn fr-btn--secondary fr-icon-links-line fr-btn--icon-left" id="copy-link-btn"
-                            onclick="navigator.clipboard.writeText('{{ url_for('restitution', _external=True) }}').then(function () {
-                                var b = document.getElementById('copy-link-btn');
-                                b.textContent = 'Copié ✓';
-                                setTimeout(function () { b.textContent = 'Copier le lien'; }, 2000);
-                            });">
-                        Copier le lien
-                    </button>
-                </div>
-            </div>
+        <div class="panel">
+            <h2 class="fr-h6 fr-mb-1v">
+                <span class="fr-icon-links-line fr-mr-1w" aria-hidden="true"></span>Lien de partage en lecture
+            </h2>
+            <p class="fr-text--sm text-mention fr-mb-2w">
+                Donnez accès à la restitution sans droit de saisie — c'est l'espace public.
+            </p>
+            <button type="button" class="fr-btn fr-btn--secondary fr-icon-links-line fr-btn--icon-left"
+                    data-copy-text="{{ url_for('restitution', _external=True) }}">
+                Copier le lien
+            </button>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Met à jour le href du lien d'export quand la campagne choisie change (navigation par lien, URL réelle)
+(function () {
+    document.querySelectorAll("[data-export-select]").forEach(function (select) {
+        var link = document.getElementById(select.getAttribute("data-export-select"));
+        if (!link) return;
+        var update = function () {
+            var template = link.getAttribute("data-url-template");
+            var placeholder = link.getAttribute("data-url-placeholder");
+            link.href = template.replace(placeholder, placeholder.replace("0", select.value));
+        };
+        select.addEventListener("change", update);
+        update();
+    });
+})();
+</script>
 {% endblock %}

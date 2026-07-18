@@ -4,7 +4,7 @@
 {% block content %}
 <div style="max-width: 760px;">
     <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('referentiels_admin') }}">Référentiels</a>
-    <h1 class="fr-mt-1w fr-mb-1w">Importer un référentiel</h1>
+    <h1 class="fr-h3 fr-mt-1w fr-mb-1w">Importer un référentiel</h1>
     <p class="fr-text--lg text-mention fr-mb-3w">
         Remplacez l'édition du code par un import structuré. Le fichier doit décrire la hiérarchie
         référentiel → dimensions → capacités → niveaux/critères.
@@ -92,10 +92,10 @@
                 </div>
             </section>
 
-            <div class="fr-btns-group fr-btns-group--inline">
-                <button type="submit" class="fr-btn">Prévisualiser &amp; importer</button>
-                <a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('referentiels_admin') }}">Annuler</a>
-            </div>
+            <ul class="fr-btns-group fr-btns-group--inline">
+                <li><button type="submit" class="fr-btn">Prévisualiser &amp; importer</button></li>
+                <li><a class="fr-btn fr-btn--tertiary-no-outline" href="{{ url_for('referentiels_admin') }}">Annuler</a></li>
+            </ul>
         </form>
     </div>
 </div>

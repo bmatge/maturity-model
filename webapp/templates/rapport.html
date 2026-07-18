@@ -18,7 +18,7 @@
             participation {{ s.camp_part.pct }} % ({{ s.camp_part.valides }}/{{ s.camp_part.attendus }})
         </p>
     </div>
-    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0 no-print">
+    <div class="fr-col-12 col-md-auto fr-mt-2w fr-mt-md-0 no-print">
         <button type="button" class="fr-btn fr-btn--icon-left fr-icon-printer-line" onclick="window.print()">Imprimer / PDF</button>
     </div>
 </div>
@@ -53,7 +53,7 @@
     {% if s.weakest_entity and s.classement | length > 1 %}
     <div class="fr-col-12 fr-col-md-4">
         <div class="panel exec-card exec-card--error" style="height: 100%;">
-            <p class="exec-card__kicker fr-mb-0">Une entité décroche</p>
+            <p class="exec-card__kicker fr-mb-0">Une organisation décroche</p>
             <p class="exec-card__value fr-mb-1v">{{ s.weakest_entity.nom }}</p>
             <p class="fr-text--sm text-mention fr-mb-0">{{ s.weakest_entity.score }}/{{ s.max_niveau }} ({{ s.weakest_entity.pct }} %), sous la moyenne. Accompagnement ciblé.</p>
         </div>
@@ -65,11 +65,11 @@
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
     <div class="fr-col-12 fr-col-md-5">
         <div class="panel" style="height: 100%;">
-            <p class="panel__title">Classement des organisations</p>
+            <h2 class="panel__title">Classement des organisations</h2>
             {% for row in s.classement %}
             <div class="score-inline fr-mb-1w">
                 <span class="fr-text--sm" style="flex: 1; min-width: 0;">{{ row.nom }}</span>
-                <div class="progress">
+                <div class="progress" aria-hidden="true">
                     <div class="progress__bar progress__bar--{{ row.color }}" style="width: {{ row.pct }}%;"></div>
                 </div>
                 <span class="fr-text--sm fr-text--bold" style="width: 52px; text-align: right;">{{ row.score }}/{{ s.max_niveau }}</span>
@@ -81,17 +81,18 @@
     </div>
     <div class="fr-col-12 fr-col-md-7">
         <div class="panel" style="height: 100%;">
-            <p class="panel__title">Statistiques par dimension</p>
+            <h2 class="panel__title">Statistiques par dimension</h2>
             <div class="fr-table fr-table--sm fr-mb-0">
                 <div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
                     <table>
+                        <caption class="fr-sr-only">Statistiques par dimension (moyenne, écart-type, min-max)</caption>
                         <thead><tr><th scope="col">Dimension</th><th scope="col">Moyenne</th><th scope="col"><span class="fr-sr-only">Jauge</span></th></tr></thead>
                         <tbody>
                             {% for d in dim_stats %}
                             <tr>
                                 <td>{{ d.numero }}. {{ d.nom }}<span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min }} – max {{ d.max }}</span></td>
                                 <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
-                                <td style="width: 110px;"><div class="progress"><div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div></div></td>
+                                <td style="width: 110px;"><div class="progress" aria-hidden="true"><div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div></div></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -104,21 +105,31 @@
 
 {# ── Radar comparatif ── #}
 <div class="panel fr-mb-3w chart-card">
-    <p class="panel__title">Profils par dimension</p>
+    <h2 class="panel__title">Profils par dimension</h2>
     <dsfr-data-source id="rapport-radar" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-    <dsfr-data-chart data-scale-max="{{ max_niveau }}" source="rapport-radar" type="radar"
-                     label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+    <dsfr-data-chart id="rapport-radar-chart" data-scale-max="{{ max_niveau }}" source="rapport-radar" type="radar"
+                     label-field="dimension" series-field="serie" value-field="score"
+                     databox databox-title="Profils par dimension"
+                     databox-source="Auto-évaluations validées — {{ campagne.label }}"
+                     databox-date="{{ campagne.date_debut.strftime('%m/%Y') }}"
+                     databox-download></dsfr-data-chart>
+    <dsfr-data-a11y for="rapport-radar-chart" source="rapport-radar"
+                    description="Radar comparatif : moyenne de la campagne et profil de chaque organisation, échelle 0 à {{ max_niveau }}."></dsfr-data-a11y>
+    {% if radar_capped %}
+    <p class="fr-text--xs text-mention">Radar limité aux 5 organisations les mieux notées + moyenne — le tableau et la carte thermique couvrent tout le périmètre.</p>
+    {% endif %}
 </div>
 
-{# ── Heatmap ── #}
+{# ── Carte thermique ── #}
 <div class="panel {{ 'levels-4' if max_niveau == 4 }}">
-    <p class="panel__title">Heatmap — entités × capacités</p>
+    <h2 class="panel__title">Carte thermique — organisations × capacités</h2>
     <div class="heatmap-scroll">
         <table class="heatmap">
+            <caption class="fr-sr-only">Niveaux atteints par organisation et par capacité</caption>
             <thead>
                 <tr>
-                    <th class="row-label"><span class="fr-sr-only">Entité</span></th>
-                    {% for cap in all_capacites %}<th class="rot" title="{{ cap.numero }} {{ cap.nom }}">{{ cap.numero }}</th>{% endfor %}
+                    <th class="row-label" scope="col"><span class="fr-sr-only">Organisation</span></th>
+                    {% for cap in all_capacites %}<th class="rot" scope="col" title="{{ cap.numero }} {{ cap.nom }}">{{ cap.numero }}</th>{% endfor %}
                 </tr>
             </thead>
             <tbody>

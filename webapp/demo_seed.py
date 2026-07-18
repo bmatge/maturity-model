@@ -140,7 +140,7 @@ def run():
 
         design_org = ReferentielVersion.query.filter_by(label="Design-org-v1").first()
         design_site = ReferentielVersion.query.filter_by(label="Design-site-v1").first()
-        comnum = ReferentielVersion.query.filter_by(label="v2.0").first()
+        comnum = ReferentielVersion.query.filter_by(label="ComNum v2.0").first()
         design_org.is_active = True
         design_site.is_active = True
 
@@ -228,12 +228,12 @@ def run():
         autres = ReferentielVersion.query.filter(
             ~ReferentielVersion.label.in_(("Design-org-v1",))).order_by(ReferentielVersion.label).all()
         # écart de maturité par famille : la data est le point faible, l'accessibilité moyenne
-        FAMILY_OFFSET = {"v2.0": 0.02, "Design-site-v1": 0.0,
+        FAMILY_OFFSET = {"ComNum v2.0": 0.02, "Design-site-v1": 0.0,
                          "Accessibilité-org-v1": -0.05, "Accessibilité-site-v1": -0.03,
                          "Data-org-v1": -0.13, "Data-site-v1": -0.11}
         # fenêtres semestrielles des vagues (Design-site en a 3 pour l'évolution fine)
         WAVES = {
-            "v2.0": [("ComNum S1 2025", date(2025, 3, 1), date(2025, 4, 30), datetime(2025, 4, 7, 10)),
+            "ComNum v2.0": [("ComNum S1 2025", date(2025, 3, 1), date(2025, 4, 30), datetime(2025, 4, 7, 10)),
                      ("ComNum S1 2026", date(2026, 2, 1), date(2026, 3, 31), datetime(2026, 3, 10, 10))],
             "Design-site-v1": [("Sites S1 2025 — Design", date(2025, 5, 1), date(2025, 6, 30), datetime(2025, 6, 16, 14)),
                                ("Sites S2 2025 — Design", date(2025, 11, 1), date(2025, 12, 31), datetime(2025, 12, 10, 14)),

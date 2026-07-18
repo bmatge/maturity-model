@@ -4,10 +4,10 @@
 {% block content %}
 <div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
     <div class="fr-col-12 fr-col-md">
-        <h1 class="fr-mb-1w">Référentiels</h1>
+        <h1 class="fr-h3 fr-mb-1w">Référentiels</h1>
         <p class="fr-text--lg text-mention fr-mb-0">Gérez les cadres d'évaluation : import, activation, versionnage.</p>
     </div>
-    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
+    <div class="fr-col-12 col-md-auto fr-mt-2w fr-mt-md-0">
         <a class="fr-btn fr-btn--icon-left fr-icon-upload-2-line" href="{{ url_for('referentiel_import') }}">Importer un référentiel</a>
     </div>
 </div>
@@ -46,7 +46,7 @@
                                 </form>
                             </td>
                             <td style="text-align: right;">
-                                <a class="fr-link fr-text--sm" href="{{ url_for('referentiel_view', ref_id=r.ref.id) }}">Consulter</a>
+                                <a class="fr-link fr-link--sm" href="{{ url_for('referentiel_view', ref_id=r.ref.id) }}">Consulter</a>
                             </td>
                         </tr>
                         {% endfor %}
