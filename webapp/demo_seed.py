@@ -152,6 +152,7 @@ def run():
             db.session.flush()
             orgs[nom] = (e, base, resp)
             local = resp.lower().replace(" ", ".").replace("é", "e").replace("è", "e")
+            e.email_contact = f"{local}@finances.gouv.fr"
             users[nom] = User(nom=resp, email=f"{local}@finances.gouv.fr",
                               role="repondant", scope_type="entite", scope_entite_id=e.id)
             db.session.add(users[nom])

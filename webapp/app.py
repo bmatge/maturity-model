@@ -18,6 +18,7 @@ from flask import (Flask, Response, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from models import db, ReferentielVersion, Dimension, Capacite, NiveauCritere
 from models import Entite, Site, Campagne, CampagneParticipant, Evaluation, Score, User
+import mailer
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
@@ -76,6 +77,12 @@ def migrate_db():
         ))
         conn.execute(text("DROP TABLE evaluation"))
         conn.execute(text("ALTER TABLE evaluation_new RENAME TO evaluation"))
+        conn.commit()
+
+    # Migration 5 : email de contact des entités (relances/invitations par mail)
+    ent_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(entite)"))]
+    if "email_contact" not in ent_cols:
+        conn.execute(text("ALTER TABLE entite ADD COLUMN email_contact VARCHAR(200)"))
         conn.commit()
 
     # Migration 4 : referentiel_id (nullable) sur campagne — comparabilité + invitations
@@ -537,6 +544,7 @@ def inject_layout():
     nb_campagnes_en_cours = Campagne.query.filter_by(statut="en_cours").count()
     return {
         "sso_mode": SSO_MODE,
+        "mail_enabled": mailer.enabled(),
         "current_user_obj": user,
         "current_role": role,
         "role_label": {"repondant": "Répondant", "pilote": "Pilote",
@@ -1056,6 +1064,77 @@ def campagne_statut(campagne_id):
     return redirect(url_for("campagne_detail", campagne_id=campagne.id, tab="reglages"))
 
 
+def _invitation_link(campagne, entite):
+    if campagne.referentiel and campagne.referentiel.cible == "organisation":
+        return url_for("invitation", campagne_id=campagne.id, entite_id=entite.id, _external=True)
+    return url_for("evaluation_new", campagne_id=campagne.id, entite_id=entite.id, _external=True)
+
+
+def _send_relance(campagne, entite, invitation=False):
+    """Envoie une relance (ou invitation) à l'email de contact d'une entité."""
+    if not entite.email_contact:
+        raise mailer.MailerError(f"« {entite.nom} » n'a pas d'email de contact")
+    lien = _invitation_link(campagne, entite)
+    if invitation:
+        sujet = f"Invitation — {campagne.label}"
+        titre = "Invitation à vous auto-évaluer"
+        corps = (f"<p>Bonjour,</p><p>Dans le cadre de la campagne <strong>{campagne.label}</strong>, "
+                 f"vous êtes invité·e à renseigner l'auto-évaluation de <strong>{entite.nom}</strong> "
+                 f"sur le référentiel {campagne.referentiel.label if campagne.referentiel else ''}. "
+                 f"Le lien ci-dessous pré-remplit tout : vous n'avez plus qu'à répondre. "
+                 f"Vous pouvez interrompre et reprendre à tout moment.</p>")
+    else:
+        sujet = f"Relance — {campagne.label}"
+        titre = "Votre évaluation est attendue"
+        corps = (f"<p>Bonjour,</p><p>L'auto-évaluation de <strong>{entite.nom}</strong> pour la campagne "
+                 f"<strong>{campagne.label}</strong> n'est pas encore validée"
+                 + (f" (échéance le {campagne.date_fin.strftime('%d/%m/%Y')})" if campagne.date_fin else "")
+                 + ".</p><p>Le lien ci-dessous vous amène directement à votre questionnaire.</p>")
+    texte = (f"Bonjour,\n\n{'Invitation à vous auto-évaluer' if invitation else 'Votre évaluation est attendue'} — "
+             f"{campagne.label} · {entite.nom}.\n\nLien direct : {lien}\n")
+    mailer.send(entite.email_contact, sujet, texte, titre=titre, corps_html=corps,
+                lien=lien, lien_label="Ouvrir mon évaluation")
+
+
+@app.route("/campagne/<int:campagne_id>/relancer/<int:entite_id>", methods=["POST"])
+@require_roles("pilote", "admin")
+def campagne_relancer(campagne_id, entite_id):
+    campagne = Campagne.query.get_or_404(campagne_id)
+    entite = Entite.query.get_or_404(entite_id)
+    invitation = request.form.get("mode") == "invitation"
+    try:
+        _send_relance(campagne, entite, invitation=invitation)
+        flash(f"{'Invitation' if invitation else 'Relance'} envoyée à {entite.email_contact} "
+              f"({entite.nom}).", "success")
+    except mailer.MailerError as e:
+        flash(f"Envoi impossible : {e}.", "error")
+    return redirect(url_for("campagne_detail", campagne_id=campagne.id,
+                            tab="invitations" if invitation else "suivi"))
+
+
+@app.route("/campagne/<int:campagne_id>/relancer-tous", methods=["POST"])
+@require_roles("pilote", "admin")
+def campagne_relancer_tous(campagne_id):
+    campagne = Campagne.query.get_or_404(campagne_id)
+    stats = campagne_stats(campagne)
+    envoyees, sans_adresse, erreurs = 0, [], []
+    for r in stats["rows"]:
+        if r["statut"] == "validee" or not r.get("entite"):
+            continue
+        try:
+            _send_relance(campagne, r["entite"])
+            envoyees += 1
+        except mailer.MailerError as e:
+            (sans_adresse if "email de contact" in str(e) else erreurs).append(r["entite"].nom)
+    msg = f"{envoyees} relance{'s' if envoyees > 1 else ''} envoyée{'s' if envoyees > 1 else ''}."
+    if sans_adresse:
+        msg += f" Sans adresse de contact : {', '.join(sans_adresse)}."
+    if erreurs:
+        msg += f" Échec d'envoi : {', '.join(erreurs)}."
+    flash(msg, "error" if erreurs else ("warning" if sans_adresse else "success"))
+    return redirect(url_for("campagne_detail", campagne_id=campagne.id, tab="suivi"))
+
+
 @app.route("/campagnes/<int:campagne_id>/delete", methods=["POST"])
 @require_roles("pilote", "admin")
 def campagne_delete(campagne_id):
@@ -1199,6 +1278,7 @@ def entite_form(entite_id=None):
         entite.nom = request.form["nom"]
         entite.type = request.form["type"]
         entite.direction = request.form.get("direction", "")
+        entite.email_contact = request.form.get("email_contact", "").strip()
         entite.description = request.form.get("description", "")
         db.session.commit()
         flash(f"Organisation « {entite.nom} » enregistrée.", "success")

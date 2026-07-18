@@ -77,13 +77,22 @@
                                         {% endif %}
                                     </td>
                                     <td style="text-align: right; white-space: nowrap;">
-                                        {% if r.statut != "validee" %}
+                                        {% if r.statut != "validee" and r.entite %}
+                                        {% if mail_enabled %}
+                                        <form method="post" style="display: inline;" class="fr-mr-2w"
+                                              action="{{ url_for('campagne_relancer', campagne_id=campagne.id, entite_id=r.entite.id) }}">
+                                            <button type="submit" class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line"
+                                                    {% if not r.entite.email_contact %}disabled title="Pas d'email de contact — renseignez-le sur la fiche de l'organisation"
+                                                    {% else %}title="Envoyer la relance à {{ r.entite.email_contact }}"{% endif %}>Relancer</button>
+                                        </form>
+                                        {% else %}
                                         {% set relance_body = "Bonjour,\n\nVotre évaluation « " ~ nom_cible ~ " » pour la campagne « " ~ campagne.label ~ " » est attendue." %}
-                                        {% if campagne.referentiel and r.entite %}
+                                        {% if campagne.referentiel %}
                                         {% set relance_body = relance_body ~ "\n\nLien direct : " ~ url_for("invitation", campagne_id=campagne.id, entite_id=r.entite.id, _external=True) %}
                                         {% endif %}
                                         <a class="fr-link fr-text--sm fr-icon-mail-send-line fr-link--icon-left fr-mr-2w"
-                                           href="mailto:?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ relance_body|urlencode }}">Relancer</a>
+                                           href="mailto:{{ r.entite.email_contact or '' }}?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ relance_body|urlencode }}">Relancer</a>
+                                        {% endif %}
                                         {% endif %}
                                         {% if r.eval %}
                                         <a class="fr-link fr-text--sm"
@@ -111,9 +120,16 @@
         {% endfor %}
         {% set liste_retard = ns.lines | join("\n") %}
         <div class="fr-btns-group fr-btns-group--inline-md fr-mt-2w no-print">
+            {% if mail_enabled %}
+            <form method="post" action="{{ url_for('campagne_relancer_tous', campagne_id=campagne.id) }}" style="display: inline;">
+                <button type="submit" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line">
+                    Relancer les {{ retard | length }} retardataires</button>
+            </form>
+            {% else %}
             <a class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line"
                href="mailto:?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ ("Bonjour,\n\nVotre évaluation est attendue pour la campagne « " ~ campagne.label ~ " » :\n\n" ~ liste_retard ~ "\n\nMerci !")|urlencode }}">
                 Relancer les {{ retard | length }} retardataires</a>
+            {% endif %}
             <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-file-copy-line"
                     data-copy-text="{{ liste_retard }}">Copier la liste</button>
         </div>
@@ -172,15 +188,26 @@
                 {% set inv_url = url_for('invitation', campagne_id=campagne.id, entite_id=r.entite.id, _external=True) %}
                 {% set inv_body = "Bonjour,\n\nVous êtes invité·e à évaluer « " ~ r.entite.nom ~ " » dans le cadre de la campagne « " ~ campagne.label ~ " ».\n\nLien direct (référentiel et cible pré-remplis) : " ~ inv_url %}
                 <div class="fr-grid-row fr-grid-row--middle" style="gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-default-grey);">
-                    <span class="fr-col fr-text--bold">{{ r.entite.nom }}</span>
+                    <span class="fr-col fr-text--bold">{{ r.entite.nom }}
+                        <span class="cell-sub">{{ r.entite.email_contact or "pas d'email de contact" }}</span>
+                    </span>
                     <span class="fr-col-auto fr-text--sm text-mention">{{ campagne.referentiel.label if campagne.referentiel else "—" }}</span>
                     <span class="fr-col-auto">
                         <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-links-line"
                                 data-copy-link="{{ inv_url }}">Copier le lien</button>
                     </span>
                     <span class="fr-col-auto">
+                        {% if mail_enabled %}
+                        <form method="post" action="{{ url_for('campagne_relancer', campagne_id=campagne.id, entite_id=r.entite.id) }}" style="display: inline;">
+                            <input type="hidden" name="mode" value="invitation">
+                            <button type="submit" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line"
+                                    {% if not r.entite.email_contact %}disabled title="Pas d'email de contact — renseignez-le sur la fiche de l'organisation"
+                                    {% else %}title="Envoyer l'invitation à {{ r.entite.email_contact }}"{% endif %}>Inviter</button>
+                        </form>
+                        {% else %}
                         <a class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line"
-                           href="mailto:?subject={{ ("Invitation — " ~ campagne.label)|urlencode }}&body={{ inv_body|urlencode }}">Inviter</a>
+                           href="mailto:{{ r.entite.email_contact or '' }}?subject={{ ("Invitation — " ~ campagne.label)|urlencode }}&body={{ inv_body|urlencode }}">Inviter</a>
+                        {% endif %}
                     </span>
                 </div>
                 {% endfor %}

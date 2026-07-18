@@ -31,7 +31,7 @@
                         <tr>
                             <td>
                                 <strong>{{ e.nom }}</strong>
-                                <span class="cell-sub">{{ e.type }}{% if e.direction %} · {{ e.direction }}{% endif %} · {{ e.sites | length }} site{{ "s" if e.sites | length > 1 }}</span>
+                                <span class="cell-sub">{{ e.type }}{% if e.direction %} · {{ e.direction }}{% endif %} · {{ e.sites | length }} site{{ "s" if e.sites | length > 1 }}{% if e.email_contact %} · {{ e.email_contact }}{% endif %}</span>
                             </td>
                             <td>
                                 {% set cards = entite_scores.get(e.id, []) %}

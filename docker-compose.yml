@@ -14,6 +14,10 @@ services:
       # Identité fournie par le proxy Authentik (en-têtes X-authentik-*),
       # rôles applicatifs = groupes maturity-admin / maturity-pilote / maturity-repondant
       - SSO_HEADERS=1
+      # Mail : interpolé par spawn (--mail → Mailpit mailer:1025, --mail real → smtp-relay).
+      # Le réseau `mail` est attaché par l'override généré par spawn.
+      - MAIL_HOST=${MAIL_HOST:-}
+      - MAIL_PORT=${MAIL_PORT:-1025}
     labels:
       - traefik.enable=true
       - traefik.docker.network=proxy

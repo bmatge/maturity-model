@@ -30,6 +30,13 @@
                         <input class="fr-input" type="text" id="entite-direction" name="direction"
                                value="{{ entite.direction or "" if entite else "" }}">
                     </div>
+                    <div class="fr-input-group fr-mt-2w">
+                        <label class="fr-label" for="entite-email">Email de contact
+                            <span class="fr-hint-text">Destinataire des relances et invitations de campagne.</span>
+                        </label>
+                        <input class="fr-input" type="email" id="entite-email" name="email_contact"
+                               value="{{ entite.email_contact or "" if entite else "" }}">
+                    </div>
                 </div>
             </div>
 

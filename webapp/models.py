@@ -108,6 +108,7 @@ class Entite(db.Model):
     type = db.Column(db.String(20), nullable=False)  # "SIRCOM" ou "Bureau"
     direction = db.Column(db.String(200))
     description = db.Column(db.Text)
+    email_contact = db.Column(db.String(200))  # destinataire des relances/invitations
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     evaluations = db.relationship("Evaluation", back_populates="entite",
