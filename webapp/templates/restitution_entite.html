@@ -60,9 +60,9 @@
         <div class="fr-card chart-card">
             <div class="fr-card__body">
                 <div class="fr-card__content fr-py-3w">
-                    <h2 class="fr-card__title fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
+                    <h2 class="fr-h6 fr-mb-2w">Profil {{ radar_eval.referentiel.label }}</h2>
                     <dsfr-data-source id="r1" data='{{ radar_rows | tojson }}'></dsfr-data-source>
-                    <dsfr-data-chart source="r1" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
+                    <dsfr-data-chart data-scale-max="{{ radar_max }}" source="r1" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
                 </div>
             </div>
         </div>
@@ -72,7 +72,7 @@
         <div class="fr-card">
             <div class="fr-card__body">
                 <div class="fr-card__content fr-py-3w">
-                    <h2 class="fr-card__title fr-h6 fr-mb-2w">Sites rattachés</h2>
+                    <h2 class="fr-h6 fr-mb-2w">Sites rattachés</h2>
                     {% if sites_rows %}
                     <div class="fr-table fr-table--sm fr-mb-2w">
                         <div class="fr-table__wrapper">

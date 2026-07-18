@@ -33,6 +33,16 @@
     }
   });
 
+  // ── Accordéon mobile du sidemenu ──
+  var smToggle = document.querySelector(".sidemenu-toggle");
+  if (smToggle) {
+    smToggle.addEventListener("click", function () {
+      var content = document.getElementById(smToggle.getAttribute("aria-controls"));
+      var open = content.classList.toggle("is-open");
+      smToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  }
+
   // ── Questionnaire (evaluation_fill) ──
   var fill = document.getElementById("fill-form");
   if (fill) {
@@ -111,6 +121,59 @@
     });
 
     updateProgress();
+  }
+
+  // ── Échelle fixe des charts (radar/line) ──
+  // dsfr-chart laisse chart.js auto-échelonner : sur un radar, le minimum des
+  // données se retrouve au centre, ce qui est trompeur pour une échelle 0–N.
+  // Les templates posent data-scale-max="N" sur <dsfr-data-chart> ; on
+  // retrouve l'instance chart.js interne du web component et on fige 0–N.
+  function findChartInstance(component, canvas) {
+    var found = null;
+    var seen = new Set();
+    (function scan(obj, depth) {
+      if (!obj || typeof obj !== "object" || seen.has(obj) || depth > 6 || found) return;
+      seen.add(obj);
+      if (obj.canvas === canvas && obj.options && typeof obj.update === "function") { found = obj; return; }
+      var keys = Object.keys(obj);
+      for (var i = 0; i < keys.length && !found; i++) {
+        try { scan(obj[keys[i]], depth + 1); } catch (e) { /* accès interdit : ignorer */ }
+      }
+    })(component._instance, 0);
+    return found;
+  }
+
+  function fixChartScales() {
+    var pending = false;
+    document.querySelectorAll("[data-scale-max]").forEach(function (wrap) {
+      var max = parseFloat(wrap.getAttribute("data-scale-max"));
+      if (!max) return;
+      wrap.querySelectorAll("radar-chart canvas, line-chart canvas").forEach(function (canvas) {
+        var comp = canvas.closest("radar-chart, line-chart");
+        var chart = comp && findChartInstance(comp, canvas);
+        if (!chart) { pending = true; return; }
+        // le composant peut recréer l'instance après l'arrivée des données :
+        // on marque l'instance, pas le canvas, et on continue de surveiller
+        if (chart.__scaleFixed) return;
+        var sc = chart.options.scales || {};
+        if (sc.r) { sc.r.min = 0; sc.r.max = max; sc.r.ticks = Object.assign(sc.r.ticks || {}, { stepSize: 1 }); }
+        if (comp.tagName === "LINE-CHART" && sc.y) { sc.y.min = 0; sc.y.max = max; }
+        // update() seul ne repeint pas toujours ce web component : resize() force le redraw
+        chart.resize();
+        chart.update();
+        chart.__scaleFixed = true;
+      });
+      if (!wrap.querySelector("canvas")) pending = true;
+    });
+    return pending;
+  }
+
+  if (document.querySelector("[data-scale-max]")) {
+    var tries = 0;
+    var timer = setInterval(function () {
+      fixChartScales();
+      if (++tries > 24) clearInterval(timer);  // surveille ~12 s (recréations tardives)
+    }, 500);
   }
 
   // ── Impression automatique (?print=1) ──

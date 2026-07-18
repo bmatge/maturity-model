@@ -5,14 +5,14 @@
 {% set edit_user = (users | selectattr("id", "equalto", edit_id) | list | first) if edit_id else None %}
 
 <div class="fr-grid-row fr-grid-row--middle fr-mb-3w">
-    <div class="fr-col">
+    <div class="fr-col-12 fr-col-md">
         <h1 class="fr-mb-1w">Utilisateurs &amp; rôles</h1>
         <p class="fr-text--lg text-mention fr-mb-0" style="max-width: 680px;">
             Les rôles conditionnent « mon évaluation », les invitations et la protection des actions destructives.
             En attendant Authentik, l'identité se choisit dans l'en-tête.
         </p>
     </div>
-    <div class="fr-col-auto">
+    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
         <a class="fr-btn fr-btn--icon-left fr-icon-user-add-line" href="#user-form">Ajouter un utilisateur</a>
     </div>
 </div>

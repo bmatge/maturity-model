@@ -4,7 +4,7 @@
 {% block content %}
 <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('campagnes_list') }}">Campagnes</a>
 <div class="fr-grid-row fr-grid-row--middle fr-mt-1w fr-mb-3w">
-    <div class="fr-col">
+    <div class="fr-col-12 fr-col-md">
         <h1 class="fr-mb-1v">{{ campagne.label }}</h1>
         <p class="fr-text--sm text-mention fr-mb-0">
             {{ campagne.referentiel.label if campagne.referentiel else "Sans référentiel" }}
@@ -12,7 +12,7 @@
             · {{ stats.pct }} % de participation
         </p>
     </div>
-    <div class="fr-col-auto">
+    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
         <a class="fr-btn fr-btn--secondary fr-btn--icon-left fr-icon-bar-chart-box-line"
            href="{{ url_for('campagne_dashboard', campagne_id=campagne.id) }}">Restitution</a>
     </div>

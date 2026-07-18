@@ -34,20 +34,20 @@
 <div class="fr-card fr-mb-3w chart-card">
     <div class="fr-card__body">
         <div class="fr-card__content fr-py-3w">
-            <h2 class="fr-card__title fr-h6 fr-mb-2w">
+            <h2 class="fr-h6 fr-mb-2w">
                 {{ chart.ref.label }} — score par dimension dans le temps
                 ({{ chart.nb_evaluations }} évaluation{{ 's' if chart.nb_evaluations > 1 }})
             </h2>
             <div class="fr-grid-row fr-grid-row--gutters">
                 <div class="fr-col-12 fr-col-lg-7">
                     <dsfr-data-source id="l{{ loop.index }}" data='{{ chart.line_rows | tojson }}'></dsfr-data-source>
-                    <dsfr-data-chart source="l{{ loop.index }}" type="line"
+                    <dsfr-data-chart data-scale-max="{{ chart.max_niveau }}" source="l{{ loop.index }}" type="line"
                                      label-field="campagne" series-field="dimension" value-field="score"></dsfr-data-chart>
                 </div>
                 <div class="fr-col-12 fr-col-lg-5">
                     <p class="fr-text--sm fr-text--bold fr-mb-1w">Dernière évaluation</p>
                     <dsfr-data-source id="r{{ loop.index }}" data='{{ chart.radar_rows | tojson }}'></dsfr-data-source>
-                    <dsfr-data-chart source="r{{ loop.index }}" type="radar"
+                    <dsfr-data-chart data-scale-max="{{ chart.max_niveau }}" source="r{{ loop.index }}" type="radar"
                                      label-field="dimension" value-field="score"></dsfr-data-chart>
                 </div>
             </div>

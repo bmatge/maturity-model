@@ -4,7 +4,7 @@
 {% block content %}
 <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left no-print" href="{{ url_for('campagne_detail', campagne_id=campagne.id) }}">{{ campagne.label }}</a>
 <div class="fr-grid-row fr-grid-row--middle fr-mt-1w fr-mb-2w">
-    <div class="fr-col">
+    <div class="fr-col-12 fr-col-md">
         <h1 class="fr-mb-1w">Restitution — {{ campagne.label }}</h1>
         <p class="fr-text--lg text-mention fr-mb-0">
             Comparaison inter-entités sur les évaluations validées. Repérez les capacités faibles partout
@@ -39,7 +39,7 @@
         <div class="panel chart-card" style="height: 100%;">
             <p class="panel__title">Radar comparatif</p>
             <dsfr-data-source id="cmp" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+            <dsfr-data-chart data-scale-max="{{ max_niveau }}" source="cmp" type="radar" label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
         </div>
     </div>
     <div class="fr-col-12 fr-col-lg-7">
@@ -87,7 +87,7 @@
 {# ── Heatmap entités × capacités ── #}
 <div class="panel">
     <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-        <div class="fr-col"><p class="panel__title fr-mb-0">Heatmap — entités × capacités</p></div>
+        <div class="fr-col-12 fr-col-md"><p class="panel__title fr-mb-0">Heatmap — entités × capacités</p></div>
         <div class="fr-col-auto fr-text--sm text-mention">
             Survol : détail ·
             {% if all_capacites and all_capacites[0].niveaux %}

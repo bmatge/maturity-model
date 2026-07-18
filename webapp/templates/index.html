@@ -31,14 +31,14 @@
 {% set stats = camp_data.stats %}
 <div class="panel fr-mb-3w">
     <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
-        <div class="fr-col">
+        <div class="fr-col-12 fr-col-md">
             <p class="panel__title fr-mb-0">{{ campagne.label }}</p>
             <p class="fr-text--sm text-mention fr-mb-0">
                 {{ campagne.referentiel.label if campagne.referentiel else "Sans référentiel" }}
                 · du {{ campagne.date_debut.strftime("%d/%m/%Y") }}{% if campagne.date_fin %} au {{ campagne.date_fin.strftime("%d/%m/%Y") }}{% endif %}
             </p>
         </div>
-        <div class="fr-col-auto">
+        <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0">
             <a class="fr-btn fr-btn--icon-right fr-icon-arrow-right-line"
                href="{{ url_for('campagne_detail', campagne_id=campagne.id) }}">Piloter la campagne</a>
         </div>
@@ -59,7 +59,7 @@
             <p class="panel__title">Profil de maturité moyen</p>
             {% if radar_rows %}
             <dsfr-data-source id="home-radar" data='{{ radar_rows|tojson }}'></dsfr-data-source>
-            <dsfr-data-chart source="home-radar" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
+            <dsfr-data-chart data-scale-max="{{ max_niveau }}" source="home-radar" type="radar" label-field="dimension" value-field="score"></dsfr-data-chart>
             {% if radar_ref %}<p class="fr-text--xs text-mention fr-mb-0 fr-mt-1w">Référentiel : {{ radar_ref.label }} — dernière évaluation validée par organisation.</p>{% endif %}
             {% else %}
             <p class="fr-text--sm text-mention fr-mb-0">Aucune évaluation validée pour l'instant.</p>

@@ -32,23 +32,24 @@
                             <p class="fr-header__service-tagline">Auto-évaluation des pratiques — SIRCOM / MIWEB</p>
                         </div>
                     </div>
-                    <div class="fr-header__tools">
-                        <div class="fr-header__tools-links">
-                            <form class="identity-form" method="post" action="{{ url_for('login_as') }}">
-                                <input type="hidden" name="next" value="{{ request.path }}">
-                                <div class="fr-select-group fr-mb-0">
-                                    <label class="fr-label fr-sr-only" for="identity-select">Identité</label>
-                                    <select class="fr-select" id="identity-select" name="user_id"
-                                            onchange="this.form.submit()"
-                                            title="Changer d'identité — sera remplacé par Authentik">
-                                        <option value="public" {% if not current_user_obj %}selected{% endif %}>Lecteur (public)</option>
-                                        {% for u in all_users %}
-                                        <option value="{{ u.id }}" {% if current_user_obj and current_user_obj.id == u.id %}selected{% endif %}>{{ u.nom }} · {{ u.role_label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </form>
-                        </div>
+                    {# Volontairement hors de .fr-header__tools : le member DSFR
+                       HeaderLinks exige un menu mobile qu'on n'utilise pas (le
+                       sidemenu porte la navigation) et masque les tools sous lg. #}
+                    <div class="identity-tools">
+                        <form class="identity-form" method="post" action="{{ url_for('login_as') }}">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <div class="fr-select-group fr-mb-0">
+                                <label class="fr-label fr-sr-only" for="identity-select">Identité</label>
+                                <select class="fr-select" id="identity-select" name="user_id"
+                                        onchange="this.form.submit()"
+                                        title="Changer d'identité — sera remplacé par Authentik">
+                                    <option value="public" {% if not current_user_obj %}selected{% endif %}>Lecteur (public)</option>
+                                    {% for u in all_users %}
+                                    <option value="{{ u.id }}" {% if current_user_obj and current_user_obj.id == u.id %}selected{% endif %}>{{ u.nom }} · {{ u.role_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -58,10 +59,14 @@
     <main class="fr-container app-main" id="content">
         <div class="fr-grid-row">
             <div class="fr-col-12 fr-col-md-3">
+                {# Accordéon mobile maison (sidemenu-toggle/sidemenu-content, cf. app.js) :
+                   le member Collapse du DSFR restait bloqué dans notre layout. #}
                 <nav class="fr-sidemenu fr-sidemenu--sticky" aria-labelledby="sidemenu-title" role="navigation">
                     <div class="fr-sidemenu__inner">
-                        <button class="fr-sidemenu__btn" hidden aria-controls="sidemenu-wrapper" aria-expanded="false">{{ nav_heading }}</button>
-                        <div class="fr-collapse" id="sidemenu-wrapper">
+                        <button class="sidemenu-toggle" type="button" aria-controls="sidemenu-wrapper" aria-expanded="false">
+                            {{ nav_heading }}<span class="fr-icon-arrow-down-s-line" aria-hidden="true"></span>
+                        </button>
+                        <div class="sidemenu-content" id="sidemenu-wrapper">
                             <p class="fr-sidemenu__title" id="sidemenu-title">{{ nav_heading }}</p>
                             <ul class="fr-sidemenu__list">
                                 {% for item in nav_items %}
@@ -168,7 +173,7 @@
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.module.min.js"></script>
     <script type="text/javascript" nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.4/dist/dsfr.nomodule.min.js"></script>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=2"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
