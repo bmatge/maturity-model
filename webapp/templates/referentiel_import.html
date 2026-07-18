@@ -15,10 +15,27 @@
             <div class="dropzone fr-mb-3w">
                 <span class="fr-icon-file-download-line fr-icon--lg text-mention" aria-hidden="true"></span>
                 <div class="fr-upload-group fr-mt-1w">
-                    <label class="fr-label" for="import-fichier">Déposez un fichier JSON
-                        <span class="fr-hint-text">Format JSON structuré ; xlsx à venir. ex. Referentiel_Maturite_Design_MEF.json</span>
+                    <label class="fr-label" for="import-fichier">Déposez un fichier JSON ou xlsx
+                        <span class="fr-hint-text">JSON structuré, ou tableur xlsx (une ligne par capacité × niveau — voir « Format attendu »). ex. Referentiel_Maturite_Design_MEF.xlsx</span>
                     </label>
-                    <input class="fr-upload" type="file" id="import-fichier" name="fichier" accept=".json" required>
+                    <input class="fr-upload" type="file" id="import-fichier" name="fichier" accept=".json,.xlsx" required>
+                </div>
+            </div>
+
+            <div class="fr-grid-row fr-grid-row--gutters fr-mb-1w">
+                <div class="fr-col-12 fr-col-md-6">
+                    <div class="fr-input-group">
+                        <label class="fr-label" for="import-label">Label du référentiel
+                            <span class="fr-hint-text">Requis pour un xlsx (le JSON porte son label). Ex. Design-org-v2</span>
+                        </label>
+                        <input class="fr-input" type="text" id="import-label" name="label" placeholder="Design-org-v2">
+                    </div>
+                </div>
+                <div class="fr-col-12 fr-col-md-6">
+                    <div class="fr-input-group">
+                        <label class="fr-label" for="import-description">Description (optionnelle)</label>
+                        <input class="fr-input" type="text" id="import-description" name="description">
+                    </div>
                 </div>
             </div>
 
@@ -65,6 +82,13 @@
     }
   ]
 }</code></pre>
+                    <p class="fr-text--sm fr-text--bold fr-mt-2w fr-mb-1w">Tableur xlsx — une ligne par (capacité × niveau)</p>
+                    <p class="fr-text--xs text-mention">Colonnes attendues sur la première feuille (l'ordre est libre,
+                       <code>capacite_description</code> et <code>signaux</code> sont optionnelles) :</p>
+                    <pre class="fr-text--xs" style="overflow-x: auto;"><code>dimension_numero | dimension_nom | capacite_numero | capacite_nom | capacite_description | portee | niveau | niveau_nom | critere | signaux
+1 | Vision &amp; positionnement | 1.1 | Vision stratégique | … | P | 1 | Absent  | Aucune vision formalisée. |
+1 | Vision &amp; positionnement | 1.1 | Vision stratégique | … | P | 2 | Engagé  | Une vision existe…        |
+1 | Vision &amp; positionnement | 1.1 | Vision stratégique | … | P | 3 | Systématisé | Vision partagée…      |</code></pre>
                 </div>
             </section>
 

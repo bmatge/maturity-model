@@ -1,40 +1,30 @@
+# Contrat spawn (VibeLab) — cf. ADR-038/ADR-047 :
+# réseau externe `proxy`, labels ${APP_NAME}/${DOMAIN} interpolés par spawn,
+# pas de ports: publiés. Le middleware d'auth (--auth authentik) est injecté
+# par l'override généré par spawn — ne pas le déclarer ici.
 services:
-  maturity:
+  web:
     build: .
     restart: unless-stopped
+    networks: [proxy]
     volumes:
       - maturity-data:/app/data
     environment:
       - DATABASE_PATH=/app/data/maturity.db
+      # Identité fournie par le proxy Authentik (en-têtes X-authentik-*),
+      # rôles applicatifs = groupes maturity-admin / maturity-pilote / maturity-repondant
+      - SSO_HEADERS=1
     labels:
-      # Traefik
       - traefik.enable=true
-
-      # HTTP → HTTPS redirect
-      - traefik.http.routers.maturity-http.rule=Host(`maturity-model.matge.com`)
-      - traefik.http.routers.maturity-http.entrypoints=web
-      - traefik.http.routers.maturity-http.middlewares=redirect-to-https
-
-      # HTTPS
-      - traefik.http.routers.maturity-https.rule=Host(`maturity-model.matge.com`)
-      - traefik.http.routers.maturity-https.entrypoints=websecure
-      - traefik.http.routers.maturity-https.tls=true
-      - traefik.http.routers.maturity-https.tls.certresolver=letsencrypt
-      - traefik.http.routers.maturity-https.tls.options=anssi-strict@file
-      - traefik.http.routers.maturity-https.middlewares=security-headers@file
-
-      # Service
-      - traefik.http.services.maturity.loadbalancer.server.port=8000
-
-      # Redirect middleware
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
-    networks:
-      - ecosystem-network
+      - traefik.docker.network=proxy
+      - traefik.http.routers.${APP_NAME}.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.${APP_NAME}.entrypoints=websecure
+      - traefik.http.routers.${APP_NAME}.tls.certresolver=letsencrypt
+      - traefik.http.services.${APP_NAME}.loadbalancer.server.port=8000
 
 volumes:
   maturity-data:
 
 networks:
-  ecosystem-network:
+  proxy:
     external: true

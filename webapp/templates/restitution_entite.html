@@ -114,9 +114,24 @@
                     {% else %}
                     <p class="fr-text--sm text-mention">Aucun site rattaché à cette organisation.</p>
                     {% endif %}
-                    <div class="fr-alert fr-alert--info fr-alert--sm">
-                        <p>La maturité des sites qualifiera à terme celle de l'organisation (consolidation à venir).</p>
+                    {% if consolidation %}
+                    <div class="fr-mt-2w">
+                        <p class="fr-text--sm fr-text--bold fr-mb-1w">Consolidation sites → organisation</p>
+                        {% for c in consolidation %}
+                        <div class="score-inline fr-mb-1w">
+                            <span class="fr-text--xs text-mention" style="width: 130px; flex: none;"
+                                  title="{{ c.ref.label }}">{{ c.ref.label }}</span>
+                            <div class="progress progress--sm">
+                                <div class="progress__bar progress__bar--{{ c.color }}" style="width: {{ c.pct }}%;"></div>
+                            </div>
+                            <span class="fr-text--sm fr-text--bold">{{ c.score }}/{{ c.max }}</span>
+                            <span class="fr-text--xs text-mention">({{ c.nb_sites }} site{{ "s" if c.nb_sites > 1 }})</span>
+                        </div>
+                        {% endfor %}
+                        <p class="fr-text--xs text-mention fr-mb-0">Moyenne simple des dernières évaluations
+                            validées des sites rattachés, par référentiel.</p>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

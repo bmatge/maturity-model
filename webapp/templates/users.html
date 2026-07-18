@@ -17,6 +17,15 @@
     </div>
 </div>
 
+{% if sso_mode %}
+<div class="fr-alert fr-alert--info fr-alert--sm fr-mb-3w">
+    <p>SSO Authentik actif : les comptes se créent au premier login et le <strong>rôle</strong> est
+    recalculé à chaque connexion depuis les groupes <code>maturity-admin</code> /
+    <code>maturity-pilote</code> / <code>maturity-repondant</code> (source de vérité).
+    Gérez ici uniquement le <strong>droit</strong> (périmètre global / entité / site).</p>
+</div>
+{% endif %}
+
 {# ── Cartes de rôles ── #}
 <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
     <div class="fr-col-12 fr-col-md-3">

@@ -98,6 +98,26 @@
                 </div>
             </div>
         </div>
+        {% set retard = stats.rows | rejectattr("statut", "equalto", "validee") | list %}
+        {% if retard %}
+        {% set ns = namespace(lines=[]) %}
+        {% for r in retard %}
+            {% set nom_r = r.entite.nom if r.entite else (r.site.nom if r.site else "—") %}
+            {% if campagne.referentiel and r.entite %}
+                {% set ns.lines = ns.lines + ["- " ~ nom_r ~ " : " ~ url_for("invitation", campagne_id=campagne.id, entite_id=r.entite.id, _external=True)] %}
+            {% else %}
+                {% set ns.lines = ns.lines + ["- " ~ nom_r] %}
+            {% endif %}
+        {% endfor %}
+        {% set liste_retard = ns.lines | join("\n") %}
+        <div class="fr-btns-group fr-btns-group--inline-md fr-mt-2w no-print">
+            <a class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-mail-send-line"
+               href="mailto:?subject={{ ("Relance — " ~ campagne.label)|urlencode }}&body={{ ("Bonjour,\n\nVotre évaluation est attendue pour la campagne « " ~ campagne.label ~ " » :\n\n" ~ liste_retard ~ "\n\nMerci !")|urlencode }}">
+                Relancer les {{ retard | length }} retardataires</a>
+            <button type="button" class="fr-btn fr-btn--secondary fr-btn--sm fr-btn--icon-left fr-icon-file-copy-line"
+                    data-copy-text="{{ liste_retard }}">Copier la liste</button>
+        </div>
+        {% endif %}
         {% else %}
         <div class="fr-callout">
             <p class="fr-callout__title">Aucune évaluation pour l'instant</p>

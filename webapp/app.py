@@ -108,12 +108,13 @@ def ensure_db():
         seed_mini_referentiels()
         seed_demo_entites()
         seed_demo_sites()
-        seed_demo_users()
+        if not SSO_MODE:
+            seed_demo_users()
         app._db_ready = True
 
 
 def seed_demo_users():
-    """Comptes de démonstration (pré-Authentik)."""
+    """Comptes de démonstration (dev uniquement — en SSO les comptes naissent au 1er login)."""
     if User.query.first():
         return
     sante = Entite.query.filter_by(nom="Bureau com — Santé").first()
@@ -131,10 +132,50 @@ def seed_demo_users():
 
 
 # ──────────────────────────────────────────────
-# Identité & rôles (pré-Authentik)
+# Identité & rôles
+#
+# Deux modes :
+# - SSO (SSO_HEADERS=1, déploiement lab derrière le proxy Authentik) :
+#   l'identité vient des en-têtes X-authentik-* posés par Traefik
+#   (authResponseHeaders — non spoofables derrière le middleware). Le rôle
+#   applicatif est dérivé des groupes Authentik maturity-admin / maturity-pilote /
+#   maturity-repondant ; un membre du lab sans groupe maturity-* est lecteur.
+# - Dev (défaut) : sélecteur d'identité en session (pré-Authentik).
 # ──────────────────────────────────────────────
 
+SSO_MODE = os.environ.get("SSO_HEADERS") == "1"
+SSO_ROLE_GROUPS = [("maturity-admin", "admin"),
+                   ("maturity-pilote", "pilote"),
+                   ("maturity-repondant", "repondant")]
+
+
+def sso_identity():
+    """(email, nom, rôle) depuis les en-têtes Authentik, ou None hors SSO."""
+    email = (request.headers.get("X-Authentik-Email") or "").strip().lower()
+    if not (SSO_MODE and email):
+        return None
+    nom = request.headers.get("X-Authentik-Name") or request.headers.get("X-Authentik-Username") or email
+    groups = {g.strip().lower() for g in (request.headers.get("X-Authentik-Groups") or "").split("|") if g.strip()}
+    role = next((r for g, r in SSO_ROLE_GROUPS if g in groups), None)
+    return email, nom, role
+
+
 def current_user():
+    ident = sso_identity()
+    if ident:
+        email, nom, role = ident
+        if role is None:
+            return None  # membre du lab sans groupe maturity-* → lecteur
+        user = User.query.filter_by(email=email).first()
+        if user is None:
+            user = User(nom=nom, email=email, role=role, scope_type="global")
+            db.session.add(user)
+            db.session.commit()
+        elif user.nom != nom or user.role != role:
+            # les groupes Authentik sont la source de vérité du rôle
+            user.nom, user.role = nom, role
+            db.session.commit()
+        return user
     uid = session.get("user_id")
     return db.session.get(User, uid) if uid else None
 
@@ -161,7 +202,10 @@ def require_roles(*roles):
 
 @app.route("/login-as", methods=["POST"])
 def login_as():
-    """Sélecteur d'identité (dev) — sera remplacé par Authentik."""
+    """Sélecteur d'identité (dev uniquement — en SSO l'identité vient d'Authentik)."""
+    if SSO_MODE:
+        flash("L'identité est gérée par le SSO Authentik.", "info")
+        return redirect(url_for("home"))
     uid = request.form.get("user_id", "")
     if uid == "public" or not uid:
         session.pop("user_id", None)
@@ -450,6 +494,7 @@ def inject_layout():
 
     nb_campagnes_en_cours = Campagne.query.filter_by(statut="en_cours").count()
     return {
+        "sso_mode": SSO_MODE,
         "current_user_obj": user,
         "current_role": role,
         "role_label": {"repondant": "Répondant", "pilote": "Pilote",
@@ -978,10 +1023,8 @@ def campagne_delete(campagne_id):
     return redirect(url_for("campagnes_list"))
 
 
-@app.route("/campagne/<int:campagne_id>/dashboard")
-def campagne_dashboard(campagne_id):
-    """Restitution campagne : radar comparatif, stats par dimension, heatmap."""
-    campagne = Campagne.query.get_or_404(campagne_id)
+def campagne_dashboard_data(campagne):
+    """Radar comparatif, stats par dimension et heatmap d'une campagne."""
     validated = Evaluation.query.filter_by(campagne_id=campagne.id, statut="validee").all()
     stats = compute_global_stats(campagne)
     ref = campagne.referentiel or (validated[0].referentiel if validated else None)
@@ -1014,12 +1057,78 @@ def campagne_dashboard(campagne_id):
         heatmap.append({"nom": ev.cible_nom,
                         "cells": [cell.get(c.id) for c in all_capacites]})
 
-    return render_template("campagne_dashboard.html",
-        campagne=campagne, stats_campagne=campagne_stats(campagne),
-        referentiel=ref, dimensions=dimensions, all_capacites=all_capacites,
-        radar_rows=radar_rows, dim_stats=dim_stats, heatmap=heatmap,
-        max_niveau=max_niveau, nb_validees=len(validated),
-    )
+    return {
+        "campagne": campagne, "stats_campagne": campagne_stats(campagne),
+        "referentiel": ref, "dimensions": dimensions, "all_capacites": all_capacites,
+        "radar_rows": radar_rows, "dim_stats": dim_stats, "heatmap": heatmap,
+        "max_niveau": max_niveau, "nb_validees": len(validated),
+    }
+
+
+def campagne_synthese(campagne):
+    """Messages exécutifs d'une campagne (progression, chantier, entité qui décroche, fiabilité)."""
+    validated = Evaluation.query.filter_by(campagne_id=campagne.id, statut="validee").all()
+    ref = campagne.referentiel or (validated[0].referentiel if validated else None)
+    max_niveau = get_max_niveau(ref) if ref else 4
+    stats = compute_global_stats(campagne)
+    camp_part = campagne_stats(campagne)
+
+    scores = [global_score(ev) for ev in validated]
+    score_moyen = round(sum(scores) / len(scores), 2) if scores else 0
+    pct_moyen = round(score_moyen / max_niveau * 100)
+    delta = prev_label = None
+    if ref:
+        for c in Campagne.query.filter(Campagne.id != campagne.id,
+                                       Campagne.date_debut < campagne.date_debut) \
+                .order_by(Campagne.date_debut.desc()).all():
+            c_evals = [ev for ev in c.evaluations
+                       if ev.statut == "validee" and ev.referentiel_id == ref.id]
+            if c_evals:
+                prev_scores = [global_score(ev) for ev in c_evals]
+                prev_pct = round(sum(prev_scores) / len(prev_scores) / max_niveau * 100)
+                delta = pct_moyen - prev_pct
+                prev_label = c.label
+                break
+
+    weakest_dim = min(stats.values(), key=lambda s: s["moyenne"]) if stats else None
+    classement = []
+    for ev in validated:
+        s = global_score(ev)
+        p = round(s / max_niveau * 100)
+        classement.append({"nom": ev.cible_nom, "entite_id": ev.entite_id,
+                           "score": s, "pct": p, "color": score_color(p)})
+    classement.sort(key=lambda x: -x["score"])
+    weakest_entity = classement[-1] if classement else None
+
+    all_scores = [s for ev in validated for s in scored(ev.scores)]
+    justif_pct = round(100 * sum(1 for s in all_scores if (s.justification or "").strip())
+                       / len(all_scores)) if all_scores else 0
+    refs_used = {ev.referentiel_id for ev in validated}
+
+    return {
+        "referentiel": ref, "max_niveau": max_niveau,
+        "score_moyen": score_moyen, "pct_moyen": pct_moyen,
+        "delta": delta, "prev_label": prev_label,
+        "weakest_dim": weakest_dim, "weakest_entity": weakest_entity,
+        "classement": classement, "camp_part": camp_part,
+        "justif_pct": justif_pct, "ref_partage": (len(refs_used) == 1),
+    }
+
+
+@app.route("/campagne/<int:campagne_id>/dashboard")
+def campagne_dashboard(campagne_id):
+    """Restitution campagne : radar comparatif, stats par dimension, heatmap."""
+    campagne = Campagne.query.get_or_404(campagne_id)
+    return render_template("campagne_dashboard.html", **campagne_dashboard_data(campagne))
+
+
+@app.route("/campagne/<int:campagne_id>/rapport")
+def campagne_rapport(campagne_id):
+    """Rapport de restitution — page dédiée, optimisée impression/PDF (COPIL)."""
+    campagne = Campagne.query.get_or_404(campagne_id)
+    data = campagne_dashboard_data(campagne)
+    data["synthese"] = campagne_synthese(campagne)
+    return render_template("rapport.html", **data)
 
 
 # ──────────────────────────────────────────────
@@ -1136,58 +1245,78 @@ def referentiel_toggle(ref_id):
     return redirect(url_for("referentiels_admin"))
 
 
+def create_referentiel_from_data(data):
+    """Crée un référentiel depuis la structure commune JSON/xlsx. Retourne le référentiel."""
+    label = data["label"]
+    if ReferentielVersion.query.filter_by(label=label).first():
+        raise ValueError(f"un référentiel « {label} » existe déjà — changez le label "
+                         "(un référentiel utilisé ne peut pas être modifié en place)")
+    ref = ReferentielVersion(
+        label=label,
+        description=data.get("description", ""),
+        cible=data.get("cible", "organisation"),
+        is_active=False,
+    )
+    db.session.add(ref)
+    db.session.flush()
+    for dim_data in data["dimensions"]:
+        dim = Dimension(referentiel_id=ref.id, numero=int(dim_data["numero"]),
+                        nom=dim_data["nom"], description=dim_data.get("description", ""))
+        db.session.add(dim)
+        db.session.flush()
+        for cap_data in dim_data["capacites"]:
+            cap = Capacite(dimension_id=dim.id, numero=str(cap_data["numero"]),
+                           nom=cap_data["nom"], description=cap_data.get("description", ""),
+                           portee=cap_data.get("portee", "P"))
+            db.session.add(cap)
+            db.session.flush()
+            for niv_data in cap_data["niveaux"]:
+                db.session.add(NiveauCritere(
+                    capacite_id=cap.id, niveau=int(niv_data["niveau"]),
+                    nom=niv_data["nom"], description=niv_data["description"],
+                    signaux_observables=niv_data.get("signaux_observables", "")))
+    db.session.commit()
+    return ref
+
+
 @app.route("/referentiels/import", methods=["GET", "POST"])
 @require_roles("pilote", "admin")
 def referentiel_import():
-    """Import d'un référentiel au format JSON structuré."""
+    """Import d'un référentiel — JSON structuré ou tableur xlsx (parseur stdlib)."""
     if request.method == "POST":
         file = request.files.get("fichier")
         if not file or not file.filename:
             flash("Aucun fichier fourni.", "error")
             return redirect(url_for("referentiel_import"))
-        if not file.filename.lower().endswith(".json"):
-            flash("Seul le format JSON est supporté pour l'instant (xlsx à venir).", "warning")
-            return redirect(url_for("referentiel_import"))
+        fname = file.filename.lower()
         try:
-            data = json.load(file.stream)
-            label = data["label"]
-            if ReferentielVersion.query.filter_by(label=label).first():
-                flash(f"Un référentiel « {label} » existe déjà — changez le label "
-                      "(un référentiel utilisé ne peut pas être modifié en place).", "error")
+            if fname.endswith(".json"):
+                data = json.load(file.stream)
+                if request.form.get("cible"):
+                    data["cible"] = request.form["cible"]
+            elif fname.endswith(".xlsx"):
+                from xlsx_import import parse_referentiel_xlsx
+                label = (request.form.get("label") or "").strip()
+                if not label:
+                    flash("Pour un import xlsx, renseignez le label du référentiel "
+                          "(ex. Design-org-v2).", "error")
+                    return redirect(url_for("referentiel_import"))
+                data = parse_referentiel_xlsx(
+                    file.stream, label=label,
+                    description=request.form.get("description", "").strip(),
+                    cible=request.form.get("cible") or "organisation")
+            else:
+                flash("Format non reconnu : fournir un .json ou un .xlsx.", "warning")
                 return redirect(url_for("referentiel_import"))
-            ref = ReferentielVersion(
-                label=label,
-                description=data.get("description", ""),
-                cible=request.form.get("cible") or data.get("cible", "organisation"),
-                is_active=False,
-            )
-            db.session.add(ref)
-            db.session.flush()
-            for dim_data in data["dimensions"]:
-                dim = Dimension(referentiel_id=ref.id, numero=int(dim_data["numero"]),
-                                nom=dim_data["nom"], description=dim_data.get("description", ""))
-                db.session.add(dim)
-                db.session.flush()
-                for cap_data in dim_data["capacites"]:
-                    cap = Capacite(dimension_id=dim.id, numero=str(cap_data["numero"]),
-                                   nom=cap_data["nom"], description=cap_data.get("description", ""),
-                                   portee=cap_data.get("portee", "P"))
-                    db.session.add(cap)
-                    db.session.flush()
-                    for niv_data in cap_data["niveaux"]:
-                        db.session.add(NiveauCritere(
-                            capacite_id=cap.id, niveau=int(niv_data["niveau"]),
-                            nom=niv_data["nom"], description=niv_data["description"],
-                            signaux_observables=niv_data.get("signaux_observables", "")))
-            db.session.commit()
+
+            ref = create_referentiel_from_data(data)
             nb_dims, nb_caps = ref_counts(ref)
-            flash(f"Référentiel « {label} » importé : {nb_dims} dimensions, {nb_caps} capacités. "
+            flash(f"Référentiel « {ref.label} » importé : {nb_dims} dimensions, {nb_caps} capacités. "
                   "Activez-le pour le proposer aux répondants.", "success")
             return redirect(url_for("referentiels_admin"))
         except (KeyError, ValueError, TypeError) as e:
             db.session.rollback()
-            flash(f"Fichier invalide : {e}. Structure attendue : label, cible, "
-                  "dimensions[{numero, nom, capacites[{numero, nom, portee, niveaux[{niveau, nom, description}]}]}].", "error")
+            flash(f"Fichier invalide : {e}", "error")
             return redirect(url_for("referentiel_import"))
     return render_template("referentiel_import.html")
 
@@ -1264,55 +1393,29 @@ def restitution():
     if not campagne:
         return render_template("restitution.html", campagne=None, campagnes=campagnes)
 
-    validated = Evaluation.query.filter_by(campagne_id=campagne.id, statut="validee").all()
-    ref = campagne.referentiel or (validated[0].referentiel if validated else None)
-    max_niveau = get_max_niveau(ref) if ref else 4
-    stats = compute_global_stats(campagne)
-    camp_part = campagne_stats(campagne)
-
-    # Score moyen campagne + progression vs campagne précédente (même référentiel)
-    scores = [global_score(ev) for ev in validated]
-    score_moyen = round(sum(scores) / len(scores), 2) if scores else 0
-    pct_moyen = round(score_moyen / max_niveau * 100)
-    delta = None
-    prev_label = None
-    if ref:
-        for c in Campagne.query.filter(Campagne.id != campagne.id,
-                                       Campagne.date_debut < campagne.date_debut) \
-                .order_by(Campagne.date_debut.desc()).all():
-            c_evals = [ev for ev in c.evaluations
-                       if ev.statut == "validee" and ev.referentiel_id == ref.id]
-            if c_evals:
-                prev_scores = [global_score(ev) for ev in c_evals]
-                prev_pct = round(sum(prev_scores) / len(prev_scores) / max_niveau * 100)
-                delta = pct_moyen - prev_pct
-                prev_label = c.label
-                break
-
-    # Dimension la plus faible / entité qui décroche
-    weakest_dim = min(stats.values(), key=lambda s: s["moyenne"]) if stats else None
-    classement = []
-    for ev in validated:
-        s = global_score(ev)
-        p = round(s / max_niveau * 100)
-        classement.append({"nom": ev.cible_nom, "entite_id": ev.entite_id,
-                           "score": s, "pct": p, "color": score_color(p)})
-    classement.sort(key=lambda x: -x["score"])
-    weakest_entity = classement[-1] if classement else None
-
-    # Fiabilité : participation, % justifié, référentiel partagé
-    all_scores = [s for ev in validated for s in scored(ev.scores)]
-    justif_pct = round(100 * sum(1 for s in all_scores if (s.justification or "").strip())
-                       / len(all_scores)) if all_scores else 0
-    refs_used = {ev.referentiel_id for ev in validated}
-
     return render_template("restitution.html",
-        campagne=campagne, campagnes=campagnes, referentiel=ref,
-        score_moyen=score_moyen, pct_moyen=pct_moyen, delta=delta, prev_label=prev_label,
-        weakest_dim=weakest_dim, weakest_entity=weakest_entity,
-        classement=classement, camp_part=camp_part, justif_pct=justif_pct,
-        ref_partage=(len(refs_used) == 1), max_niveau=max_niveau,
-    )
+        campagne=campagne, campagnes=campagnes, **campagne_synthese(campagne))
+
+
+def sites_consolidation(entite):
+    """Consolidation sites → organisation (issue #5).
+
+    Règle : par référentiel « site », moyenne simple des scores globaux des
+    dernières évaluations validées des sites rattachés à l'organisation.
+    """
+    agg = {}
+    for site in entite.sites:
+        for card in target_scores_summary(site_id=site.id):
+            a = agg.setdefault(card["ref"].id, {"ref": card["ref"], "max": card["max"], "scores": []})
+            a["scores"].append(card["score"])
+    out = []
+    for a in agg.values():
+        score = round(sum(a["scores"]) / len(a["scores"]), 2)
+        pct = round(score / a["max"] * 100) if a["max"] else 0
+        out.append({"ref": a["ref"], "score": score, "max": a["max"], "pct": pct,
+                    "color": score_color(pct), "nb_sites": len(a["scores"])})
+    out.sort(key=lambda x: x["ref"].label)
+    return out
 
 
 @app.route("/restitution/organisation")
@@ -1348,7 +1451,7 @@ def restitution_orgs(entite_id=None):
     return render_template("restitution_entite.html",
         entite=entite, entites=entites, ref_cards=ref_cards,
         radar_eval=radar_eval, radar_rows=radar_rows, radar_max=radar_max,
-        sites_rows=sites_rows,
+        sites_rows=sites_rows, consolidation=sites_consolidation(entite),
     )
 
 

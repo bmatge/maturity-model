@@ -36,6 +36,12 @@
                        HeaderLinks exige un menu mobile qu'on n'utilise pas (le
                        sidemenu porte la navigation) et masque les tools sous lg. #}
                     <div class="identity-tools">
+                        {% if sso_mode %}
+                        <p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mb-0"
+                           title="Identité fournie par le SSO Authentik — rôle géré par les groupes maturity-*">
+                            {{ current_user_obj.nom if current_user_obj else "Lecteur" }} · {{ role_label }}
+                        </p>
+                        {% else %}
                         <form class="identity-form" method="post" action="{{ url_for('login_as') }}">
                             <input type="hidden" name="next" value="{{ request.path }}">
                             <div class="fr-select-group fr-mb-0">
@@ -50,6 +56,7 @@
                                 </select>
                             </div>
                         </form>
+                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Rapport — {{ campagne.label }} — Maturité numérique{% endblock %}
+
+{% block content %}
+{% set s = synthese %}
+<div class="no-print fr-mb-2w">
+    <a class="fr-link fr-icon-arrow-left-line fr-link--icon-left" href="{{ url_for('campagne_dashboard', campagne_id=campagne.id) }}">Restitution en ligne</a>
+</div>
+
+<div class="fr-grid-row fr-grid-row--middle fr-mb-1w">
+    <div class="fr-col-12 fr-col-md">
+        <p class="fr-text--xs text-mention fr-mb-0" style="text-transform: uppercase; letter-spacing: 0.05em;">Rapport de restitution</p>
+        <h1 class="fr-h3 fr-mb-1v">{{ campagne.label }}</h1>
+        <p class="fr-text--sm text-mention fr-mb-0">
+            {{ s.referentiel.label if s.referentiel else "—" }} ·
+            du {{ campagne.date_debut.strftime("%d/%m/%Y") }}{% if campagne.date_fin %} au {{ campagne.date_fin.strftime("%d/%m/%Y") }}{% endif %} ·
+            {{ nb_validees }} évaluation{{ "s" if nb_validees > 1 }} validée{{ "s" if nb_validees > 1 }} ·
+            participation {{ s.camp_part.pct }} % ({{ s.camp_part.valides }}/{{ s.camp_part.attendus }})
+        </p>
+    </div>
+    <div class="fr-col-12 fr-col-md-auto fr-mt-2w fr-mt-md-0 no-print">
+        <button type="button" class="fr-btn fr-btn--icon-left fr-icon-printer-line" onclick="window.print()">Imprimer / PDF</button>
+    </div>
+</div>
+
+{% if nb_validees == 0 %}
+<div class="fr-callout">
+    <p class="fr-callout__title">Aucune évaluation validée</p>
+    <p class="fr-callout__text">Le rapport sera disponible dès la première validation.</p>
+</div>
+{% else %}
+
+{# ── Messages clés ── #}
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w fr-mt-2w">
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="panel exec-card {{ 'exec-card--success' if s.delta is none or s.delta >= 0 else 'exec-card--warning' }}" style="height: 100%;">
+            <p class="exec-card__kicker fr-mb-0">
+                {% if s.delta is none %}Le point de départ{% elif s.delta >= 0 %}La démarche progresse{% else %}La démarche recule{% endif %}
+            </p>
+            <p class="exec-card__value fr-mb-1v">{% if s.delta is not none %}{{ "%+d"|format(s.delta) }} pts{% else %}{{ s.pct_moyen }} %{% endif %}</p>
+            <p class="fr-text--sm text-mention fr-mb-0">Score moyen {{ s.score_moyen }}/{{ s.max_niveau }} ({{ s.pct_moyen }} %){% if s.prev_label %}, vs {{ s.prev_label }}{% endif %}.</p>
+        </div>
+    </div>
+    {% if s.weakest_dim %}
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="panel exec-card exec-card--warning" style="height: 100%;">
+            <p class="exec-card__kicker fr-mb-0">Un chantier transverse</p>
+            <p class="exec-card__value fr-mb-1v">{{ s.weakest_dim.nom }}</p>
+            <p class="fr-text--sm text-mention fr-mb-0">Dimension la plus faible ({{ s.weakest_dim.moyenne }}/{{ s.max_niveau }}) : priorité collective.</p>
+        </div>
+    </div>
+    {% endif %}
+    {% if s.weakest_entity and s.classement | length > 1 %}
+    <div class="fr-col-12 fr-col-md-4">
+        <div class="panel exec-card exec-card--error" style="height: 100%;">
+            <p class="exec-card__kicker fr-mb-0">Une entité décroche</p>
+            <p class="exec-card__value fr-mb-1v">{{ s.weakest_entity.nom }}</p>
+            <p class="fr-text--sm text-mention fr-mb-0">{{ s.weakest_entity.score }}/{{ s.max_niveau }} ({{ s.weakest_entity.pct }} %), sous la moyenne. Accompagnement ciblé.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{# ── Classement + stats ── #}
+<div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
+    <div class="fr-col-12 fr-col-md-5">
+        <div class="panel" style="height: 100%;">
+            <p class="panel__title">Classement des organisations</p>
+            {% for row in s.classement %}
+            <div class="score-inline fr-mb-1w">
+                <span class="fr-text--sm" style="flex: 1; min-width: 0;">{{ row.nom }}</span>
+                <div class="progress">
+                    <div class="progress__bar progress__bar--{{ row.color }}" style="width: {{ row.pct }}%;"></div>
+                </div>
+                <span class="fr-text--sm fr-text--bold" style="width: 52px; text-align: right;">{{ row.score }}/{{ s.max_niveau }}</span>
+            </div>
+            {% endfor %}
+            <p class="fr-text--xs text-mention fr-mb-0">Repères : &lt; 50 % alerte · 50–75 % en progrès · &gt; 75 % solide.
+                Données auto-déclarées, {{ s.justif_pct }} % des réponses justifiées.</p>
+        </div>
+    </div>
+    <div class="fr-col-12 fr-col-md-7">
+        <div class="panel" style="height: 100%;">
+            <p class="panel__title">Statistiques par dimension</p>
+            <div class="fr-table fr-table--sm fr-mb-0">
+                <div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
+                    <table>
+                        <thead><tr><th scope="col">Dimension</th><th scope="col">Moyenne</th><th scope="col"><span class="fr-sr-only">Jauge</span></th></tr></thead>
+                        <tbody>
+                            {% for d in dim_stats %}
+                            <tr>
+                                <td>{{ d.numero }}. {{ d.nom }}<span class="cell-sub">± {{ d.ecart_type }} · min {{ d.min }} – max {{ d.max }}</span></td>
+                                <td><strong style="color: var(--text-default-{{ d.color }});">{{ d.moyenne }}</strong></td>
+                                <td style="width: 110px;"><div class="progress"><div class="progress__bar progress__bar--{{ d.color }}" style="width: {{ d.pct }}%;"></div></div></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Radar comparatif ── #}
+<div class="panel fr-mb-3w chart-card">
+    <p class="panel__title">Profils par dimension</p>
+    <dsfr-data-source id="rapport-radar" data='{{ radar_rows | tojson }}'></dsfr-data-source>
+    <dsfr-data-chart data-scale-max="{{ max_niveau }}" source="rapport-radar" type="radar"
+                     label-field="dimension" series-field="serie" value-field="score"></dsfr-data-chart>
+</div>
+
+{# ── Heatmap ── #}
+<div class="panel {{ 'levels-4' if max_niveau == 4 }}">
+    <p class="panel__title">Heatmap — entités × capacités</p>
+    <div class="heatmap-scroll">
+        <table class="heatmap">
+            <thead>
+                <tr>
+                    <th class="row-label"><span class="fr-sr-only">Entité</span></th>
+                    {% for cap in all_capacites %}<th class="rot" title="{{ cap.numero }} {{ cap.nom }}">{{ cap.numero }}</th>{% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in heatmap %}
+                <tr>
+                    <td class="row-label">{{ row.nom }}</td>
+                    {% for score in row.cells %}
+                    <td style="padding: 0;">
+                        {% if score and score.niveau > 0 %}
+                        <div class="hm-cell hm-cell--{{ score.niveau }}" title="{{ all_capacites[loop.index0].numero }} {{ all_capacites[loop.index0].nom }} — niveau {{ score.niveau }}">{{ score.niveau }}</div>
+                        {% elif score %}
+                        <div class="hm-cell hm-cell--na" title="Non applicable">NA</div>
+                        {% else %}
+                        <div class="hm-cell hm-cell--empty"></div>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="fr-text--xs text-mention fr-mt-1w fr-mb-0">Méthode : auto-évaluation par capacité sur l'échelle du référentiel
+        {{ s.referentiel.label if s.referentiel }} ; score global = moyenne des moyennes de dimension (non-applicables exclus) ;
+        seules les évaluations validées comptent.</p>
+</div>
+{% endif %}
+{% endblock %}

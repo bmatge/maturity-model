@@ -43,6 +43,18 @@
     });
   }
 
+  // ── Copie presse-papier générique (data-copy-text) ──
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-copy-text]");
+    if (!btn) return;
+    e.preventDefault();
+    navigator.clipboard.writeText(btn.getAttribute("data-copy-text")).then(function () {
+      var initial = btn.textContent;
+      btn.textContent = "Copié ✓";
+      setTimeout(function () { btn.textContent = initial; }, 2000);
+    });
+  });
+
   // ── Questionnaire (evaluation_fill) ──
   var fill = document.getElementById("fill-form");
   if (fill) {
